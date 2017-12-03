@@ -1,23 +1,32 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"os"
-	"regexp"
 
+	"github.com/urfave/cli"
 	"gitlab.com/pastdev/s2i/clconf/clconf"
 )
 
-var splitter = regexp.MustCompile(`\s+`)
-
-// YAML_CONFIGS=[{type:secret, path:/foo/bar}, {path:/not/a/secret}, {type: secret, path:/hip/hop}]
-// CONFIG_PREFIX=
-// duplicates for all env vars as command line args.
+// Thoughts...
+// * there should be actions `getv`, `getc`, `setv`, `setc`
+// ** all take a coordinate, setters also take a _fileish_ thing
+// *** setter _fileish_ thing could be cached as env var...
+// ** `getv` should allow for a --decrypt option which takes a list of coords to decrypt
+// * --override opition (multi valued) takes base64 encoded yaml
+// ** stdin should be read in as a file and used as override (not sure if before or after --overrides)
 func main() {
-	yamls := append([]string{},
-		clconf.ReadFiles(
-			splitter.Split(os.Getenv("YAML_FILES"), -1)...)...)
-	yamls = append(yamls, 
-		clconf.DecodeBase64Strings(
-			clconf.ReadEnvVars(
-                splitter.Split(os.Getenv("YAML_VARS"), -1)...)...)...)
+	app := cli.NewApp()
+	app.Name = "clconf"
+	app.Action = func(c *cli.Context) error {
+		yaml, err := clconf.MarshalYaml(clconf.LoadConf())
+		if err != nil {
+			log.Fatalf("Unable to load conf: %v", err)
+		}
+		fmt.Println(yaml)
+		return nil
+	}
+
+	app.Run(os.Args)
 }

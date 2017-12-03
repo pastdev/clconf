@@ -3,29 +3,32 @@
 package clconf
 
 import (
-	"os"
 	"encoding/base64"
 	"io/ioutil"
+	"os"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/imdario/mergo"
 	"github.com/mitchellh/mapstructure"
-	"gopkg.in/yaml.v2"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
+
+var splitter = regexp.MustCompile(`\s+`)
 
 // DecodeBase64Strings will decode all the base64 strings supplied
 func DecodeBase64Strings(values ...string) []string {
 	var contents []string
 	for _, value := range values {
-        content, err := base64.StdEncoding.DecodeString(value)
+		content, err := base64.StdEncoding.DecodeString(value)
 		if err != nil {
 			log.Panicf("Base64 parsing failed: %v", err)
 		}
-        contents = append(contents, string(content))
+		contents = append(contents, string(content))
 	}
-	return contents;
+	return contents
 }
 
 // FillValue will fill a struct, out, with values from conf.
@@ -57,11 +60,37 @@ func GetValue(path string, conf interface{}) (interface{}, bool) {
 		partValue, ok := value.(map[interface{}]interface{})[part]
 		if !ok {
 			log.Warnf("value at [%v] does not exist", part)
-            return nil, false
+			return nil, false
 		}
 		value = partValue
 	}
 	return value, true
+}
+
+// LoadConf will load all configurations present.  In order of precedence
+// (highest last), YAML_FILES env var, YAML_VARS env var, overrides.
+func LoadConf(overrides ...string) map[interface{}]interface{} {
+	yamls := []string{}
+	if yamlFiles, ok := os.LookupEnv("YAML_FILES"); ok {
+		yamls = append(yamls,
+			ReadFiles(
+				splitter.Split(yamlFiles, -1)...)...)
+	}
+	if yamlVars, ok := os.LookupEnv("YAML_VARS"); ok {
+		yamls = append(yamls,
+			DecodeBase64Strings(
+				ReadEnvVars(
+					splitter.Split(yamlVars, -1)...)...)...)
+	}
+	if len(overrides) > 0 {
+		yamls = append(yamls, DecodeBase64Strings(overrides...)...)
+	}
+
+	conf, err := UnmarshalYaml(yamls...)
+	if err != nil {
+		log.Panicf("Load conf failed: %v", err)
+	}
+	return conf
 }
 
 // MarshalYaml will convert an object to yaml
@@ -74,14 +103,18 @@ func MarshalYaml(in interface{}) (string, error) {
 }
 
 // ReadEnvVars will read all the environment variables named and return an
-// array of their values.  The order of the names to values will be 
+// array of their values.  The order of the names to values will be
 // preserved.
 func ReadEnvVars(names ...string) []string {
 	var values []string
 	for _, name := range names {
-		values = append(values, os.Getenv(name))
+		if value, ok := os.LookupEnv(name); ok {
+			values = append(values, value)
+		} else {
+			log.Panicf("Read env var [%s] failed, does not exist", name)
+		}
 	}
-	return values;
+	return values
 }
 
 // ReadFiles will read all the files supplied and return an array of their
@@ -89,13 +122,17 @@ func ReadEnvVars(names ...string) []string {
 func ReadFiles(files ...string) []string {
 	var contents []string
 	for _, file := range files {
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			log.Panicf("Read file [%s] failed, does not exist", file)
+		}
+
 		content, err := ioutil.ReadFile(file)
 		if err != nil {
-			log.Panicf("Read file %s failed: %v", file, err)
+			log.Panicf("Read file [%s] failed: %v", file, err)
 		}
-        contents = append(contents, string(content))
+		contents = append(contents, string(content))
 	}
-	return contents;
+	return contents
 }
 
 // UnmarshalYaml will parse all the supplied yaml strings, merge the resulting
@@ -112,7 +149,7 @@ func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
 		}
 
 		if err := mergo.Merge(&result, yamlMap); err != nil {
-			log.Warnf("error at index [%d] yaml: %v", index, err)
+			log.Panicf("error at index [%d] yaml: %v", index, err)
 			return nil, err
 		}
 	}
