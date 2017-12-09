@@ -6,6 +6,7 @@ import (
 	"github.com/urfave/cli"
 )
 
+// Cgetv will decrypte, then dump, the value indicated by the context to stdout
 func Cgetv(c *cli.Context) error {
 	path := c.Args().First()
 	value, ok := GetValue(path, load(c))
@@ -27,20 +28,29 @@ func Cgetv(c *cli.Context) error {
 func dump(conf interface{}) cli.ExitCoder {
 	yaml, err := MarshalYaml(conf)
 	if err != nil {
-	    return cli.NewExitError(
+		return cli.NewExitError(
 			fmt.Sprintf("Unable to dump value: %v", err), 1)
 	}
 	fmt.Println(yaml)
 	return nil
 }
 
-func Getv(c *cli.Context) error {
+func getv(c *cli.Context) (interface{}, error) {
 	path := c.Args().First()
 	if value, ok := GetValue(path, load(c)); ok {
-		return dump(value)
+		return value, nil
 	}
-	return cli.NewExitError(
+	return nil, cli.NewExitError(
 		fmt.Sprintf("[%v] does not exist", path), 1)
+}
+
+// Getv will dump the value indicated by the context to stdout
+func Getv(c *cli.Context) error {
+	value, err := getv(c)
+	if err == nil {
+		dump(value)
+	}
+	return err
 }
 
 func load(c *cli.Context) map[interface{}]interface{} {
@@ -51,10 +61,10 @@ func load(c *cli.Context) map[interface{}]interface{} {
 
 func newSecretAgentFromCli(c *cli.Context) (*SecretAgent, error) {
 	if secretKeysBase64 := c.GlobalString("secret-keys"); secretKeysBase64 != "" {
-        return NewSecretAgentFromBase64(secretKeysBase64);
+		return NewSecretAgentFromBase64(secretKeysBase64)
 	}
 	if secretKeysFile := c.GlobalString("secret-keys-file"); secretKeysFile != "" {
-		return NewSecretAgentFromFile(secretKeysFile);
+		return NewSecretAgentFromFile(secretKeysFile)
 	}
 	return nil, cli.NewExitError("--secret-keys or --secret-keys-file required", 1)
 }
