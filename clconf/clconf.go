@@ -16,7 +16,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var splitter = regexp.MustCompile(`\s+`)
+var splitter = regexp.MustCompile(`,`)
 
 // DecodeBase64Strings will decode all the base64 strings supplied
 func DecodeBase64Strings(values ...string) []string {
@@ -53,6 +53,9 @@ func GetValue(path string, conf interface{}) (interface{}, bool) {
 
 	var value = conf
 	for _, part := range strings.Split(path, "/") {
+		if part == "" {
+			continue
+		}
 		if reflect.ValueOf(value).Kind() != reflect.Map {
 			log.Warnf("value at [%v] not a map: %v", part, reflect.ValueOf(value).Kind())
 			return nil, false
@@ -67,20 +70,25 @@ func GetValue(path string, conf interface{}) (interface{}, bool) {
 	return value, true
 }
 
-// LoadConf will load all configurations present.  In order of precedence
-// (highest last), YAML_FILES env var, YAML_VARS env var, overrides.
-func LoadConf(overrides ...string) map[interface{}]interface{} {
-	yamls := []string{}
+// LoadConfFromEnvironment will load all configurations present.  In order
+// of precedence (highest last), YAML_FILES env var, YAML_VARS env var,
+// files, overrides.
+func LoadConfFromEnvironment(files []string, overrides []string) map[interface{}]interface{} {
 	if yamlFiles, ok := os.LookupEnv("YAML_FILES"); ok {
-		yamls = append(yamls,
-			ReadFiles(
-				splitter.Split(yamlFiles, -1)...)...)
+		files = append(files, splitter.Split(yamlFiles, -1)...)
 	}
 	if yamlVars, ok := os.LookupEnv("YAML_VARS"); ok {
-		yamls = append(yamls,
-			DecodeBase64Strings(
-				ReadEnvVars(
-					splitter.Split(yamlVars, -1)...)...)...)
+		overrides = append(overrides, ReadEnvVars(splitter.Split(yamlVars, -1)...)...)
+	}
+	return LoadConf(files, overrides)
+}
+
+// LoadConf will load all configurations provided.  In order of precedence
+// (highest last), files, overrides.
+func LoadConf(files []string, overrides []string) map[interface{}]interface{} {
+	yamls := []string{}
+	if len(files) > 0 {
+		yamls = append(yamls, ReadFiles(files...)...)
 	}
 	if len(overrides) > 0 {
 		yamls = append(yamls, DecodeBase64Strings(overrides...)...)
@@ -135,14 +143,12 @@ func ReadFiles(files ...string) []string {
 	return contents
 }
 
-// UnmarshalYaml will parse all the supplied yaml strings, merge the resulting
-// objects, and return the resulting map
-func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
+func unmarshalYaml(yamlBytes ...[]byte) (map[interface{}]interface{}, error) {
 	result := make(map[interface{}]interface{})
-	for index := len(yamlStrings) - 1; index >= 0; index-- {
+	for index := len(yamlBytes) - 1; index >= 0; index-- {
 		yamlMap := make(map[interface{}]interface{})
 
-		err := yaml.Unmarshal([]byte(yamlStrings[index]), &yamlMap)
+		err := yaml.Unmarshal(yamlBytes[index], &yamlMap)
 		if err != nil {
 			log.Warnf("error in yaml [%d]: %v", index, err)
 			return nil, err
@@ -154,4 +160,14 @@ func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
 		}
 	}
 	return result, nil
+}
+
+// UnmarshalYaml will parse all the supplied yaml strings, merge the resulting
+// objects, and return the resulting map
+func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
+	yamlBytes := make([][]byte, len(yamlStrings))
+	for _, yaml := range yamlStrings {
+		yamlBytes = append(yamlBytes, []byte(yaml))
+	}
+	return unmarshalYaml(yamlBytes...)
 }

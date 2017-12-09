@@ -106,12 +106,12 @@ func TestFillValue(t *testing.T) {
 		ShouldntWork string
 	}
 	var zee Zee
-	ok = clconf.FillValue("z", conf, &zee)
+	ok = clconf.FillValue("/z", conf, &zee)
 	if ok {
 		t.Error("FillValue invalid path should have failed")
 	}
 
-	ok = clconf.FillValue("a", conf, &zee)
+	ok = clconf.FillValue("a/", conf, &zee)
 	if ok {
 		t.Error("FillValue a should not have been z")
 	}
@@ -125,17 +125,27 @@ func TestGetValue(t *testing.T) {
 		t.Errorf("GetValue empty path failed: [%v] [%v] == [%v]", ok, conf, value)
 	}
 
-	value, ok = clconf.GetValue("a", conf)
+	value, ok = clconf.GetValue("/", conf)
+	if !ok || !reflect.DeepEqual(conf, value) {
+		t.Errorf("GetValue empty path failed: [%v] [%v] == [%v]", ok, conf, value)
+	}
+
+	value, ok = clconf.GetValue("/a", conf)
 	if !ok || value != "Yup" {
 		t.Errorf("GetValue first level string failed: [%v] [%v]", ok, value)
 	}
 
-	value, ok = clconf.GetValue("a/f", conf)
+	value, ok = clconf.GetValue("/b//f//g", conf)
+	if !ok || value != "foobar" {
+		t.Errorf("GetValue third level string multi slash failed: [%v] [%v]", ok, value)
+	}
+
+	value, ok = clconf.GetValue("/a/f", conf)
 	if ok {
 		t.Errorf("GetValue non map indexing should have failed: [%v] [%v]", ok, value)
 	}
 
-	value, ok = clconf.GetValue("z", conf)
+	value, ok = clconf.GetValue("/z", conf)
 	if ok {
 		t.Errorf("GetValue missing have failed: [%v] [%v]", ok, value)
 	}
@@ -166,20 +176,20 @@ func TestLoadConf(t *testing.T) {
 
 	overrides := []string{base64.StdEncoding.EncodeToString([]byte("a: override"))}
 
-	actual := clconf.LoadConf()
+	actual := clconf.LoadConf([]string{}, []string{})
 	if len(actual) > 0 {
 		t.Errorf("LoadConf no config failed")
 	}
 
 	expected, _ := clconf.UnmarshalYaml("a: override")
-	actual = clconf.LoadConf(overrides...)
+	actual = clconf.LoadConf([]string{}, overrides)
 	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf("LoadConf overrides only failed: [%v] != [%v]", expected, actual)
 	}
 
 	os.Setenv("YAML_FILES", fileVars[0])
 	expected, _ = clconf.UnmarshalYaml(fileValues[0])
-	actual = clconf.LoadConf()
+	actual = clconf.LoadConfFromEnvironment([]string{}, []string{})
 	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf("LoadConf files only failed: [%v] != [%v]", expected, actual)
 	}
@@ -187,7 +197,7 @@ func TestLoadConf(t *testing.T) {
 
 	os.Setenv("YAML_VARS", envVars[0])
 	expected, _ = clconf.UnmarshalYaml(clconf.DecodeBase64Strings(envValues[0])...)
-	actual = clconf.LoadConf()
+	actual = clconf.LoadConfFromEnvironment([]string{}, []string{})
 	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf("LoadConf env only failed: [%v] != [%v]", expected, actual)
 	}
@@ -196,7 +206,7 @@ func TestLoadConf(t *testing.T) {
 	os.Setenv("YAML_FILES", fileVars[0])
 	os.Setenv("YAML_VARS", envVars[0])
 	expected, _ = clconf.UnmarshalYaml("a: override")
-	actual = clconf.LoadConf(overrides...)
+	actual = clconf.LoadConf([]string{}, overrides)
 	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf("LoadConf all failed: [%v] != [%v]", expected, actual)
 	}
