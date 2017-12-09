@@ -1,4 +1,22 @@
 ---
+# Note, these keys were generated using gpg2 version 2.1 or later per
+# https://www.gnupg.org/documentation/manuals/gnupg/Unattended-GPG-key-generation.html
+#
+# request:
+#   Key-Type: default
+#   Subkey-Type: default
+#   Name-Real: Test
+#   Name-Comment: Tester key
+#   Name-Email: noreply@pastdev.com
+#   Expire-Date: 0
+#   %no-protection
+#   %commit
+#
+# generated with:
+#   gpg2 --batch --generate-key request
+#   gpg2 --export-secret-keys --armor > private-key.secring.gpg
+#   gpg2 --export --armor > private-key.pubring.gpg
+
 private-key: |
   -----BEGIN PGP PRIVATE KEY BLOCK-----
 

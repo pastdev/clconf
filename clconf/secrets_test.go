@@ -1,25 +1,23 @@
-package clconf_test
+package clconf
 
 import (
 	"path/filepath"
 	"runtime"
 	"testing"
-
-	"gitlab.com/pastdev/s2i/clconf/clconf"
 )
 
-func testSecretKeysFile() string {
+func NewTestKeysFile() string {
 	_, filename, _, _ := runtime.Caller(0)
 	return filepath.Join(filepath.Dir(filename), "testkeys.yml")
 }
 
-func testSecretAgent() (*clconf.SecretAgent, error) {
-	return clconf.NewSecretAgentFromFile(testSecretKeysFile())
+func NewTestSecretAgent() (*SecretAgent, error) {
+	return NewSecretAgentFromFile(NewTestKeysFile())
 }
 
 func TestEncryptDecrypt(t *testing.T) {
-	plaintext := "foobar"
-	secretAgent, err := testSecretAgent()
+	plaintext := "SECRET"
+	secretAgent, err := NewTestSecretAgent()
 	if err != nil {
 		t.Errorf("Unable to create secret agent: %v", err)
 	}
