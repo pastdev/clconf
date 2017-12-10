@@ -1,10 +1,10 @@
 package clconf
 
 import (
-	"io/ioutil"
-	"path/filepath"
 	"encoding/base64"
 	"flag"
+	"io/ioutil"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"testing"
@@ -48,8 +48,8 @@ func NewTestContext(name string, app *cli.App, flags []cli.Flag, parentContext *
 }
 
 func NewTestGlobalContext() *cli.Context {
-	context := NewTestContext(Name, nil, globalFlags(), nil, 
-		"--secret-keys-file", NewTestKeysFile(), 
+	context := NewTestContext(Name, nil, globalFlags(), nil,
+		"--secret-keys-file", NewTestKeysFile(),
 		"--yaml-file", NewTestConfigFile(),
 	)
 	return context
@@ -61,7 +61,7 @@ func NewGetvContext(args ...string) *cli.Context {
 }
 
 func testCgetvHandler(t *testing.T, config interface{}, path string) {
-	expected, ok := GetValue(path + "-plaintext", config)
+	expected, ok := GetValue(path+"-plaintext", config)
 
 	_, actual, err := cgetvHandler(NewGetvContext(path))
 	if ok && err != nil {
@@ -126,22 +126,22 @@ func TestMarshal(t *testing.T) {
 		t.Errorf("Marshal string failed: [%v] [%v != %v] [%v]", context, actual, expected, err)
 	}
 
-	expected = "2" 
+	expected = "2"
 	context, actual, err = marshal(nil, expected, nil)
 	if context != nil || actual != expected || err != nil {
 		t.Errorf("Marshal int failed: [%v] [%v != %v] [%v]", context, actual, expected, err)
 	}
 
-	expected, _ = UnmarshalYaml("a:\n  b: foo") 
+	expected, _ = UnmarshalYaml("a:\n  b: foo")
 	context, marshaled, err := marshal(nil, expected, nil)
-	actual, _ = UnmarshalYaml(marshaled) 
+	actual, _ = UnmarshalYaml(marshaled)
 	if context != nil || !reflect.DeepEqual(actual, expected) || err != nil {
 		t.Errorf("Marshal map failed: [%v] [%v != %v] [%v]", context, actual, expected, err)
 	}
 
-	expected, _ = UnmarshalYaml("a:\n- foo\n- bar") 
+	expected, _ = UnmarshalYaml("a:\n- foo\n- bar")
 	context, marshaled, err = marshal(nil, expected, nil)
-	actual, _ = UnmarshalYaml(marshaled) 
+	actual, _ = UnmarshalYaml(marshaled)
 	if context != nil || !reflect.DeepEqual(actual, expected) || err != nil {
 		t.Errorf("Marshal array failed: [%v] [%v != %v] [%v]", context, actual, expected, err)
 	}

@@ -39,8 +39,8 @@ const yaml2and1 = "" +
 func TestBase64Strings(t *testing.T) {
 	expected := []string{}
 	encoded := []string{}
-	actual := clconf.DecodeBase64Strings(encoded...)
-	if len(actual) != 0 {
+	actual, err := clconf.DecodeBase64Strings(encoded...)
+	if err != nil || len(actual) != 0 {
 		t.Errorf("Base64Strings empty failed: [%v]", actual)
 	}
 
@@ -48,18 +48,14 @@ func TestBase64Strings(t *testing.T) {
 	encoded = []string{
 		base64.StdEncoding.EncodeToString([]byte(expected[0])),
 		base64.StdEncoding.EncodeToString([]byte(expected[1]))}
-	actual = clconf.DecodeBase64Strings(encoded...)
-	if !reflect.DeepEqual(expected, actual) {
+	actual, err = clconf.DecodeBase64Strings(encoded...)
+	if err != nil || !reflect.DeepEqual(expected, actual) {
 		t.Errorf("Base64Strings one two failed: [%v] == [%v]", expected, actual)
 	}
-}
 
-func TestBase64StringsPanic(t *testing.T) {
-	defer func() {
-		recover()
-	}()
-	clconf.DecodeBase64Strings("&*INVALID*&")
-	t.Error("Base64Strings invalid did not panic")
+	if _, err := clconf.DecodeBase64Strings("&*INVALID*&"); err == nil {
+		t.Error("Base64Strings invalid should have failed")
+	}
 }
 
 func TestFillValue(t *testing.T) {
@@ -176,29 +172,33 @@ func TestLoadConf(t *testing.T) {
 
 	overrides := []string{base64.StdEncoding.EncodeToString([]byte("a: override"))}
 
-	actual := clconf.LoadConf([]string{}, []string{})
-	if len(actual) > 0 {
+	actual, err := clconf.LoadConf([]string{}, []string{})
+	if err != nil || len(actual) > 0 {
 		t.Errorf("LoadConf no config failed")
 	}
 
 	expected, _ := clconf.UnmarshalYaml("a: override")
-	actual = clconf.LoadConf([]string{}, overrides)
-	if !reflect.DeepEqual(expected, actual) {
+	actual, err = clconf.LoadConf([]string{}, overrides)
+	if err != nil || !reflect.DeepEqual(expected, actual) {
 		t.Errorf("LoadConf overrides only failed: [%v] != [%v]", expected, actual)
 	}
 
 	os.Setenv("YAML_FILES", fileVars[0])
 	expected, _ = clconf.UnmarshalYaml(fileValues[0])
-	actual = clconf.LoadConfFromEnvironment([]string{}, []string{})
-	if !reflect.DeepEqual(expected, actual) {
+	actual, err = clconf.LoadConfFromEnvironment([]string{}, []string{})
+	if err != nil || !reflect.DeepEqual(expected, actual) {
 		t.Errorf("LoadConf files only failed: [%v] != [%v]", expected, actual)
 	}
 	os.Unsetenv("YAML_FILES")
 
 	os.Setenv("YAML_VARS", envVars[0])
-	expected, _ = clconf.UnmarshalYaml(clconf.DecodeBase64Strings(envValues[0])...)
-	actual = clconf.LoadConfFromEnvironment([]string{}, []string{})
-	if !reflect.DeepEqual(expected, actual) {
+	base64Values, err := clconf.DecodeBase64Strings(envValues[0])
+	if err != nil || !reflect.DeepEqual(expected, actual) {
+		t.Errorf("LoadConf env only failed decode: [%v]", err)
+	}
+	expected, _ = clconf.UnmarshalYaml(base64Values...)
+	actual, err = clconf.LoadConfFromEnvironment([]string{}, []string{})
+	if err != nil || !reflect.DeepEqual(expected, actual) {
 		t.Errorf("LoadConf env only failed: [%v] != [%v]", expected, actual)
 	}
 	os.Unsetenv("YAML_VARS")
@@ -206,8 +206,8 @@ func TestLoadConf(t *testing.T) {
 	os.Setenv("YAML_FILES", fileVars[0])
 	os.Setenv("YAML_VARS", envVars[0])
 	expected, _ = clconf.UnmarshalYaml("a: override")
-	actual = clconf.LoadConf([]string{}, overrides)
-	if !reflect.DeepEqual(expected, actual) {
+	actual, err = clconf.LoadConf([]string{}, overrides)
+	if err != nil || !reflect.DeepEqual(expected, actual) {
 		t.Errorf("LoadConf all failed: [%v] != [%v]", expected, actual)
 	}
 }
@@ -215,7 +215,7 @@ func TestLoadConf(t *testing.T) {
 func TestMarshalYaml(t *testing.T) {
 	value := map[interface{}]interface{}{"a": "b"}
 	yaml, err := clconf.MarshalYaml(value)
-	if err != nil || yaml != "a: b\n" {
+	if err != nil || string(yaml) != "a: b\n" {
 		t.Errorf("Marshal failed for [%v]: [%v] [%v]", value, err, yaml)
 	}
 }
@@ -254,9 +254,12 @@ func TestReadEnvVarsTempValues(t *testing.T) {
 }
 
 func TestReadFiles(t *testing.T) {
-	actual := clconf.ReadFiles()
-	if len(actual) > 0 {
+	actual, err := clconf.ReadFiles()
+	if err != nil || len(actual) > 0 {
 		t.Errorf("ReadFiles empty failed")
+	}
+	if _, err := clconf.ReadFiles("NOT_A_FILE_OR_PROBABLY_SHOULDNT_BE"); err == nil {
+		t.Errorf("ReadFiles does not exist should have paniced")
 	}
 }
 
@@ -264,8 +267,6 @@ func TestReadFilesDoesNotExist(t *testing.T) {
 	defer func() {
 		recover()
 	}()
-	clconf.ReadFiles("NOT_A_FILE_OR_PROBABLY_SHOULDNT_BE")
-	t.Errorf("ReadFiles does not exist should have paniced")
 }
 
 func TestReadFilesTempValues(t *testing.T) {
@@ -279,8 +280,8 @@ func TestReadFilesTempValues(t *testing.T) {
 	for index, name := range names {
 		ioutil.WriteFile(name, []byte(values[index]), 0700)
 	}
-	actual := clconf.ReadFiles(names...)
-	if !reflect.DeepEqual(values, actual) {
+	actual, err := clconf.ReadFiles(names...)
+	if err != nil || !reflect.DeepEqual(values, actual) {
 		t.Errorf("ReadFiles foo baz failed: [%v] [%v]", values, actual)
 	}
 }
