@@ -18,11 +18,11 @@ const (
 // https://stackoverflow.com/a/26804949/516433
 var print = fmt.Print
 
-func cgetv(c *cli.Context) cli.ExitCoder {
+func cgetv(c *cli.Context) error {
 	return dump(marshal(cgetvHandler(c)))
 }
 
-func csetv(c *cli.Context) cli.ExitCoder {
+func csetv(c *cli.Context) error {
 	return cli.NewExitError("Not yet implemented", 1)
 }
 
@@ -89,7 +89,7 @@ func dump(c *cli.Context, value interface{}, err cli.ExitCoder) cli.ExitCoder {
 	return nil
 }
 
-func getv(c *cli.Context) cli.ExitCoder {
+func getv(c *cli.Context) error {
 	return dump(marshal(getvHandler(c)))
 }
 
@@ -195,7 +195,7 @@ func newSecretAgentFromCli(c *cli.Context) (*SecretAgent, cli.ExitCoder) {
 	return secretAgent, cliError(err, 1)
 }
 
-func setv(c *cli.Context) cli.ExitCoder {
+func setv(c *cli.Context) error {
 	if c.NArg() != 2 {
 		return cli.NewExitError("setv requires path and value args", 1)
 	}
