@@ -1,6 +1,7 @@
 package clconf
 
 import (
+	"os"
 	"encoding/base64"
 	"flag"
 	"io/ioutil"
@@ -49,8 +50,8 @@ func NewTestContext(name string, app *cli.App, flags []cli.Flag, parentContext *
 
 func NewTestGlobalContext() *cli.Context {
 	context := NewTestContext(Name, nil, globalFlags(), nil,
-		"--secret-keys-file", NewTestKeysFile(),
-		"--yaml-file", NewTestConfigFile(),
+		"--secret-keyring", NewTestKeysFile(),
+		"--yaml", NewTestConfigFile(),
 	)
 	return context
 }
@@ -144,5 +145,47 @@ func TestMarshal(t *testing.T) {
 	actual, _ = UnmarshalYaml(marshaled)
 	if context != nil || !reflect.DeepEqual(actual, expected) || err != nil {
 		t.Errorf("Marshal array failed: [%v] [%v != %v] [%v]", context, actual, expected, err)
+	}
+}
+
+func TestNewSecretAgentFromCli(t *testing.T) {
+	var err error;
+	envVar := "SECRET_KEYRING"
+	defer func() {
+        os.Unsetenv(envVar);
+	}()
+
+	_, err = newSecretAgentFromCli(
+		NewTestContext(Name, nil, globalFlags(), nil))
+	if err == nil {
+		t.Errorf("New secret agent no options no env failed: [%v]", err)
+	} 
+
+	secretAgent, err := newSecretAgentFromCli(
+		NewTestContext(Name, nil, globalFlags(), nil,
+			"--secret-keyring", NewTestKeysFile()))
+	if err != nil || secretAgent.privateKey == nil || secretAgent.publicKey == nil {
+		t.Errorf("New secret agent from file failed: [%v]", err)
+	}
+
+	secretKeyring, err := ioutil.ReadFile(NewTestKeysFile())
+	if err != nil {
+		t.Errorf("New secret agent from base 64 read keys file failed: [%v]", err)
+	}
+	secretAgent, err = newSecretAgentFromCli(
+		NewTestContext(Name, nil, globalFlags(), nil,
+			"--secret-keyring-b64", base64.StdEncoding.EncodeToString(secretKeyring)))
+	if err != nil || secretAgent.privateKey == nil || secretAgent.publicKey == nil {
+		t.Errorf("New secret agent from base 64 failed: [%v]", err)
+	}
+
+	err = os.Setenv(envVar, NewTestKeysFile())
+	if err != nil {
+		t.Errorf("New secret agent from env set env failed: [%v]", err)
+	}
+	secretAgent, err = newSecretAgentFromCli(
+		NewTestContext(Name, nil, globalFlags(), nil))
+	if err != nil || secretAgent.privateKey == nil || secretAgent.publicKey == nil {
+		t.Errorf("New secret agent from env failed: [%v]", err)
 	}
 }

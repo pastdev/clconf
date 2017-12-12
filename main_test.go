@@ -19,7 +19,7 @@ func NewTestKeysFile() string {
 func WithEnv(do func()) {
 	env := map[string]string{
 		"YAML_FILES":       NewTestConfigFile(),
-		"SECRET_KEYS_FILE": NewTestKeysFile(),
+		"SECRET_KEYRING": NewTestKeysFile(),
 	}
 	defer func() {
 		for key := range env {
@@ -40,7 +40,7 @@ func Example_noArg() {
 }
 
 func Example_testConfig() {
-	os.Args = []string{"clconf", "--yaml-file", NewTestConfigFile()}
+	os.Args = []string{"clconf", "--yaml", NewTestConfigFile()}
 	main()
 	// Output:
 	// app:
@@ -57,7 +57,7 @@ func Example_testConfig() {
 }
 
 func Example_testConfigGetv() {
-	os.Args = []string{"clconf", "--yaml-file", NewTestConfigFile(), "getv"}
+	os.Args = []string{"clconf", "--yaml", NewTestConfigFile(), "getv"}
 	main()
 	// Output:
 	// app:
@@ -74,7 +74,7 @@ func Example_testConfigGetv() {
 }
 
 func Example_testConfigGetvAppAliases() {
-	os.Args = []string{"clconf", "--yaml-file", NewTestConfigFile(), "getv", "/app/aliases"}
+	os.Args = []string{"clconf", "--yaml", NewTestConfigFile(), "getv", "/app/aliases"}
 	main()
 	// Output:
 	// - foo
@@ -82,7 +82,7 @@ func Example_testConfigGetvAppAliases() {
 }
 
 func Example_testConfigGetvAppDbHostname() {
-	os.Args = []string{"clconf", "--yaml-file", NewTestConfigFile(), "getv", "/app/db/hostname"}
+	os.Args = []string{"clconf", "--yaml", NewTestConfigFile(), "getv", "/app/db/hostname"}
 	main()
 	// Output:
 	// db.pastdev.com
@@ -91,8 +91,8 @@ func Example_testConfigGetvAppDbHostname() {
 func Example_testConfigCgetvAppDbUsername() {
 	os.Args = []string{
 		"clconf",
-		"--yaml-file", NewTestConfigFile(),
-		"--secret-keys-file", NewTestKeysFile(),
+		"--yaml", NewTestConfigFile(),
+		"--secret-keyring", NewTestKeysFile(),
 		"cgetv",
 		"/app/db/username",
 	}

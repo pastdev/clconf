@@ -112,22 +112,22 @@ func getvHandler(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
 
 func globalFlags() []cli.Flag {
 	return []cli.Flag{
-		cli.StringSliceFlag{Name: "yaml-file"},
-		cli.StringSliceFlag{Name: "override"},
-		cli.StringFlag{Name: "secret-keys"},
-		cli.StringFlag{Name: "secret-keys-file"},
+		cli.StringSliceFlag{Name: "yaml"},
+		cli.StringSliceFlag{Name: "yaml-b64"},
+		cli.StringFlag{Name: "secret-keyring"},
+		cli.StringFlag{Name: "secret-keyring-b64"},
 	}
 }
 
 func load(c *cli.Context) (map[interface{}]interface{}, cli.ExitCoder) {
 	config, err := LoadConfFromEnvironment(
-		c.GlobalStringSlice("yaml-file"),
-		c.GlobalStringSlice("override"))
+		c.GlobalStringSlice("yaml"),
+		c.GlobalStringSlice("yaml-b64"))
 	return config, cliError(err, 1)
 }
 
 func loadForSetv(c *cli.Context) (string, map[interface{}]interface{}, cli.ExitCoder) {
-	path, config, err := LoadSettableConfFromEnvironment(c.GlobalStringSlice("yaml-file"))
+	path, config, err := LoadSettableConfFromEnvironment(c.GlobalStringSlice("yaml"))
 	return path, config, cliError(err, 1)
 }
 
@@ -183,14 +183,14 @@ func NewApp() *cli.App {
 func newSecretAgentFromCli(c *cli.Context) (*SecretAgent, cli.ExitCoder) {
 	var secretAgent *SecretAgent
 	var err error
-	if secretKeysBase64 := c.GlobalString("secret-keys"); secretKeysBase64 != "" {
+	if secretKeysBase64 := c.GlobalString("secret-keyring-b64"); secretKeysBase64 != "" {
 		secretAgent, err = NewSecretAgentFromBase64(secretKeysBase64)
-	} else if secretKeysFile := c.GlobalString("secret-keys-file"); secretKeysFile != "" {
+	} else if secretKeysFile := c.GlobalString("secret-keyring"); secretKeysFile != "" {
 		secretAgent, err = NewSecretAgentFromFile(secretKeysFile)
-	} else if secretKeysFile, ok := os.LookupEnv("SECRET_KEYS_FILE"); ok {
+	} else if secretKeysFile, ok := os.LookupEnv("SECRET_KEYRING"); ok {
 		secretAgent, err = NewSecretAgentFromFile(secretKeysFile)
 	} else {
-		err = errors.New("--secret-keys or --secret-keys-file required")
+		err = errors.New("--secret-keyring, --secret-keyring-b64, or $SECRET_KEYRING required")
 	}
 	return secretAgent, cliError(err, 1)
 }
