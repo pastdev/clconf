@@ -149,7 +149,10 @@ func TestGetValue(t *testing.T) {
 
 func TestLoadConf(t *testing.T) {
 	envVars := []string{"a"}
-	tempDir := os.TempDir()
+	tempDir, err := ioutil.TempDir("", "clconf")
+	if err != nil {
+		t.Errorf("Unable to create temp dir: %v", err)
+	}
 	defer func() {
 		os.RemoveAll(tempDir)
 		for _, name := range envVars {
@@ -270,7 +273,10 @@ func TestReadFilesDoesNotExist(t *testing.T) {
 }
 
 func TestReadFilesTempValues(t *testing.T) {
-	tempDir := os.TempDir()
+	tempDir, err := ioutil.TempDir("", "clconf")
+	if err != nil {
+		t.Errorf("Unable to create temp dir: %v", err)
+	}
 	defer func() {
 		os.RemoveAll(tempDir)
 	}()
