@@ -88,6 +88,34 @@ func TestCgetvHandler(t *testing.T) {
 	testCgetvHandler(t, config, "INVALID_PATH")
 }
 
+func testGetPath(t *testing.T, expected string, args ...string) {
+	path := getPath(NewTestContext("test", nil, globalFlags(), nil, args...))
+	if expected != path {
+		t.Errorf("Get path failed: [%v] != [%v]", expected, path)
+	}
+}
+
+func TestGetPath(t *testing.T) {
+	var envVar = "CONFIG_PREFIX"
+	defer func() {
+        os.Unsetenv(envVar)
+	}()
+
+	testGetPath(t, "/", "")
+	testGetPath(t, "/", "/")
+	testGetPath(t, "/foo", "/foo")
+
+	testGetPath(t, "/foo", "--prefix", "/foo")
+	testGetPath(t, "/foo", "--prefix", "/foo", "/")
+	testGetPath(t, "/foo/bar", "--prefix", "/foo", "/bar")
+	testGetPath(t, "/foo/bar", "--prefix", "/foo/", "/bar")
+
+	os.Setenv(envVar, "/foo")
+	testGetPath(t, "/foo", "")
+	testGetPath(t, "/foo", "/")
+	testGetPath(t, "/foo/bar", "/bar")
+}
+
 func testGetvHandler(t *testing.T, config interface{}, path string) {
 	expected, ok := GetValue(path, config)
 

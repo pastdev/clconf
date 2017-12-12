@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 
 	"github.com/urfave/cli"
 )
@@ -24,19 +25,6 @@ func cgetv(c *cli.Context) error {
 
 func csetv(c *cli.Context) error {
 	return cli.NewExitError("Not yet implemented", 1)
-}
-
-func getValue(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
-	path := c.Args().First()
-	config, err := load(c)
-	if err != nil {
-		return c, nil, cliError(err, 1)
-	}
-	value, ok := GetValue(path, config)
-	if !ok {
-		return c, nil, cli.NewExitError(fmt.Sprintf("[%v] does not exist", path), 1)
-	}
-	return c, value, nil
 }
 
 func cgetvHandler(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
@@ -89,6 +77,21 @@ func dump(c *cli.Context, value interface{}, err cli.ExitCoder) cli.ExitCoder {
 	return nil
 }
 
+func getPath(c *cli.Context) string {
+	valuePath := c.Args().First()
+
+	if prefix := c.GlobalString("prefix"); prefix != "" {
+		return path.Join(prefix, valuePath)
+	} else if prefix, ok := os.LookupEnv("CONFIG_PREFIX"); ok {
+		return path.Join(prefix, valuePath)
+	}
+
+	if valuePath == "" {
+		return "/"
+	}
+	return valuePath
+}
+
 func getv(c *cli.Context) error {
 	return dump(marshal(getvHandler(c)))
 }
@@ -98,7 +101,7 @@ func getvFlags() []cli.Flag {
 }
 
 func getvHandler(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
-	path := c.Args().First()
+	path := getPath(c)
 	config, err := load(c)
 	if err != nil {
 		return c, nil, cliError(err, 1)
@@ -110,12 +113,26 @@ func getvHandler(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
 		fmt.Sprintf("[%v] does not exist", path), 1)
 }
 
+func getValue(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
+	path := getPath(c)
+	config, err := load(c)
+	if err != nil {
+		return c, nil, cliError(err, 1)
+	}
+	value, ok := GetValue(path, config)
+	if !ok {
+		return c, nil, cli.NewExitError(fmt.Sprintf("[%v] does not exist", path), 1)
+	}
+	return c, value, nil
+}
+
 func globalFlags() []cli.Flag {
 	return []cli.Flag{
-		cli.StringSliceFlag{Name: "yaml"},
-		cli.StringSliceFlag{Name: "yaml-b64"},
+		cli.StringFlag{Name: "prefix"},
 		cli.StringFlag{Name: "secret-keyring"},
 		cli.StringFlag{Name: "secret-keyring-b64"},
+		cli.StringSliceFlag{Name: "yaml"},
+		cli.StringSliceFlag{Name: "yaml-b64"},
 	}
 }
 
@@ -200,7 +217,7 @@ func setv(c *cli.Context) error {
 		return cli.NewExitError("setv requires path and value args", 1)
 	}
 
-	path := c.Args().First()
+	path := getPath(c)
 	value := c.Args().Get(1)
 	file, config, err := loadForSetv(c)
 	if err != nil {
