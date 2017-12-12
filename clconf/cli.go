@@ -23,10 +23,6 @@ func cgetv(c *cli.Context) error {
 	return dump(marshal(cgetvHandler(c)))
 }
 
-func csetv(c *cli.Context) error {
-	return cli.NewExitError("Not yet implemented", 1)
-}
-
 func cgetvHandler(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
 	_, value, err := getValue(c)
 	if err != nil {
@@ -43,22 +39,6 @@ func cgetvHandler(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
 	return c, nil, cli.NewExitError("value at specified path not a string", 1)
 }
 
-func marshal(c *cli.Context, value interface{}, err cli.ExitCoder) (*cli.Context, string, cli.ExitCoder) {
-	if err != nil {
-		return c, "", err
-	}
-	if stringValue, ok := value.(string); ok {
-		return c, stringValue, nil
-	} else if mapValue, ok := value.(map[interface{}]interface{}); ok {
-		marshaled, err := MarshalYaml(mapValue)
-		return c, string(marshaled), cliError(err, 1)
-	} else if arrayValue, ok := value.([]interface{}); ok {
-		marshaled, err := MarshalYaml(arrayValue)
-		return c, string(marshaled), cliError(err, 1)
-	}
-	return c, fmt.Sprintf("%v", value), err
-}
-
 func cliError(err error, exitCode int) cli.ExitCoder {
 	if err != nil {
 		if casted, ok := err.(cli.ExitCoder); ok {
@@ -67,6 +47,10 @@ func cliError(err error, exitCode int) cli.ExitCoder {
 		return cli.NewExitError(err, exitCode)
 	}
 	return nil
+}
+
+func csetv(c *cli.Context) error {
+	return cli.NewExitError("Not yet implemented", 1)
 }
 
 func dump(c *cli.Context, value interface{}, err cli.ExitCoder) cli.ExitCoder {
@@ -129,6 +113,8 @@ func getValue(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
 func globalFlags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{Name: "prefix"},
+		cli.StringFlag{Name: "public-keyring"},
+		cli.StringFlag{Name: "public-keyring-b64"},
 		cli.StringFlag{Name: "secret-keyring"},
 		cli.StringFlag{Name: "secret-keyring-b64"},
 		cli.StringSliceFlag{Name: "yaml"},
@@ -146,6 +132,22 @@ func load(c *cli.Context) (map[interface{}]interface{}, cli.ExitCoder) {
 func loadForSetv(c *cli.Context) (string, map[interface{}]interface{}, cli.ExitCoder) {
 	path, config, err := LoadSettableConfFromEnvironment(c.GlobalStringSlice("yaml"))
 	return path, config, cliError(err, 1)
+}
+
+func marshal(c *cli.Context, value interface{}, err cli.ExitCoder) (*cli.Context, string, cli.ExitCoder) {
+	if err != nil {
+		return c, "", err
+	}
+	if stringValue, ok := value.(string); ok {
+		return c, stringValue, nil
+	} else if mapValue, ok := value.(map[interface{}]interface{}); ok {
+		marshaled, err := MarshalYaml(mapValue)
+		return c, string(marshaled), cliError(err, 1)
+	} else if arrayValue, ok := value.([]interface{}); ok {
+		marshaled, err := MarshalYaml(arrayValue)
+		return c, string(marshaled), cliError(err, 1)
+	}
+	return c, fmt.Sprintf("%v", value), err
 }
 
 // NewApp returns a new cli application instance ready to be run.
@@ -198,17 +200,19 @@ func NewApp() *cli.App {
 }
 
 func newSecretAgentFromCli(c *cli.Context) (*SecretAgent, cli.ExitCoder) {
-	var secretAgent *SecretAgent
 	var err error
-	if secretKeysBase64 := c.GlobalString("secret-keyring-b64"); secretKeysBase64 != "" {
-		secretAgent, err = NewSecretAgentFromBase64(secretKeysBase64)
-	} else if secretKeysFile := c.GlobalString("secret-keyring"); secretKeysFile != "" {
-		secretAgent, err = NewSecretAgentFromFile(secretKeysFile)
-	} else if secretKeysFile, ok := os.LookupEnv("SECRET_KEYRING"); ok {
-		secretAgent, err = NewSecretAgentFromFile(secretKeysFile)
+	var secretAgent *SecretAgent
+
+	if keyBase64 := c.GlobalString("secret-keyring-b64"); keyBase64 != "" {
+		secretAgent, err = NewSecretAgentFromBase64(keyBase64)
+	} else if keyFile := c.GlobalString("secret-keyring"); keyFile != "" {
+		secretAgent, err = NewSecretAgentFromFile(keyFile)
+	} else if keyFile, ok := os.LookupEnv("SECRET_KEYRING"); ok {
+		secretAgent, err = NewSecretAgentFromFile(keyFile)
 	} else {
-		err = errors.New("--secret-keyring, --secret-keyring-b64, or $SECRET_KEYRING required")
+	    err = errors.New("requires --secret-keyring-b64, --secret-keyring, or SECRET_KEYRING")
 	}
+
 	return secretAgent, cliError(err, 1)
 }
 

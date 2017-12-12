@@ -192,7 +192,7 @@ func TestNewSecretAgentFromCli(t *testing.T) {
 	secretAgent, err := newSecretAgentFromCli(
 		NewTestContext(Name, nil, globalFlags(), nil,
 			"--secret-keyring", NewTestKeysFile()))
-	if err != nil || secretAgent.privateKey == nil || secretAgent.publicKey == nil {
+	if err != nil || secretAgent.key == nil {
 		t.Errorf("New secret agent from file failed: [%v]", err)
 	}
 
@@ -203,7 +203,7 @@ func TestNewSecretAgentFromCli(t *testing.T) {
 	secretAgent, err = newSecretAgentFromCli(
 		NewTestContext(Name, nil, globalFlags(), nil,
 			"--secret-keyring-b64", base64.StdEncoding.EncodeToString(secretKeyring)))
-	if err != nil || secretAgent.privateKey == nil || secretAgent.publicKey == nil {
+	if err != nil || secretAgent.key == nil {
 		t.Errorf("New secret agent from base 64 failed: [%v]", err)
 	}
 
@@ -213,7 +213,7 @@ func TestNewSecretAgentFromCli(t *testing.T) {
 	}
 	secretAgent, err = newSecretAgentFromCli(
 		NewTestContext(Name, nil, globalFlags(), nil))
-	if err != nil || secretAgent.privateKey == nil || secretAgent.publicKey == nil {
+	if err != nil || secretAgent.key == nil {
 		t.Errorf("New secret agent from env failed: [%v]", err)
 	}
 }

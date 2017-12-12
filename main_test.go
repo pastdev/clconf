@@ -13,7 +13,7 @@ func NewTestConfigFile() string {
 
 func NewTestKeysFile() string {
 	_, filename, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(filename), "clconf", "testkeys.yml")
+	return filepath.Join(filepath.Dir(filename), "clconf", "test.secring.gpg")
 }
 
 func WithEnv(do func()) {
