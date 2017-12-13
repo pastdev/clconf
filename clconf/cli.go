@@ -61,6 +61,13 @@ func dump(c *cli.Context, value interface{}, err cli.ExitCoder) cli.ExitCoder {
 	return nil
 }
 
+func getDefault(c *cli.Context) (string, bool) {
+	if defaultValue := c.String("default"); defaultValue != "" {
+		return defaultValue, true
+	}
+	return "", false
+}
+
 func getPath(c *cli.Context) string {
 	valuePath := c.Args().First()
 
@@ -88,7 +95,10 @@ func getValue(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
 	}
 	value, ok := GetValue(path, config)
 	if !ok {
-		return c, nil, cli.NewExitError(fmt.Sprintf("[%v] does not exist", path), 1)
+		value, ok = getDefault(c)
+		if !ok {
+		    return c, nil, cli.NewExitError(fmt.Sprintf("[%v] does not exist", path), 1)
+		}
 	}
 	return c, value, nil
 }

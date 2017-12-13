@@ -34,8 +34,8 @@ func DecodeBase64Strings(values ...string) ([]string, error) {
 }
 
 // FillValue will fill a struct, out, with values from conf.
-func FillValue(valuePath string, conf interface{}, out interface{}) bool {
-	value, ok := GetValue(valuePath, conf)
+func FillValue(keyPath string, conf interface{}, out interface{}) bool {
+	value, ok := GetValue(keyPath, conf)
 	if !ok {
 		return false
 	}
@@ -48,13 +48,13 @@ func FillValue(valuePath string, conf interface{}, out interface{}) bool {
 
 // GetValue returns the value at the indicated path.  Paths are separated by
 // the '/' character.
-func GetValue(valuePath string, conf interface{}) (interface{}, bool) {
-	if valuePath == "" {
+func GetValue(keyPath string, conf interface{}) (interface{}, bool) {
+	if keyPath == "" {
 		return conf, true
 	}
 
 	var value = conf
-	for _, part := range strings.Split(valuePath, "/") {
+	for _, part := range strings.Split(keyPath, "/") {
 		if part == "" {
 			continue
 		}
@@ -167,23 +167,45 @@ func ReadFiles(files ...string) ([]string, error) {
 	return contents, nil
 }
 
-func SetValue(config map[interface{}]interface{}, valuePath string, value interface{}) error {
-	parts := strings.Split(valuePath, "/")
+func splitKeyPath(keyPath string) ([]string, string) {
+	parts := []string{}
+
+	for _, parentPart := range strings.Split(keyPath, "/") {
+		if parentPart == "" {
+			continue
+		}
+		parts = append(parts, parentPart)
+	}
+
+	lastIndex := len(parts) - 1
+	if lastIndex >= 0 {
+	    return parts[:lastIndex], parts[lastIndex]
+	}
+	return parts, keyPath
+}
+
+func SetValue(config map[interface{}]interface{}, keyPath string, value interface{}) error {
+	parentParts, key := splitKeyPath(keyPath)
+	if key == "" {
+	    return fmt.Errorf("[%v] is an invalid keyPath", keyPath)
+	}
 
 	parent := config
-	for _, parentPart := range parts[:len(parts)-1] {
-		value, ok := parent[parentPart]
+	for _, parentPart := range parentParts {
+		parentValue, ok := parent[parentPart]
 		if !ok {
-			value = make(map[interface{}]interface{})
+			parentValue = make(map[interface{}]interface{})
+			parent[parentPart] = parentValue
 		}
-		valueMap, ok := value.(map[interface{}]interface{})
+		valueMap, ok := parentValue.(map[interface{}]interface{})
 		if !ok {
 			return fmt.Errorf("Parent not a map")
 		}
+
 		parent = valueMap
 	}
 
-	parent[parts[len(parts)-1]] = value
+	parent[key] = value
 
 	return nil
 }

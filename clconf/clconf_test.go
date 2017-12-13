@@ -293,11 +293,39 @@ func TestReadFilesTempValues(t *testing.T) {
 }
 
 func TestSetValue(t *testing.T) {
-	expected := map[interface{}]interface{}{"/foo/bar": "baz"}
+	expected := map[interface{}]interface{}{}
 	actual := map[interface{}]interface{}{}
-	clconf.SetValue(actual, "/foo/bar", "baz")
-	if !reflect.DeepEqual(expected, actual) {
-		t.Errorf("SetValue empty config failed: [%v] != [%v]", expected, actual)
+	err := clconf.SetValue(actual, "", "baz")
+	if err == nil {
+		t.Error("SetValue empty config no path should have failed")
+	}
+
+	expected = map[interface{}]interface{}{
+		"foo": map[interface{}]interface{}{"bar": "baz"}}
+	actual = map[interface{}]interface{}{}
+	err = clconf.SetValue(actual, "/foo/bar", "baz")
+	if err != nil || !reflect.DeepEqual(expected, actual) {
+		t.Errorf("SetValue empty config failed [%v] != [%v]: %v", expected, actual, err)
+	}
+
+	actual = map[interface{}]interface{}{"foo": "bar"}
+	err = clconf.SetValue(actual, "/foo/bar", "baz")
+	if err == nil {
+		t.Error("SetValue non map parent should have failed")
+	}
+
+	expected = map[interface{}]interface{}{"foo": "baz"}
+	actual = map[interface{}]interface{}{"foo": "bar"}
+	err = clconf.SetValue(actual, "/foo", "baz")
+	if err != nil || !reflect.DeepEqual(expected, actual) {
+		t.Errorf("SetValue replace value [%v] != [%v]: %v", expected, actual, err)
+	}
+
+	expected = map[interface{}]interface{}{"foo": "bar", "hip": "hop"}
+	actual = map[interface{}]interface{}{"foo": "bar"}
+	err = clconf.SetValue(actual, "/hip", "hop")
+	if err != nil || !reflect.DeepEqual(expected, actual) {
+		t.Errorf("SetValue add value [%v] != [%v]: %v", expected, actual, err)
 	}
 }
 

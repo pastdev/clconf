@@ -82,7 +82,38 @@ func Example_testConfigGetvAppAliases() {
 }
 
 func Example_testConfigGetvAppDbHostname() {
-	os.Args = []string{"clconf", "--yaml", NewTestConfigFile(), "getv", "/app/db/hostname"}
+	os.Args = []string{
+		"clconf", 
+		"--yaml", NewTestConfigFile(), 
+		"getv", 
+		"/app/db/hostname",
+	}
+	main()
+	// Output:
+	// db.pastdev.com
+}
+
+func Example_testConfigGetvInvalidWithDefault() {
+	os.Args = []string{
+		"clconf", 
+		"--yaml", NewTestConfigFile(), 
+		"getv", 
+		"/INVALID_PATH",
+		"--default", "foo",
+	}
+	main()
+	// Output:
+	// foo
+}
+
+func Example_testConfigGetvAppDbHostnameWithDefault() {
+	os.Args = []string{
+		"clconf", 
+		"--yaml", NewTestConfigFile(), 
+		"getv", 
+		"/app/db/hostname", 
+		"--default", "INVALID_HOSTNAME",
+	}
 	main()
 	// Output:
 	// db.pastdev.com

@@ -116,10 +116,18 @@ func TestGetPath(t *testing.T) {
 	testGetPath(t, "/foo/bar", "/bar")
 }
 
-func testGetValue(t *testing.T, config interface{}, path string) {
+func testGetValue(t *testing.T, config interface{}, args ...string) {
+	context := NewGetvContext(args...)
+	path := getPath(context)
 	expected, ok := GetValue(path, config)
+	if !ok {
+		if defaultValue, defaultOk := getDefault(context); defaultOk {
+			expected = defaultValue
+			ok = true
+		}
+	}
 
-	_, actual, err := getValue(NewGetvContext(path))
+	_, actual, err := getValue(context)
 	if ok && err != nil {
 		t.Errorf("Getv %s failed and shouldn't have: %v", path, err)
 	} else if !ok && err == nil {
@@ -142,7 +150,9 @@ func TestGetValue(t *testing.T) {
 	testGetValue(t, config, "/app")
 	testGetValue(t, config, "/app/db")
 	testGetValue(t, config, "/app/db/hostname")
+	testGetValue(t, config, "/app/db/hostname", "--default", "INVALID_HOST")
 	testGetValue(t, config, "INVALID_PATH")
+	testGetValue(t, config, "INVALID_PATH_WITH_DEFAULT", "--default", "foo")
 }
 
 func TestMarshal(t *testing.T) {
