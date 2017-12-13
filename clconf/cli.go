@@ -113,18 +113,18 @@ func globalFlags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{Name: "prefix"},
 		cli.StringFlag{Name: "public-keyring"},
-		cli.StringFlag{Name: "public-keyring-b64"},
+		cli.StringFlag{Name: "public-keyring-base64"},
 		cli.StringFlag{Name: "secret-keyring"},
-		cli.StringFlag{Name: "secret-keyring-b64"},
+		cli.StringFlag{Name: "secret-keyring-base64"},
 		cli.StringSliceFlag{Name: "yaml"},
-		cli.StringSliceFlag{Name: "yaml-b64"},
+		cli.StringSliceFlag{Name: "yaml-base64"},
 	}
 }
 
 func load(c *cli.Context) (map[interface{}]interface{}, cli.ExitCoder) {
 	config, err := LoadConfFromEnvironment(
 		c.GlobalStringSlice("yaml"),
-		c.GlobalStringSlice("yaml-b64"))
+		c.GlobalStringSlice("yaml-base64"))
 	return config, cliError(err, 1)
 }
 
@@ -204,7 +204,7 @@ func newSecretAgentFromCli(c *cli.Context) (*SecretAgent, cli.ExitCoder) {
 	var err error
 	var secretAgent *SecretAgent
 
-	if keyBase64 := c.GlobalString("secret-keyring-b64"); keyBase64 != "" {
+	if keyBase64 := c.GlobalString("secret-keyring-base64"); keyBase64 != "" {
 		secretAgent, err = NewSecretAgentFromBase64(keyBase64)
 	} else if keyFile := c.GlobalString("secret-keyring"); keyFile != "" {
 		secretAgent, err = NewSecretAgentFromFile(keyFile)
@@ -213,7 +213,7 @@ func newSecretAgentFromCli(c *cli.Context) (*SecretAgent, cli.ExitCoder) {
 	} else if keyFile, ok := os.LookupEnv("SECRET_KEYRING"); ok {
 		secretAgent, err = NewSecretAgentFromFile(keyFile)
 	} else {
-		err = errors.New("requires --secret-keyring-b64, --secret-keyring, or SECRET_KEYRING")
+		err = errors.New("requires --secret-keyring-base64, --secret-keyring, or SECRET_KEYRING")
 	}
 
 	return secretAgent, cliError(err, 1)

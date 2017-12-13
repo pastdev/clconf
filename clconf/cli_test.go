@@ -215,7 +215,7 @@ func TestNewSecretAgentFromCli(t *testing.T) {
 	}
 	secretAgent, err = newSecretAgentFromCli(
 		NewTestContext(Name, nil, globalFlags(), nil,
-			"--secret-keyring-b64", base64.StdEncoding.EncodeToString(secretKeyring)))
+			"--secret-keyring-base64", base64.StdEncoding.EncodeToString(secretKeyring)))
 	if err != nil || secretAgent.key == nil {
 		t.Errorf("New secret agent from base 64 failed: [%v]", err)
 	}
