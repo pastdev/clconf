@@ -201,7 +201,7 @@ func newSecretAgentFromCli(c *cli.Context) (*SecretAgent, cli.ExitCoder) {
 	} else if keyFile, ok := os.LookupEnv("SECRET_KEYRING"); ok {
 		secretAgent, err = NewSecretAgentFromFile(keyFile)
 	} else {
-	    err = errors.New("requires --secret-keyring-b64, --secret-keyring, or SECRET_KEYRING")
+		err = errors.New("requires --secret-keyring-b64, --secret-keyring, or SECRET_KEYRING")
 	}
 
 	return secretAgent, cliError(err, 1)
@@ -220,7 +220,7 @@ func setv(c *cli.Context) error {
 			fmt.Sprintf("Failed to load config: %v", err), 1)
 	}
 
-	if err := SetValue(path, value, config); err != nil {
+	if err := SetValue(config, path, value); err != nil {
 		return cli.NewExitError(
 			fmt.Sprintf("Failed to load config: %v", err), 1)
 	}

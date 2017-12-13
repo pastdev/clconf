@@ -292,6 +292,15 @@ func TestReadFilesTempValues(t *testing.T) {
 	}
 }
 
+func TestSetValue(t *testing.T) {
+	expected := map[interface{}]interface{}{"/foo/bar": "baz"}
+	actual := map[interface{}]interface{}{}
+	clconf.SetValue(actual, "/foo/bar", "baz")
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("SetValue empty config failed: [%v] != [%v]", expected, actual)
+	}
+}
+
 func TestUnmarshalYaml(t *testing.T) {
 	_, err := clconf.UnmarshalYaml("foo")
 	if err == nil {
