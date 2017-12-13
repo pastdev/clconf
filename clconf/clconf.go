@@ -5,6 +5,7 @@ package clconf
 import (
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -33,8 +34,8 @@ func DecodeBase64Strings(values ...string) ([]string, error) {
 }
 
 // FillValue will fill a struct, out, with values from conf.
-func FillValue(path string, conf interface{}, out interface{}) bool {
-	value, ok := GetValue(path, conf)
+func FillValue(valuePath string, conf interface{}, out interface{}) bool {
+	value, ok := GetValue(valuePath, conf)
 	if !ok {
 		return false
 	}
@@ -47,13 +48,13 @@ func FillValue(path string, conf interface{}, out interface{}) bool {
 
 // GetValue returns the value at the indicated path.  Paths are separated by
 // the '/' character.
-func GetValue(path string, conf interface{}) (interface{}, bool) {
-	if path == "" {
+func GetValue(valuePath string, conf interface{}) (interface{}, bool) {
+	if valuePath == "" {
 		return conf, true
 	}
 
 	var value = conf
-	for _, part := range strings.Split(path, "/") {
+	for _, part := range strings.Split(valuePath, "/") {
 		if part == "" {
 			continue
 		}
@@ -166,7 +167,24 @@ func ReadFiles(files ...string) ([]string, error) {
 	return contents, nil
 }
 
-func SetValue(path string, value interface{}, config map[interface{}]interface{}) error {
+func SetValue(config map[interface{}]interface{}, valuePath string, value interface{}) error {
+	parts := strings.Split(valuePath, "/")
+
+	parent := config
+	for _, parentPart := range parts[:len(parts)-1] {
+		value, ok := parent[parentPart]
+		if !ok {
+			value = make(map[interface{}]interface{})
+		}
+		valueMap, ok := value.(map[interface{}]interface{})
+		if !ok {
+			return fmt.Errorf("Parent not a map")
+		}
+		parent = valueMap
+	}
+
+	parent[parts[len(parts)-1]] = value
+
 	return nil
 }
 
