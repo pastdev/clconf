@@ -208,6 +208,8 @@ func newSecretAgentFromCli(c *cli.Context) (*SecretAgent, cli.ExitCoder) {
 		secretAgent, err = NewSecretAgentFromBase64(keyBase64)
 	} else if keyFile := c.GlobalString("secret-keyring"); keyFile != "" {
 		secretAgent, err = NewSecretAgentFromFile(keyFile)
+	} else if keyBase64, ok := os.LookupEnv("SECRET_KEYRING_BASE64"); ok {
+		secretAgent, err = NewSecretAgentFromBase64(keyBase64)
 	} else if keyFile, ok := os.LookupEnv("SECRET_KEYRING"); ok {
 		secretAgent, err = NewSecretAgentFromFile(keyFile)
 	} else {

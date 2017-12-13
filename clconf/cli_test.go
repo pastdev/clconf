@@ -188,9 +188,12 @@ func TestMarshal(t *testing.T) {
 
 func TestNewSecretAgentFromCli(t *testing.T) {
 	var err error;
-	envVar := "SECRET_KEYRING"
+	secretKeyringEnvVar := "SECRET_KEYRING"
+	secretKeyringBase64EnvVar := "SECRET_KEYRING_BASE64"
 	defer func() {
-        os.Unsetenv(envVar);
+		// just in case
+        os.Unsetenv(secretKeyringEnvVar);
+        os.Unsetenv(secretKeyringBase64EnvVar);
 	}()
 
 	_, err = newSecretAgentFromCli(
@@ -217,7 +220,7 @@ func TestNewSecretAgentFromCli(t *testing.T) {
 		t.Errorf("New secret agent from base 64 failed: [%v]", err)
 	}
 
-	err = os.Setenv(envVar, NewTestKeysFile())
+	err = os.Setenv(secretKeyringEnvVar, NewTestKeysFile())
 	if err != nil {
 		t.Errorf("New secret agent from env set env failed: [%v]", err)
 	}
@@ -226,4 +229,17 @@ func TestNewSecretAgentFromCli(t *testing.T) {
 	if err != nil || secretAgent.key == nil {
 		t.Errorf("New secret agent from env failed: [%v]", err)
 	}
+	os.Unsetenv(secretKeyringEnvVar)
+
+	err = os.Setenv(secretKeyringBase64EnvVar,
+		base64.StdEncoding.EncodeToString(secretKeyring))
+	if err != nil {
+		t.Errorf("New secret agent from base 64 env set env failed: [%v]", err)
+	}
+	secretAgent, err = newSecretAgentFromCli(
+		NewTestContext(Name, nil, globalFlags(), nil))
+	if err != nil || secretAgent.key == nil {
+		t.Errorf("New secret agent from base 64 env failed: [%v]", err)
+	}
+	os.Unsetenv(secretKeyringEnvVar)
 }
