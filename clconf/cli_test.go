@@ -116,10 +116,10 @@ func TestGetPath(t *testing.T) {
 	testGetPath(t, "/foo/bar", "/bar")
 }
 
-func testGetvHandler(t *testing.T, config interface{}, path string) {
+func testGetValue(t *testing.T, config interface{}, path string) {
 	expected, ok := GetValue(path, config)
 
-	_, actual, err := getvHandler(NewGetvContext(path))
+	_, actual, err := getValue(NewGetvContext(path))
 	if ok && err != nil {
 		t.Errorf("Getv %s failed and shouldn't have: %v", path, err)
 	} else if !ok && err == nil {
@@ -131,18 +131,18 @@ func testGetvHandler(t *testing.T, config interface{}, path string) {
 	}
 }
 
-func TestGetvHandler(t *testing.T) {
+func TestGetValue(t *testing.T) {
 	config, err := NewTestConfig()
 	if err != nil {
 		t.Error(err)
 	}
 
-	testGetvHandler(t, config, "")
-	testGetvHandler(t, config, "/")
-	testGetvHandler(t, config, "/app")
-	testGetvHandler(t, config, "/app/db")
-	testGetvHandler(t, config, "/app/db/hostname")
-	testGetvHandler(t, config, "INVALID_PATH")
+	testGetValue(t, config, "")
+	testGetValue(t, config, "/")
+	testGetValue(t, config, "/app")
+	testGetValue(t, config, "/app/db")
+	testGetValue(t, config, "/app/db/hostname")
+	testGetValue(t, config, "INVALID_PATH")
 }
 
 func TestMarshal(t *testing.T) {

@@ -77,24 +77,7 @@ func getPath(c *cli.Context) string {
 }
 
 func getv(c *cli.Context) error {
-	return dump(marshal(getvHandler(c)))
-}
-
-func getvFlags() []cli.Flag {
-	return []cli.Flag{}
-}
-
-func getvHandler(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
-	path := getPath(c)
-	config, err := load(c)
-	if err != nil {
-		return c, nil, cliError(err, 1)
-	}
-	if value, ok := GetValue(path, config); ok {
-		return c, value, nil
-	}
-	return c, nil, cli.NewExitError(
-		fmt.Sprintf("[%v] does not exist", path), 1)
+	return dump(marshal(getValue(c)))
 }
 
 func getValue(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
@@ -108,6 +91,12 @@ func getValue(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
 		return c, nil, cli.NewExitError(fmt.Sprintf("[%v] does not exist", path), 1)
 	}
 	return c, value, nil
+}
+
+func getvFlags() []cli.Flag {
+	return []cli.Flag{
+		cli.StringFlag{Name: "default"},
+	}
 }
 
 func globalFlags() []cli.Flag {
@@ -173,12 +162,14 @@ func NewApp() *cli.App {
 			Usage:     "Get a secret value",
 			ArgsUsage: "PATH",
 			Action:    cgetv,
+			Flags: getvFlags(),
 		},
 		{
 			Name:      "getv",
 			Usage:     "Get a value",
 			ArgsUsage: "PATH",
 			Action:    getv,
+			Flags: getvFlags(),
 		},
 		{
 			Name:      "csetv",
