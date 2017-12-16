@@ -1,42 +1,15 @@
 package clconf
 
 import (
-	"os"
 	"encoding/base64"
 	"flag"
 	"io/ioutil"
-	"path/filepath"
+	"os"
 	"reflect"
-	"runtime"
 	"testing"
 
 	"github.com/urfave/cli"
 )
-
-func NewTestConfig() (interface{}, error) {
-	config, err := NewTestConfigContent()
-	if err != nil {
-		return "", err
-	}
-	return unmarshalYaml(config)
-}
-
-func NewTestConfigFile() string {
-	_, filename, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(filename), "testconfig.yml")
-}
-
-func NewTestConfigContent() ([]byte, error) {
-	return ioutil.ReadFile(NewTestConfigFile())
-}
-
-func NewTestConfigBase64() (string, error) {
-	config, err := NewTestConfigContent()
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString([]byte(config)), nil
-}
 
 func NewTestContext(name string, app *cli.App, flags []cli.Flag, parentContext *cli.Context, args ...string) *cli.Context {
 	set := flag.NewFlagSet(name, 0)
@@ -62,7 +35,7 @@ func NewGetvContext(args ...string) *cli.Context {
 }
 
 func testCgetvHandler(t *testing.T, config interface{}, path string) {
-	expected, ok := GetValue(path+"-plaintext", config)
+	expected, ok := GetValue(config, path+"-plaintext")
 
 	_, actual, err := cgetvHandler(NewGetvContext(path))
 	if ok && err != nil {
@@ -98,7 +71,7 @@ func testGetPath(t *testing.T, expected string, args ...string) {
 func TestGetPath(t *testing.T) {
 	var envVar = "CONFIG_PREFIX"
 	defer func() {
-        os.Unsetenv(envVar)
+		os.Unsetenv(envVar)
 	}()
 
 	testGetPath(t, "/", "")
@@ -119,7 +92,7 @@ func TestGetPath(t *testing.T) {
 func testGetValue(t *testing.T, config interface{}, args ...string) {
 	context := NewGetvContext(args...)
 	path := getPath(context)
-	expected, ok := GetValue(path, config)
+	expected, ok := GetValue(config, path)
 	if !ok {
 		if defaultValue, defaultOk := getDefault(context); defaultOk {
 			expected = defaultValue
@@ -187,20 +160,20 @@ func TestMarshal(t *testing.T) {
 }
 
 func TestNewSecretAgentFromCli(t *testing.T) {
-	var err error;
+	var err error
 	secretKeyringEnvVar := "SECRET_KEYRING"
 	secretKeyringBase64EnvVar := "SECRET_KEYRING_BASE64"
 	defer func() {
 		// just in case
-        os.Unsetenv(secretKeyringEnvVar);
-        os.Unsetenv(secretKeyringBase64EnvVar);
+		os.Unsetenv(secretKeyringEnvVar)
+		os.Unsetenv(secretKeyringBase64EnvVar)
 	}()
 
 	_, err = newSecretAgentFromCli(
 		NewTestContext(Name, nil, globalFlags(), nil))
 	if err == nil {
 		t.Errorf("New secret agent no options no env failed: [%v]", err)
-	} 
+	}
 
 	secretAgent, err := newSecretAgentFromCli(
 		NewTestContext(Name, nil, globalFlags(), nil,

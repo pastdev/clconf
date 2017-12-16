@@ -35,7 +35,7 @@ func DecodeBase64Strings(values ...string) ([]string, error) {
 
 // FillValue will fill a struct, out, with values from conf.
 func FillValue(keyPath string, conf interface{}, out interface{}) bool {
-	value, ok := GetValue(keyPath, conf)
+	value, ok := GetValue(conf, keyPath)
 	if !ok {
 		return false
 	}
@@ -48,7 +48,7 @@ func FillValue(keyPath string, conf interface{}, out interface{}) bool {
 
 // GetValue returns the value at the indicated path.  Paths are separated by
 // the '/' character.
-func GetValue(keyPath string, conf interface{}) (interface{}, bool) {
+func GetValue(conf interface{}, keyPath string) (interface{}, bool) {
 	if keyPath == "" {
 		return conf, true
 	}
@@ -179,18 +179,23 @@ func splitKeyPath(keyPath string) ([]string, string) {
 
 	lastIndex := len(parts) - 1
 	if lastIndex >= 0 {
-	    return parts[:lastIndex], parts[lastIndex]
+		return parts[:lastIndex], parts[lastIndex]
 	}
 	return parts, keyPath
 }
 
-func SetValue(config map[interface{}]interface{}, keyPath string, value interface{}) error {
+// SetValue will set the value of config at keyPath to value
+func SetValue(config interface{}, keyPath string, value interface{}) error {
+	configMap, ok := config.(map[interface{}]interface{})
+	if !ok {
+		return fmt.Errorf("Config not a map")
+	}
 	parentParts, key := splitKeyPath(keyPath)
 	if key == "" {
-	    return fmt.Errorf("[%v] is an invalid keyPath", keyPath)
+		return fmt.Errorf("[%v] is an invalid keyPath", keyPath)
 	}
 
-	parent := config
+	parent := configMap
 	for _, parentPart := range parentParts {
 		parentValue, ok := parent[parentPart]
 		if !ok {

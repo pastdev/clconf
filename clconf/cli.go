@@ -93,11 +93,11 @@ func getValue(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
 	if err != nil {
 		return c, nil, cliError(err, 1)
 	}
-	value, ok := GetValue(path, config)
+	value, ok := GetValue(config, path)
 	if !ok {
 		value, ok = getDefault(c)
 		if !ok {
-		    return c, nil, cli.NewExitError(fmt.Sprintf("[%v] does not exist", path), 1)
+			return c, nil, cli.NewExitError(fmt.Sprintf("[%v] does not exist", path), 1)
 		}
 	}
 	return c, value, nil
@@ -172,14 +172,14 @@ func NewApp() *cli.App {
 			Usage:     "Get a secret value",
 			ArgsUsage: "PATH",
 			Action:    cgetv,
-			Flags: getvFlags(),
+			Flags:     getvFlags(),
 		},
 		{
 			Name:      "getv",
 			Usage:     "Get a value",
 			ArgsUsage: "PATH",
 			Action:    getv,
-			Flags: getvFlags(),
+			Flags:     getvFlags(),
 		},
 		{
 			Name:      "csetv",

@@ -31,10 +31,11 @@ func (secretAgent *SecretAgent) Decrypt(encrypted string) (string, error) {
 	return string(b), nil
 }
 
-// DecryptPaths will return the decrypted value represented by encrypted
-func (secretAgent *SecretAgent) DecryptPaths(config map[interface{}]interface{}, encryptedPaths ...string) error {
+// DecryptPaths will will replace the values at the indicated paths with thier
+// decrypted values
+func (secretAgent *SecretAgent) DecryptPaths(config interface{}, encryptedPaths ...string) error {
 	for _, encryptedPath := range encryptedPaths {
-		value, ok := GetValue(encryptedPath, config)
+		value, ok := GetValue(config, encryptedPath)
 		if !ok {
 			return fmt.Errorf("%v not found", encryptedPath)
 		}

@@ -116,32 +116,32 @@ func TestFillValue(t *testing.T) {
 func TestGetValue(t *testing.T) {
 	conf, _ := clconf.UnmarshalYaml(yaml1and2)
 
-	value, ok := clconf.GetValue("", conf)
+	value, ok := clconf.GetValue(conf, "")
 	if !ok || !reflect.DeepEqual(conf, value) {
 		t.Errorf("GetValue empty path failed: [%v] [%v] == [%v]", ok, conf, value)
 	}
 
-	value, ok = clconf.GetValue("/", conf)
+	value, ok = clconf.GetValue(conf, "/")
 	if !ok || !reflect.DeepEqual(conf, value) {
 		t.Errorf("GetValue empty path failed: [%v] [%v] == [%v]", ok, conf, value)
 	}
 
-	value, ok = clconf.GetValue("/a", conf)
+	value, ok = clconf.GetValue(conf, "/a")
 	if !ok || value != "Yup" {
 		t.Errorf("GetValue first level string failed: [%v] [%v]", ok, value)
 	}
 
-	value, ok = clconf.GetValue("/b//f//g", conf)
+	value, ok = clconf.GetValue(conf, "/b//f//g")
 	if !ok || value != "foobar" {
 		t.Errorf("GetValue third level string multi slash failed: [%v] [%v]", ok, value)
 	}
 
-	value, ok = clconf.GetValue("/a/f", conf)
+	value, ok = clconf.GetValue(conf, "/a/f")
 	if ok {
 		t.Errorf("GetValue non map indexing should have failed: [%v] [%v]", ok, value)
 	}
 
-	value, ok = clconf.GetValue("/z", conf)
+	value, ok = clconf.GetValue(conf, "/z")
 	if ok {
 		t.Errorf("GetValue missing have failed: [%v] [%v]", ok, value)
 	}

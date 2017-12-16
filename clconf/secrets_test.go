@@ -2,20 +2,45 @@ package clconf
 
 import (
 	"encoding/base64"
-	"reflect"
 	"io/ioutil"
-	"path/filepath"
-	"runtime"
+	"reflect"
 	"testing"
 )
 
-func NewTestKeysFile() string {
-	_, filename, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(filename), "test.secring.gpg")
-}
+func TestDecryptPaths(t *testing.T) {
+	config, err := NewTestConfig()
+	if err != nil {
+		t.Errorf("Unable to create config for TestDecryptPaths: %v", err)
+	}
+	secretAgent, err := NewTestSecretAgent()
+	if err != nil {
+		t.Errorf("Unable to create secret agent for TestDecryptPaths: %v", err)
+	}
 
-func NewTestSecretAgent() (*SecretAgent, error) {
-	return NewSecretAgentFromFile(NewTestKeysFile())
+	err = secretAgent.DecryptPaths(config, "/foo")
+	if err == nil {
+		t.Error("DecryptPaths invalid path should have failed")
+	}
+
+	err = secretAgent.DecryptPaths(config, "/app/db/port")
+	if err == nil {
+		t.Error("DecryptPaths not a string should have failed")
+	}
+
+	err = secretAgent.DecryptPaths(config, "/app/db/password-plaintext")
+	if err == nil {
+		t.Error("DecryptPaths not an encrypted value should have failed")
+	}
+
+	err = secretAgent.DecryptPaths(config, "/app/db/username", "/app/db/password")
+	if err != nil {
+		t.Errorf("DecryptPaths failed: %v", err)
+	}
+
+	if !ValuesAtPathsAreEqual(config, "/app/db/username", "/app/db/username-plaintext") ||
+		!ValuesAtPathsAreEqual(config, "/app/db/password", "/app/db/password-plaintext") {
+		t.Errorf("DecryptPaths do not match plaintext paths: %v", err)
+	}
 }
 
 func TestEncryptDecrypt(t *testing.T) {
