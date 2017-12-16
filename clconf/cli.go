@@ -23,6 +23,12 @@ func cgetv(c *cli.Context) error {
 	return dump(marshal(cgetvHandler(c)))
 }
 
+func cgetvFlags() []cli.Flag {
+	return []cli.Flag{
+		cli.StringFlag{Name: "default"},
+	}
+}
+
 func cgetvHandler(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
 	_, value, err := getValue(c)
 	if err != nil {
@@ -100,11 +106,22 @@ func getValue(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
 			return c, nil, cli.NewExitError(fmt.Sprintf("[%v] does not exist", path), 1)
 		}
 	}
+	if decryptPaths := c.StringSlice("decrypt"); len(decryptPaths) > 0 {
+		secretAgent, err := newSecretAgentFromCli(c)
+		if err != nil {
+			return c, nil, err
+		}
+		err = cliError(secretAgent.DecryptPaths(value, decryptPaths...), 1)
+		if err != nil {
+			return c, nil, err
+		}
+	}
 	return c, value, nil
 }
 
 func getvFlags() []cli.Flag {
 	return []cli.Flag{
+		cli.StringSliceFlag{Name: "decrypt"},
 		cli.StringFlag{Name: "default"},
 	}
 }
@@ -172,7 +189,7 @@ func NewApp() *cli.App {
 			Usage:     "Get a secret value",
 			ArgsUsage: "PATH",
 			Action:    cgetv,
-			Flags:     getvFlags(),
+			Flags:     cgetvFlags(),
 		},
 		{
 			Name:      "getv",
@@ -184,13 +201,13 @@ func NewApp() *cli.App {
 		{
 			Name:      "csetv",
 			Usage:     "Set a secret value",
-			ArgsUsage: "PATH",
+			ArgsUsage: "PATH VALUE",
 			Action:    csetv,
 		},
 		{
 			Name:      "setv",
 			Usage:     "Set a value",
-			ArgsUsage: "PATH",
+			ArgsUsage: "PATH VALUE",
 			Action:    setv,
 		},
 	}

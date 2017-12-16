@@ -75,6 +75,52 @@ func Example_testConfigGetv() {
 	//     username-plaintext: SECRET_USER
 }
 
+func Example_testConfigGetvDecrypt() {
+	os.Args = []string{
+		"clconf",
+		"--yaml", NewTestConfigFile(),
+		"--secret-keyring", NewTestKeysFile(),
+		"getv",
+		"--decrypt", "/app/db/username",
+		"--decrypt", "/app/db/password",
+	}
+	main()
+	// Output:
+	// app:
+	//   aliases:
+	//   - foo
+	//   - bar
+	//   db:
+	//     hostname: db.pastdev.com
+	//     password: SECRET_PASS
+	//     password-plaintext: SECRET_PASS
+	//     port: 3306
+	//     schema: clconfdb
+	//     username: SECRET_USER
+	//     username-plaintext: SECRET_USER
+}
+
+func Example_testConfigGetvDecryptWithPath() {
+	os.Args = []string{
+		"clconf",
+		"--yaml", NewTestConfigFile(),
+		"--secret-keyring", NewTestKeysFile(),
+		"getv",
+		"/app/db",
+		"--decrypt", "/username",
+		"--decrypt", "/password",
+	}
+	main()
+	// Output:
+	// hostname: db.pastdev.com
+	// password: SECRET_PASS
+	// password-plaintext: SECRET_PASS
+	// port: 3306
+	// schema: clconfdb
+	// username: SECRET_USER
+	// username-plaintext: SECRET_USER
+}
+
 func Example_testConfigGetvAppAliases() {
 	os.Args = []string{"clconf", "--yaml", NewTestConfigFile(), "getv", "/app/aliases"}
 	main()

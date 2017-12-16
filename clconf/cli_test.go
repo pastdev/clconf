@@ -3,6 +3,7 @@ package clconf
 import (
 	"encoding/base64"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -11,33 +12,63 @@ import (
 	"github.com/urfave/cli"
 )
 
-func NewTestContext(name string, app *cli.App, flags []cli.Flag, parentContext *cli.Context, args ...string) *cli.Context {
+func getExpectedAndActual(config interface{}, args []string, options []string) (string, interface{}, interface{}, error) {
+	var err error
+	context := NewGetvContext(args, options)
+	path := getPath(context)
+	expected, ok := GetValue(config, path)
+	if !ok {
+		if defaultValue, defaultOk := getDefault(context); defaultOk {
+			expected = defaultValue
+			ok = true
+		}
+	}
+	if decryptPaths := context.StringSlice("decrypt"); len(decryptPaths) > 0 {
+		secretAgent, err := newSecretAgentFromCli(context)
+		if err != nil {
+			return path, nil, nil, fmt.Errorf("newSecretAgentFromCli failed: %v", err)
+		}
+		if err := secretAgent.DecryptPaths(expected, decryptPaths...); err != nil {
+			return path, nil, nil, fmt.Errorf("DecryptPaths failed: %v", err)
+		}
+	}
+
+	_, actual, err := getValue(context)
+	if ok && err != nil {
+		return path, nil, nil, fmt.Errorf("getValue %s failed and shouldn't have: %v", path, err)
+	} else if !ok && err == nil {
+		return path, nil, nil, fmt.Errorf("getValue %s didn't fail and should have", path)
+	}
+
+	return path, expected, actual, nil
+}
+
+func NewTestContext(name string, app *cli.App, flags []cli.Flag, parentContext *cli.Context, args []string, options []string) *cli.Context {
 	set := flag.NewFlagSet(name, 0)
-	for _, flag := range globalFlags() {
+	for _, flag := range flags {
 		flag.Apply(set)
 	}
+	set.SetOutput(ioutil.Discard)
 	context := cli.NewContext(app, set, parentContext)
-	set.Parse(args)
+	set.Parse(append(options, args...))
 	return context
 }
 
 func NewTestGlobalContext() *cli.Context {
-	context := NewTestContext(Name, nil, globalFlags(), nil,
+	return NewTestContext(Name, nil, globalFlags(), nil, []string{}, []string{
 		"--secret-keyring", NewTestKeysFile(),
 		"--yaml", NewTestConfigFile(),
-	)
-	return context
+	})
 }
 
-func NewGetvContext(args ...string) *cli.Context {
-	context := NewTestContext("getv", nil, getvFlags(), NewTestGlobalContext(), args...)
-	return context
+func NewGetvContext(args []string, options []string) *cli.Context {
+	return NewTestContext("getv", nil, getvFlags(), NewTestGlobalContext(), args, options)
 }
 
 func testCgetvHandler(t *testing.T, config interface{}, path string) {
 	expected, ok := GetValue(config, path+"-plaintext")
 
-	_, actual, err := cgetvHandler(NewGetvContext(path))
+	_, actual, err := cgetvHandler(NewGetvContext([]string{path}, nil))
 	if ok && err != nil {
 		t.Errorf("Cgetv %s failed and shouldn't have: %v", path, err)
 	} else if !ok && err == nil {
@@ -61,8 +92,8 @@ func TestCgetvHandler(t *testing.T) {
 	testCgetvHandler(t, config, "INVALID_PATH")
 }
 
-func testGetPath(t *testing.T, expected string, args ...string) {
-	path := getPath(NewTestContext("test", nil, globalFlags(), nil, args...))
+func testGetPath(t *testing.T, expected string, args []string, options []string) {
+	path := getPath(NewTestContext("test", nil, globalFlags(), nil, args, options))
 	if expected != path {
 		t.Errorf("Get path failed: [%v] != [%v]", expected, path)
 	}
@@ -74,37 +105,25 @@ func TestGetPath(t *testing.T) {
 		os.Unsetenv(envVar)
 	}()
 
-	testGetPath(t, "/", "")
-	testGetPath(t, "/", "/")
-	testGetPath(t, "/foo", "/foo")
+	testGetPath(t, "/", []string{""}, []string{})
+	testGetPath(t, "/", []string{"/"}, []string{})
+	testGetPath(t, "/foo", []string{"/foo"}, []string{})
 
-	testGetPath(t, "/foo", "--prefix", "/foo")
-	testGetPath(t, "/foo", "--prefix", "/foo", "/")
-	testGetPath(t, "/foo/bar", "--prefix", "/foo", "/bar")
-	testGetPath(t, "/foo/bar", "--prefix", "/foo/", "/bar")
+	testGetPath(t, "/foo", []string{}, []string{"--prefix", "/foo"})
+	testGetPath(t, "/foo", []string{"/"}, []string{"--prefix", "/foo"})
+	testGetPath(t, "/foo/bar", []string{"/bar"}, []string{"--prefix", "/foo"})
+	testGetPath(t, "/foo/bar", []string{"/bar"}, []string{"--prefix", "/foo/"})
 
 	os.Setenv(envVar, "/foo")
-	testGetPath(t, "/foo", "")
-	testGetPath(t, "/foo", "/")
-	testGetPath(t, "/foo/bar", "/bar")
+	testGetPath(t, "/foo", []string{""}, []string{})
+	testGetPath(t, "/foo", []string{"/"}, []string{})
+	testGetPath(t, "/foo/bar", []string{"/bar"}, []string{})
 }
 
-func testGetValue(t *testing.T, config interface{}, args ...string) {
-	context := NewGetvContext(args...)
-	path := getPath(context)
-	expected, ok := GetValue(config, path)
-	if !ok {
-		if defaultValue, defaultOk := getDefault(context); defaultOk {
-			expected = defaultValue
-			ok = true
-		}
-	}
-
-	_, actual, err := getValue(context)
-	if ok && err != nil {
-		t.Errorf("Getv %s failed and shouldn't have: %v", path, err)
-	} else if !ok && err == nil {
-		t.Errorf("Getv %s didn't fail and should have", path)
+func testGetValue(t *testing.T, config interface{}, args []string, options []string) {
+	path, expected, actual, err := getExpectedAndActual(config, args, options)
+	if err != nil {
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(expected, actual) {
@@ -118,14 +137,19 @@ func TestGetValue(t *testing.T) {
 		t.Error(err)
 	}
 
-	testGetValue(t, config, "")
-	testGetValue(t, config, "/")
-	testGetValue(t, config, "/app")
-	testGetValue(t, config, "/app/db")
-	testGetValue(t, config, "/app/db/hostname")
-	testGetValue(t, config, "/app/db/hostname", "--default", "INVALID_HOST")
-	testGetValue(t, config, "INVALID_PATH")
-	testGetValue(t, config, "INVALID_PATH_WITH_DEFAULT", "--default", "foo")
+	testGetValue(t, config, []string{""}, []string{})
+	testGetValue(t, config, []string{"/"}, []string{})
+	testGetValue(t, config, []string{"/app"}, []string{})
+	testGetValue(t, config, []string{"/app/db"}, []string{})
+	testGetValue(t, config, []string{"/app/db/hostname"}, []string{})
+	testGetValue(t, config, []string{"/app/db/hostname"}, []string{"--default", "INVALID_HOST"})
+	testGetValue(t, config, []string{"INVALID_PATH"}, []string{})
+	testGetValue(t, config, []string{"INVALID_PATH_WITH_DEFAULT"}, []string{"--default", "foo"})
+	testGetValue(t, config, []string{"/app/db"}, []string{
+		"--default", "foo",
+		"--decrypt", "/username",
+		"--decrypt", "/password",
+	})
 }
 
 func TestMarshal(t *testing.T) {
@@ -170,14 +194,14 @@ func TestNewSecretAgentFromCli(t *testing.T) {
 	}()
 
 	_, err = newSecretAgentFromCli(
-		NewTestContext(Name, nil, globalFlags(), nil))
+		NewTestContext(Name, nil, globalFlags(), nil, []string{}, []string{}))
 	if err == nil {
 		t.Errorf("New secret agent no options no env failed: [%v]", err)
 	}
 
 	secretAgent, err := newSecretAgentFromCli(
-		NewTestContext(Name, nil, globalFlags(), nil,
-			"--secret-keyring", NewTestKeysFile()))
+		NewTestContext(Name, nil, globalFlags(), nil, []string{},
+			[]string{"--secret-keyring", NewTestKeysFile()}))
 	if err != nil || secretAgent.key == nil {
 		t.Errorf("New secret agent from file failed: [%v]", err)
 	}
@@ -187,8 +211,8 @@ func TestNewSecretAgentFromCli(t *testing.T) {
 		t.Errorf("New secret agent from base 64 read keys file failed: [%v]", err)
 	}
 	secretAgent, err = newSecretAgentFromCli(
-		NewTestContext(Name, nil, globalFlags(), nil,
-			"--secret-keyring-base64", base64.StdEncoding.EncodeToString(secretKeyring)))
+		NewTestContext(Name, nil, globalFlags(), nil, []string{},
+			[]string{"--secret-keyring-base64", base64.StdEncoding.EncodeToString(secretKeyring)}))
 	if err != nil || secretAgent.key == nil {
 		t.Errorf("New secret agent from base 64 failed: [%v]", err)
 	}
@@ -198,7 +222,7 @@ func TestNewSecretAgentFromCli(t *testing.T) {
 		t.Errorf("New secret agent from env set env failed: [%v]", err)
 	}
 	secretAgent, err = newSecretAgentFromCli(
-		NewTestContext(Name, nil, globalFlags(), nil))
+		NewTestContext(Name, nil, globalFlags(), nil, []string{}, []string{}))
 	if err != nil || secretAgent.key == nil {
 		t.Errorf("New secret agent from env failed: [%v]", err)
 	}
@@ -210,7 +234,7 @@ func TestNewSecretAgentFromCli(t *testing.T) {
 		t.Errorf("New secret agent from base 64 env set env failed: [%v]", err)
 	}
 	secretAgent, err = newSecretAgentFromCli(
-		NewTestContext(Name, nil, globalFlags(), nil))
+		NewTestContext(Name, nil, globalFlags(), nil, []string{}, []string{}))
 	if err != nil || secretAgent.key == nil {
 		t.Errorf("New secret agent from base 64 env failed: [%v]", err)
 	}
