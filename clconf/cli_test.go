@@ -2,6 +2,7 @@ package clconf
 
 import (
 	"encoding/base64"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -59,8 +60,19 @@ func getGetvOutcome(config interface{}, args []string, options []string) (string
 		if err != nil {
 			return path, nil, nil, fmt.Errorf("newSecretAgentFromCli failed: %v", err)
 		}
-		if err := secretAgent.DecryptPaths(expected, decryptPaths...); err != nil {
-			return path, nil, nil, fmt.Errorf("DecryptPaths failed: %v", err)
+		if stringValue, ok := expected.(string); ok {
+			if len(decryptPaths) != 1 || !(decryptPaths[0] == "" || decryptPaths[0] == "/") {
+				return path, nil, nil, errors.New("string value with non-root decrypt path")
+			}
+			decrypted, err := secretAgent.Decrypt(stringValue)
+			if err != nil {
+				return path, nil, nil, err
+			}
+			expected = decrypted
+		} else {
+			if err := secretAgent.DecryptPaths(expected, decryptPaths...); err != nil {
+				return path, nil, nil, fmt.Errorf("DecryptPaths failed: %v", err)
+			}
 		}
 	}
 
@@ -136,33 +148,6 @@ func NewSetvContext(yamlFile string, args []string, options []string) *cli.Conte
 	return NewTestContext("setv", nil, setvFlags(), globalContext, args, options)
 }
 
-func testCgetvHandler(t *testing.T, config interface{}, path string) {
-	expected, ok := GetValue(config, path+"-plaintext")
-
-	_, actual, err := cgetvHandler(NewGetvContext([]string{path}, nil))
-	if ok && err != nil {
-		t.Errorf("Cgetv %s failed and shouldn't have: %v", path, err)
-	} else if !ok && err == nil {
-		t.Errorf("Cgetv %s didn't fail and should have", path)
-	}
-
-	if !reflect.DeepEqual(expected, actual) {
-		t.Errorf("Cgetv %s unexpected result: %v != %v", path, expected, actual)
-	}
-}
-
-func TestCgetvHandler(t *testing.T) {
-	config, err := NewTestConfig()
-	if err != nil {
-		t.Error(err)
-	}
-
-	testCgetvHandler(t, config, "")
-	testCgetvHandler(t, config, "/app/db/username")
-	testCgetvHandler(t, config, "/app/db/password")
-	testCgetvHandler(t, config, "INVALID_PATH")
-}
-
 func testGetPath(t *testing.T, expected string, args []string, options []string) {
 	path := getPath(NewTestContext("test", nil, globalFlags(), nil, args, options))
 	if expected != path {
@@ -191,7 +176,12 @@ func TestGetPath(t *testing.T) {
 	testGetPath(t, "/foo/bar", []string{"/bar"}, []string{})
 }
 
-func testGetValue(t *testing.T, config interface{}, args []string, options []string) {
+func testGetValue(t *testing.T, args []string, options []string) {
+	config, err := NewTestConfig()
+	if err != nil {
+		t.Error(err)
+	}
+
 	path, expected, actual, err := getGetvOutcome(config, args, options)
 	if err != nil {
 		t.Error(err)
@@ -203,24 +193,20 @@ func testGetValue(t *testing.T, config interface{}, args []string, options []str
 }
 
 func TestGetValue(t *testing.T) {
-	config, err := NewTestConfig()
-	if err != nil {
-		t.Error(err)
-	}
-
-	testGetValue(t, config, []string{""}, []string{})
-	testGetValue(t, config, []string{"/"}, []string{})
-	testGetValue(t, config, []string{"/app"}, []string{})
-	testGetValue(t, config, []string{"/app/db"}, []string{})
-	testGetValue(t, config, []string{"/app/db/hostname"}, []string{})
-	testGetValue(t, config, []string{"/app/db/hostname"}, []string{"--default", "INVALID_HOST"})
-	testGetValue(t, config, []string{"INVALID_PATH"}, []string{})
-	testGetValue(t, config, []string{"INVALID_PATH_WITH_DEFAULT"}, []string{"--default", "foo"})
-	testGetValue(t, config, []string{"/app/db"}, []string{
+	testGetValue(t, []string{""}, []string{})
+	testGetValue(t, []string{"/"}, []string{})
+	testGetValue(t, []string{"/app"}, []string{})
+	testGetValue(t, []string{"/app/db"}, []string{})
+	testGetValue(t, []string{"/app/db/hostname"}, []string{})
+	testGetValue(t, []string{"/app/db/hostname"}, []string{"--default", "INVALID_HOST"})
+	testGetValue(t, []string{"INVALID_PATH"}, []string{})
+	testGetValue(t, []string{"INVALID_PATH_WITH_DEFAULT"}, []string{"--default", "foo"})
+	testGetValue(t, []string{"/app/db"}, []string{
 		"--default", "foo",
 		"--decrypt", "/username",
 		"--decrypt", "/password",
 	})
+	testGetValue(t, []string{"/app/db/username"}, []string{"--decrypt", "/"})
 }
 
 func TestMarshal(t *testing.T) {

@@ -16,33 +16,15 @@ const (
 	Version = "0.0.1"
 )
 
+// Makes dump unit testable as test classes can override print
 // https://stackoverflow.com/a/26804949/516433
 var print = fmt.Print
 
 func cgetv(c *cli.Context) error {
-	return dump(marshal(cgetvHandler(c)))
-}
-
-func cgetvFlags() []cli.Flag {
-	return []cli.Flag{
-		cli.StringFlag{Name: "default"},
+	if err := c.Set("decrypt", "/"); err != nil {
+		return cli.NewExitError(err, 1)
 	}
-}
-
-func cgetvHandler(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
-	_, value, err := getValue(c)
-	if err != nil {
-		return c, nil, err
-	}
-	secretAgent, err := newSecretAgentFromCli(c)
-	if err != nil {
-		return c, nil, err
-	}
-	if stringValue, ok := value.(string); ok {
-		decrypted, err := secretAgent.Decrypt(stringValue)
-		return c, decrypted, cliError(err, 1)
-	}
-	return c, nil, cli.NewExitError("value at specified path not a string", 1)
+	return getv(c)
 }
 
 func cliError(err error, exitCode int) cli.ExitCoder {
@@ -114,9 +96,20 @@ func getValue(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
 		if err != nil {
 			return c, nil, err
 		}
-		err = cliError(secretAgent.DecryptPaths(value, decryptPaths...), 1)
-		if err != nil {
-			return c, nil, err
+		if stringValue, ok := value.(string); ok {
+			if len(decryptPaths) != 1 || !(decryptPaths[0] == "" || decryptPaths[0] == "/") {
+				return c, nil, cli.NewExitError("string value with non-root decrypt path", 1)
+			}
+			decrypted, err := secretAgent.Decrypt(stringValue)
+			if err != nil {
+				return c, nil, cliError(err, 1)
+			}
+			value = decrypted
+		} else {
+			err = cliError(secretAgent.DecryptPaths(value, decryptPaths...), 1)
+			if err != nil {
+				return c, nil, err
+			}
 		}
 	}
 	return c, value, nil
@@ -184,10 +177,10 @@ func NewApp() *cli.App {
 	app.Commands = []cli.Command{
 		{
 			Name:      "cgetv",
-			Usage:     "Get a secret value",
+			Usage:     "Get a secret value.  Simply an alias to `getv --decrypt /`",
 			ArgsUsage: "PATH",
 			Action:    cgetv,
-			Flags:     cgetvFlags(),
+			Flags:     getvFlags(),
 		},
 		{
 			Name:      "getv",
@@ -198,7 +191,7 @@ func NewApp() *cli.App {
 		},
 		{
 			Name:      "csetv",
-			Usage:     "Set a secret value",
+			Usage:     "Set a secret value.  Simply an alias to `setv --encrypt`",
 			ArgsUsage: "PATH VALUE",
 			Action:    csetv,
 			Flags:     setvFlags(),
