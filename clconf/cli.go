@@ -56,7 +56,10 @@ func cliError(err error, exitCode int) cli.ExitCoder {
 }
 
 func csetv(c *cli.Context) error {
-	return cli.NewExitError("Not yet implemented", 1)
+	if err := c.Set("encrypt", "true"); err != nil {
+		return cli.NewExitError(err, 1)
+	}
+	return setv(c)
 }
 
 func dump(c *cli.Context, value interface{}, err cli.ExitCoder) cli.ExitCoder {
@@ -169,11 +172,6 @@ func marshal(c *cli.Context, value interface{}, err cli.ExitCoder) (*cli.Context
 // NewApp returns a new cli application instance ready to be run.
 //
 // Thoughts...
-// * there should be actions `getv`, `cgetv`, `setv`, `csetv`
-// ** all take a coordinate, setters also take a _fileish_ thing
-// *** setter _fileish_ thing could be cached as env var...
-// ** `getv` should allow for a --decrypt option which takes a list of coords to decrypt
-// * --override opition (multi valued) takes base64 encoded yaml
 // ** stdin should be read in as a file and used as override (not sure if before or after --overrides)
 func NewApp() *cli.App {
 	app := cli.NewApp()
@@ -203,12 +201,14 @@ func NewApp() *cli.App {
 			Usage:     "Set a secret value",
 			ArgsUsage: "PATH VALUE",
 			Action:    csetv,
+			Flags:     setvFlags(),
 		},
 		{
 			Name:      "setv",
 			Usage:     "Set a value",
 			ArgsUsage: "PATH VALUE",
 			Action:    setv,
+			Flags:     setvFlags(),
 		},
 	}
 
@@ -249,10 +249,29 @@ func setv(c *cli.Context) error {
 			fmt.Sprintf("Failed to load config: %v", err), 1)
 	}
 
+	if c.Bool("encrypt") {
+		secretAgent, err := newSecretAgentFromCli(c)
+		if err != nil {
+			return err
+		}
+		encrypted, encryptErr := secretAgent.Encrypt(value)
+		if encryptErr != nil {
+			return cli.NewExitError(
+				fmt.Sprintf("Failed to encrypt value: %v", err), 1)
+		}
+		value = encrypted
+	}
+
 	if err := SetValue(config, path, value); err != nil {
 		return cli.NewExitError(
 			fmt.Sprintf("Failed to load config: %v", err), 1)
 	}
 
-	return cliError(SaveConf(file, config), 1)
+	return cliError(SaveConf(config, file), 1)
+}
+
+func setvFlags() []cli.Flag {
+	return []cli.Flag{
+		cli.BoolFlag{Name: "encrypt"},
+	}
 }

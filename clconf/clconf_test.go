@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -289,6 +290,30 @@ func TestReadFilesTempValues(t *testing.T) {
 	actual, err := clconf.ReadFiles(names...)
 	if err != nil || !reflect.DeepEqual(values, actual) {
 		t.Errorf("ReadFiles foo baz failed: [%v] [%v]", values, actual)
+	}
+}
+
+func TestSaveConf(t *testing.T) {
+	tempDir, err := ioutil.TempDir("", "clconf")
+	if err != nil {
+		t.Errorf("Unable to create temp dir: %v", err)
+	}
+	defer func() {
+		os.RemoveAll(tempDir)
+	}()
+
+	config := map[interface{}]interface{}{"a": "b"}
+	file := filepath.Join(tempDir, "config.yml")
+	err = clconf.SaveConf(config, file)
+	if err != nil {
+		t.Errorf("SafeConf failed: %v", err)
+	}
+	actual, err := ioutil.ReadFile(file)
+	if err != nil {
+		t.Errorf("SafeConf failed, unable to read %v", file)
+	}
+	if "a: b\n" != string(actual) {
+		t.Errorf("SafeConf failed, unexpected config: %v", string(actual))
 	}
 }
 

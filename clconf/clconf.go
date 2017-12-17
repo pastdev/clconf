@@ -111,14 +111,20 @@ func LoadConfFromEnvironment(files []string, overrides []string) (map[interface{
 // file is allowed, but can be specified, either by the environment variable
 // YAML_FILES, or as the single value in the supplied files array.  Returns
 // the name of the file to be written, the conf map, and a non-nil error upon
-// failure.
+// failure.  If the file does not currently exist, an empty map will be returned
+// and a call to SaveConf will create the file.
 func LoadSettableConfFromEnvironment(files []string) (string, map[interface{}]interface{}, error) {
 	if yamlFiles, ok := os.LookupEnv("YAML_FILES"); ok {
 		files = append(files, splitter.Split(yamlFiles, -1)...)
 	}
-	if len(files) > 1 {
-		return "", nil, errors.New("Only one file allowed with setv")
+	if len(files) != 1 {
+		return "", nil, errors.New("Exactly one file required with setv")
 	}
+
+	if _, err := os.Stat(files[0]); os.IsNotExist(err) {
+		return files[0], map[interface{}]interface{}{}, nil
+	}
+
 	config, err := LoadConf(files, []string{})
 	return files[0], config, err
 }
@@ -154,13 +160,11 @@ func ReadFiles(files ...string) ([]string, error) {
 	for _, file := range files {
 		if _, err := os.Stat(file); os.IsNotExist(err) {
 			return nil, err
-			//log.Panicf("Read file [%s] failed, does not exist", file)
 		}
 
 		content, err := ioutil.ReadFile(file)
 		if err != nil {
 			return nil, err
-			//log.Panicf("Read file [%s] failed: %v", file, err)
 		}
 		contents = append(contents, string(content))
 	}
@@ -232,7 +236,8 @@ func unmarshalYaml(yamlBytes ...[]byte) (map[interface{}]interface{}, error) {
 	return result, nil
 }
 
-func SaveConf(file string, config map[interface{}]interface{}) error {
+// SaveConf will save config to file as yaml
+func SaveConf(config interface{}, file string) error {
 	yamlBytes, err := MarshalYaml(config)
 	if err != nil {
 		return err
