@@ -80,20 +80,36 @@ func getv(c *cli.Context) error {
 
 func getTemplate(c *cli.Context) (*cli.Context, *Template, cli.ExitCoder) {
 	var tmpl *Template
+	var err error
 	templateString := c.String("template-string")
 	if templateString != "" {
 		secretAgent, _ := newSecretAgentFromCli(c)
-
-		var err error
 		tmpl, err = NewTemplate("cli", templateString,
 			&TemplateConfig{
 				SecretAgent: secretAgent,
 			})
-		if err != nil {
-			return c, nil, cliError(err, 1)
+	}
+	if err == nil && tmpl == nil {
+		templateBase64 := c.String("template-base64")
+		if templateBase64 != "" {
+			secretAgent, _ := newSecretAgentFromCli(c)
+			tmpl, err = NewTemplateFromBase64("cli", templateBase64,
+				&TemplateConfig{
+					SecretAgent: secretAgent,
+				})
 		}
 	}
-	return c, tmpl, nil
+	if err == nil && tmpl == nil {
+		templateFile := c.String("template")
+		if templateFile != "" {
+			secretAgent, _ := newSecretAgentFromCli(c)
+			tmpl, err = NewTemplateFromFile("cli", templateFile,
+				&TemplateConfig{
+					SecretAgent: secretAgent,
+				})
+		}
+	}
+	return c, tmpl, cliError(err, 1)
 }
 
 func getValue(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
@@ -135,21 +151,51 @@ func getValue(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
 
 func getvFlags() []cli.Flag {
 	return []cli.Flag{
-		cli.StringSliceFlag{Name: "decrypt"},
-		cli.StringFlag{Name: "default"},
-		cli.StringFlag{Name: "template-string"},
+		cli.StringSliceFlag{
+			Name:  "decrypt",
+			Usage: "A `list` of paths whose values needs to be decrypted",
+		},
+		cli.StringFlag{
+			Name:  "default",
+			Usage: "The value to be returned if the specified path does not exist (otherwise results in an error).",
+		},
+		cli.StringFlag{
+			Name:  "template",
+			Usage: "A go template file that will be executed against the resulting data.",
+		},
+		cli.StringFlag{
+			Name:  "template-base64",
+			Usage: "A base64 encoded string containing a go template that will be executed against the resulting data.",
+		},
+		cli.StringFlag{
+			Name:  "template-string",
+			Usage: "A string containing a go template that will be executed against the resulting data.",
+		},
 	}
 }
 
 func globalFlags() []cli.Flag {
 	return []cli.Flag{
-		cli.StringFlag{Name: "prefix"},
-		cli.StringFlag{Name: "public-keyring"},
-		cli.StringFlag{Name: "public-keyring-base64"},
-		cli.StringFlag{Name: "secret-keyring"},
-		cli.StringFlag{Name: "secret-keyring-base64"},
-		cli.StringSliceFlag{Name: "yaml"},
-		cli.StringSliceFlag{Name: "yaml-base64"},
+		cli.StringFlag{
+			Name:  "prefix",
+			Usage: "Prepended to all getv/setv paths (env: CONFIG_PREFIX)",
+		},
+		cli.StringFlag{
+			Name:  "secret-keyring",
+			Usage: "Path to a gpg secring file (env: SECRET_KEYRING)",
+		},
+		cli.StringFlag{
+			Name:  "secret-keyring-base64",
+			Usage: "Base64 encoded gpg secring (env: SECRET_KEYRING_BASE64)",
+		},
+		cli.StringSliceFlag{
+			Name:  "yaml",
+			Usage: "A `list` of yaml files containing config (env: YAML_FILES).  If specified, YAML_FILES will be split on ',' and appended to this option.",
+		},
+		cli.StringSliceFlag{
+			Name:  "yaml-base64",
+			Usage: "A `list` of base 64 encoded yaml strings containing config (env: YAML_VARS).  If specified, YAML_VARS will be split on ',' and each value will be used to load a base64 string from an environtment variable of that name.  The values will be appended to this option.",
+		},
 	}
 }
 
@@ -187,9 +233,6 @@ func marshal(c *cli.Context, value interface{}, err cli.ExitCoder) (*cli.Context
 }
 
 // NewApp returns a new cli application instance ready to be run.
-//
-// Thoughts...
-// ** stdin should be read in as a file and used as override (not sure if before or after --overrides)
 func NewApp() *cli.App {
 	app := cli.NewApp()
 	app.Name = Name
@@ -215,14 +258,14 @@ func NewApp() *cli.App {
 		},
 		{
 			Name:      "csetv",
-			Usage:     "Set a secret value.  Simply an alias to `setv --encrypt`",
+			Usage:     "Set PATH to the encrypted value of VALUE in the file indicated by the global option --yaml (must be single valued).  Simply an alias to `setv --encrypt`",
 			ArgsUsage: "PATH VALUE",
 			Action:    csetv,
 			Flags:     setvFlags(),
 		},
 		{
 			Name:      "setv",
-			Usage:     "Set a value",
+			Usage:     "Set PATH to VALUE in the file indicated by the global option --yaml (must be single valued).",
 			ArgsUsage: "PATH VALUE",
 			Action:    setv,
 			Flags:     setvFlags(),
@@ -289,6 +332,9 @@ func setv(c *cli.Context) error {
 
 func setvFlags() []cli.Flag {
 	return []cli.Flag{
-		cli.BoolFlag{Name: "encrypt"},
+		cli.BoolFlag{
+			Name:  "encrypt",
+			Usage: "Encrypt the value",
+		},
 	}
 }

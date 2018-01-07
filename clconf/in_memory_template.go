@@ -6,6 +6,7 @@ import (
 	"text/template"
 
 	"github.com/kelseyhightower/memkv"
+	clconftemplate "gitlab.com/pastdev/s2i/clconf/clconf/template"
 )
 
 // TemplateConfig allows for optional configuration.
@@ -24,7 +25,7 @@ type Template struct {
 
 /////// mapped to confd resource.go ///////
 func addCryptFuncs(funcMap map[string]interface{}, sa *SecretAgent) {
-	addFuncs(funcMap, map[string]interface{}{
+	clconftemplate.AddFuncs(funcMap, map[string]interface{}{
 		"cget": func(key string) (memkv.KVPair, error) {
 			kv, err := funcMap["get"].(func(string) (memkv.KVPair, error))(key)
 			if err == nil {
@@ -84,8 +85,8 @@ func NewTemplate(name, text string, config *TemplateConfig) (*Template, error) {
 
 	store := memkv.New()
 
-	funcMap := newFuncMap()
-	addFuncs(funcMap, store.FuncMap)
+	funcMap := clconftemplate.NewFuncMap()
+	clconftemplate.AddFuncs(funcMap, store.FuncMap)
 	if config.SecretAgent != nil {
 		addCryptFuncs(funcMap, config.SecretAgent)
 	}
@@ -100,6 +101,24 @@ func NewTemplate(name, text string, config *TemplateConfig) (*Template, error) {
 		store:    &store,
 		template: tmpl,
 	}, nil
+}
+
+// NewTemplateFromBase64 decodes base64 then calls NewTemplate with the result.
+func NewTemplateFromBase64(name, base64 string, config *TemplateConfig) (*Template, error) {
+	contents, err := DecodeBase64Strings(base64)
+	if err != nil {
+		return nil, err
+	}
+	return NewTemplate(name, contents[0], config)
+}
+
+// NewTemplateFromFile reads file then calls NewTemplate with the result.
+func NewTemplateFromFile(name, file string, config *TemplateConfig) (*Template, error) {
+	contents, err := ReadFiles(file)
+	if err != nil {
+		return nil, err
+	}
+	return NewTemplate(name, contents[0], config)
 }
 
 // Execute will process the template text using data and the function map from

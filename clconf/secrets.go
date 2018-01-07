@@ -67,9 +67,16 @@ func (secretAgent *SecretAgent) Encrypt(decrypted string) (string, error) {
 	return string(b), nil
 }
 
+func newSecretAgent(key []byte, err error) (*SecretAgent, error) {
+	if err != nil {
+		return nil, err
+	}
+	return NewSecretAgent(key), nil
+}
+
 // NewSecretAgent will return a new SecretAgent with the provided
 // key.
-func NewSecretAgent(key []byte, publicKey []byte) *SecretAgent {
+func NewSecretAgent(key []byte) *SecretAgent {
 	return &SecretAgent{
 		key: key,
 	}
@@ -77,18 +84,10 @@ func NewSecretAgent(key []byte, publicKey []byte) *SecretAgent {
 
 // NewSecretAgentFromFile loads from keyFile
 func NewSecretAgentFromFile(keyFile string) (*SecretAgent, error) {
-	key, err := ioutil.ReadFile(keyFile)
-	if err != nil {
-		return nil, err
-	}
-	return &SecretAgent{key: key}, nil
+	return newSecretAgent(ioutil.ReadFile(keyFile))
 }
 
 // NewSecretAgentFromBase64 loads from keyBase64
 func NewSecretAgentFromBase64(keyBase64 string) (*SecretAgent, error) {
-	key, err := base64.StdEncoding.DecodeString(keyBase64)
-	if err != nil {
-		return nil, err
-	}
-	return &SecretAgent{key: key}, nil
+	return newSecretAgent(base64.StdEncoding.DecodeString(keyBase64))
 }

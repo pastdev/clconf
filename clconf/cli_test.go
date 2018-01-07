@@ -178,55 +178,68 @@ func TestGetValue(t *testing.T) {
 	testGetValue(t, []string{"/app/db/username"}, []string{"--decrypt", "/"})
 }
 
-func TestGetValueWithTemplate(t *testing.T) {
+func testGetValueWithTemplate(t *testing.T, name string, args, opts []string) {
 	config, err := NewTestConfig()
 	if err != nil {
 		t.Error(err)
 	}
 
-	context, _, expected, actual, err := getGetvOutcome(config,
+	context, _, expected, actual, err := getGetvOutcome(config, args, opts)
+
+	_, tmpl, err := getTemplate(context)
+	if err != nil {
+		t.Errorf("GetValueWithTemplate getTemplate %s failed and shouldn't have: %v", name, err)
+	} else if tmpl == nil {
+		t.Errorf("GetValueWithTemplate getTemplate %s expected result", name)
+	}
+
+	expectedString, err := tmpl.Execute(expected)
+	if err != nil {
+		t.Errorf("GetValueWithTemplate tmpl.Exectute %s failed and shouldn't have: %v", name, err)
+	}
+	// when templates are used, the template doesnt get processed
+	// until marshaling...
+	_, actualString, err := marshal(context, actual, nil)
+	if err != nil {
+		t.Errorf("GetValueWithTemplate marshal %s failed and shouldn't have: %v", name, err)
+	}
+
+	if expectedString != actualString {
+		t.Errorf("GetValueWithTemplate %s invalid: [%v] != [%v]",
+			name, expectedString, actualString)
+	}
+}
+
+func TestGetValueWithTemplate(t *testing.T) {
+	tempDir, err := ioutil.TempDir("", "clconf")
+	if err != nil {
+		t.Errorf("Unable to create temp dir: %v", err)
+	}
+	defer func() {
+		os.RemoveAll(tempDir)
+	}()
+
+	templateString := "{{ getv \"/username-plaintext\" }}:{{getv \"/password-plaintext\" }}"
+	templateBytes := []byte(templateString)
+	templateBase64 := base64.StdEncoding.EncodeToString(templateBytes)
+	templateFile := filepath.Join(tempDir, "template")
+	ioutil.WriteFile(templateFile, templateBytes, 0600)
+
+	testGetValueWithTemplate(t, "getv template string",
 		[]string{"/app/db"},
-		[]string{
-			"--decrypt", "/username",
-			"--decrypt", "/password",
-			"--template-string", "{{ getv \"/username\" }}:{{getv \"/password\" }}",
-		})
-	if err != nil {
-		t.Errorf("GetValueWithTemplate failed: %v", err)
-	}
+		[]string{"--template-string", templateString})
+	testGetValueWithTemplate(t, "getv template base64",
+		[]string{"/app/db"},
+		[]string{"--template-base64", templateBase64})
+	testGetValueWithTemplate(t, "getv template file",
+		[]string{"/app/db"},
+		[]string{"--template", templateFile})
 
-	_, marshaled, err := marshal(context, actual, nil)
-	if err != nil {
-		t.Errorf("GetValueWithTemplate marshal failed: %v", err)
-	}
-
-	expectedString := fmt.Sprintf("%v:%v",
-		expected.(map[interface{}]interface{})["username"],
-		expected.(map[interface{}]interface{})["password"])
-	if expectedString != marshaled {
-		t.Errorf("GetValueWithTemplate invalid: [%v] != [%v]", expectedString, marshaled)
-	}
-
-	context, _, expected, actual, err = getGetvOutcome(config,
+	testGetValueWithTemplate(t, "cgetv template string",
 		[]string{"/app/db"},
 		[]string{
 			"--template-string", "{{ cgetv \"/username\" }}:{{cgetv \"/password\" }}",
 		})
-	if err != nil {
-		t.Errorf("GetValueWithTemplate cget failed: %v", err)
-	}
-
-	_, marshaled, err = marshal(context, actual, nil)
-	if err != nil {
-		t.Errorf("GetValueWithTemplate cget marshal failed: %v", err)
-	}
-
-	expectedString = fmt.Sprintf("%v:%v",
-		expected.(map[interface{}]interface{})["username"],
-		expected.(map[interface{}]interface{})["password"])
-	if expectedString != marshaled {
-		t.Errorf("GetValueWithTemplate cget invalid: [%v] != [%v]", expectedString, marshaled)
-	}
 }
 
 func TestMarshal(t *testing.T) {

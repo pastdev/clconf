@@ -2,24 +2,14 @@ package main
 
 import (
 	"os"
-	"path/filepath"
-	"runtime"
+
+	"gitlab.com/pastdev/s2i/clconf/clconf"
 )
-
-func NewTestConfigFile() string {
-	_, filename, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(filename), "clconf", "testconfig.yml")
-}
-
-func NewTestKeysFile() string {
-	_, filename, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(filename), "clconf", "test.secring.gpg")
-}
 
 func WithEnv(do func()) {
 	env := map[string]string{
-		"YAML_FILES":     NewTestConfigFile(),
-		"SECRET_KEYRING": NewTestKeysFile(),
+		"YAML_FILES":     clconf.NewTestConfigFile(),
+		"SECRET_KEYRING": clconf.NewTestKeysFile(),
 	}
 	defer func() {
 		for key := range env {
@@ -40,7 +30,7 @@ func Example_noArg() {
 }
 
 func Example_testConfig() {
-	os.Args = []string{"clconf", "--yaml", NewTestConfigFile()}
+	os.Args = []string{"clconf", "--yaml", clconf.NewTestConfigFile()}
 	main()
 	// Output:
 	// app:
@@ -58,7 +48,7 @@ func Example_testConfig() {
 }
 
 func Example_testConfigGetv() {
-	os.Args = []string{"clconf", "--yaml", NewTestConfigFile(), "getv"}
+	os.Args = []string{"clconf", "--yaml", clconf.NewTestConfigFile(), "getv"}
 	main()
 	// Output:
 	// app:
@@ -78,8 +68,8 @@ func Example_testConfigGetv() {
 func Example_testConfigGetvDecrypt() {
 	os.Args = []string{
 		"clconf",
-		"--yaml", NewTestConfigFile(),
-		"--secret-keyring", NewTestKeysFile(),
+		"--yaml", clconf.NewTestConfigFile(),
+		"--secret-keyring", clconf.NewTestKeysFile(),
 		"getv",
 		"--decrypt", "/app/db/username",
 		"--decrypt", "/app/db/password",
@@ -103,8 +93,8 @@ func Example_testConfigGetvDecrypt() {
 func Example_testConfigGetvDecryptWithPath() {
 	os.Args = []string{
 		"clconf",
-		"--yaml", NewTestConfigFile(),
-		"--secret-keyring", NewTestKeysFile(),
+		"--yaml", clconf.NewTestConfigFile(),
+		"--secret-keyring", clconf.NewTestKeysFile(),
 		"getv",
 		"/app/db",
 		"--decrypt", "/username",
@@ -121,8 +111,37 @@ func Example_testConfigGetvDecryptWithPath() {
 	// username-plaintext: SECRET_USER
 }
 
+func Example_testConfigGetvDecryptWithPathAndTemplate() {
+	os.Args = []string{
+		"clconf",
+		"--yaml", clconf.NewTestConfigFile(),
+		"--secret-keyring", clconf.NewTestKeysFile(),
+		"getv",
+		"/app/db",
+		"--template-string", "{{ cgetv \"/username\" }}:{{ cgetv \"/password\" }}",
+	}
+	main()
+	// Output:
+	// SECRET_USER:SECRET_PASS
+}
+
+func Example_testConfigGetvDecryptWithPrefixAndPathAndTemplate() {
+	os.Args = []string{
+		"clconf",
+		"--yaml", clconf.NewTestConfigFile(),
+		"--secret-keyring", clconf.NewTestKeysFile(),
+		"--prefix", "/app/db",
+		"getv",
+		"/",
+		"--template-string", "{{ cgetv \"/username\" }}:{{ cgetv \"/password\" }}",
+	}
+	main()
+	// Output:
+	// SECRET_USER:SECRET_PASS
+}
+
 func Example_testConfigGetvAppAliases() {
-	os.Args = []string{"clconf", "--yaml", NewTestConfigFile(), "getv", "/app/aliases"}
+	os.Args = []string{"clconf", "--yaml", clconf.NewTestConfigFile(), "getv", "/app/aliases"}
 	main()
 	// Output:
 	// - foo
@@ -130,7 +149,7 @@ func Example_testConfigGetvAppAliases() {
 }
 
 func Example_testConfigGetvAppDbPort() {
-	os.Args = []string{"clconf", "--yaml", NewTestConfigFile(), "getv", "/app/db/port"}
+	os.Args = []string{"clconf", "--yaml", clconf.NewTestConfigFile(), "getv", "/app/db/port"}
 	main()
 	// Output:
 	// 3306
@@ -139,7 +158,7 @@ func Example_testConfigGetvAppDbPort() {
 func Example_testConfigGetvAppDbHostname() {
 	os.Args = []string{
 		"clconf",
-		"--yaml", NewTestConfigFile(),
+		"--yaml", clconf.NewTestConfigFile(),
 		"getv",
 		"/app/db/hostname",
 	}
@@ -151,7 +170,7 @@ func Example_testConfigGetvAppDbHostname() {
 func Example_testConfigGetvInvalidWithDefault() {
 	os.Args = []string{
 		"clconf",
-		"--yaml", NewTestConfigFile(),
+		"--yaml", clconf.NewTestConfigFile(),
 		"getv",
 		"/INVALID_PATH",
 		"--default", "foo",
@@ -164,7 +183,7 @@ func Example_testConfigGetvInvalidWithDefault() {
 func Example_testConfigGetvAppDbHostnameWithDefault() {
 	os.Args = []string{
 		"clconf",
-		"--yaml", NewTestConfigFile(),
+		"--yaml", clconf.NewTestConfigFile(),
 		"getv",
 		"/app/db/hostname",
 		"--default", "INVALID_HOSTNAME",
@@ -177,8 +196,8 @@ func Example_testConfigGetvAppDbHostnameWithDefault() {
 func Example_testConfigCgetvAppDbUsername() {
 	os.Args = []string{
 		"clconf",
-		"--yaml", NewTestConfigFile(),
-		"--secret-keyring", NewTestKeysFile(),
+		"--yaml", clconf.NewTestConfigFile(),
+		"--secret-keyring", clconf.NewTestKeysFile(),
 		"cgetv",
 		"/app/db/username",
 	}

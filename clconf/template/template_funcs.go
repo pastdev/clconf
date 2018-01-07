@@ -1,4 +1,4 @@
-package clconf
+package template
 
 import (
 	"encoding/base64"
