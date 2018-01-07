@@ -18,7 +18,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var splitter = regexp.MustCompile(`,`)
+// Splitter is the regex used to split YAML_FILES and YAML_VARS
+var Splitter = regexp.MustCompile(`,`)
 
 // DecodeBase64Strings will decode all the base64 strings supplied
 func DecodeBase64Strings(values ...string) ([]string, error) {
@@ -47,7 +48,7 @@ func FillValue(keyPath string, conf interface{}, out interface{}) bool {
 }
 
 // GetValue returns the value at the indicated path.  Paths are separated by
-// the '/' character.
+// the '/' character.  The empty string or "/" will return conf itself.
 func GetValue(conf interface{}, keyPath string) (interface{}, bool) {
 	if keyPath == "" {
 		return conf, true
@@ -99,10 +100,10 @@ func LoadConf(files []string, overrides []string) (map[interface{}]interface{}, 
 // files, overrides.
 func LoadConfFromEnvironment(files []string, overrides []string) (map[interface{}]interface{}, error) {
 	if yamlFiles, ok := os.LookupEnv("YAML_FILES"); ok {
-		files = append(files, splitter.Split(yamlFiles, -1)...)
+		files = append(files, Splitter.Split(yamlFiles, -1)...)
 	}
 	if yamlVars, ok := os.LookupEnv("YAML_VARS"); ok {
-		overrides = append(overrides, ReadEnvVars(splitter.Split(yamlVars, -1)...)...)
+		overrides = append(overrides, ReadEnvVars(Splitter.Split(yamlVars, -1)...)...)
 	}
 	return LoadConf(files, overrides)
 }
@@ -115,7 +116,7 @@ func LoadConfFromEnvironment(files []string, overrides []string) (map[interface{
 // and a call to SaveConf will create the file.
 func LoadSettableConfFromEnvironment(files []string) (string, map[interface{}]interface{}, error) {
 	if yamlFiles, ok := os.LookupEnv("YAML_FILES"); ok {
-		files = append(files, splitter.Split(yamlFiles, -1)...)
+		files = append(files, Splitter.Split(yamlFiles, -1)...)
 	}
 	if len(files) != 1 {
 		return "", nil, errors.New("Exactly one file required with setv")
@@ -245,6 +246,21 @@ func SaveConf(config interface{}, file string) error {
 	return ioutil.WriteFile(file, yamlBytes, 0660)
 }
 
+// ToKvMap will return a one-level map of key value pairs where the key is
+// a / separated path of subkeys.
+func ToKvMap(conf interface{}) map[string]string {
+	kvMap := make(map[string]string)
+	Walk(func(keyStack []string, value interface{}) {
+		key := "/" + strings.Join(keyStack, "/")
+		if value == nil {
+			kvMap[key] = ""
+		} else {
+			kvMap[key] = fmt.Sprintf("%v", value)
+		}
+	}, conf)
+	return kvMap
+}
+
 // UnmarshalYaml will parse all the supplied yaml strings, merge the resulting
 // objects, and return the resulting map
 func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
@@ -253,4 +269,36 @@ func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
 		yamlBytes = append(yamlBytes, []byte(yaml))
 	}
 	return unmarshalYaml(yamlBytes...)
+}
+
+// Walk will recursively iterate over all the nodes of conf calling callback
+// for each node.
+func Walk(callback func(key []string, value interface{}), conf interface{}) {
+	node, ok := conf.(map[interface{}]interface{})
+	if !ok {
+		callback([]string{}, conf)
+	}
+	walk(callback, node, []string{})
+}
+
+func walk(callback func(key []string, value interface{}), node map[interface{}]interface{}, keyStack []string) {
+	for k, v := range node {
+		keyStack := append(keyStack, k.(string))
+
+		switch v.(type) {
+		case map[interface{}]interface{}:
+			walk(callback, v.(map[interface{}]interface{}), keyStack)
+		case []interface{}:
+			for _, j := range v.([]interface{}) {
+				switch j.(type) {
+				case map[interface{}]interface{}:
+					walk(callback, j.(map[interface{}]interface{}), keyStack)
+				default:
+					callback(append(keyStack, fmt.Sprintf("%v", j)), "")
+				}
+			}
+		default:
+			callback(keyStack, v)
+		}
+	}
 }

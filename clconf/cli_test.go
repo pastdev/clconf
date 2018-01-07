@@ -3,7 +3,6 @@ package clconf
 import (
 	"encoding/base64"
 	"errors"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -20,7 +19,7 @@ func getCsetvOutcome(file string, args, options []string) (string, interface{}, 
 		return "", nil, nil, err
 	}
 
-	context := NewSetvContext(file, args, options)
+	context := NewTestSetvContext(file, args, options)
 	if err := csetv(context); err != nil {
 		return "", nil, nil, err
 	}
@@ -44,9 +43,9 @@ func getCsetvOutcome(file string, args, options []string) (string, interface{}, 
 	return path, expected, actual, nil
 }
 
-func getGetvOutcome(config interface{}, args []string, options []string) (string, interface{}, interface{}, error) {
+func getGetvOutcome(config interface{}, args []string, options []string) (*cli.Context, string, interface{}, interface{}, error) {
 	var err error
-	context := NewGetvContext(args, options)
+	context := NewTestGetvContext(args, options)
 	path := getPath(context)
 	expected, ok := GetValue(config, path)
 	if !ok {
@@ -58,32 +57,32 @@ func getGetvOutcome(config interface{}, args []string, options []string) (string
 	if decryptPaths := context.StringSlice("decrypt"); len(decryptPaths) > 0 {
 		secretAgent, err := newSecretAgentFromCli(context)
 		if err != nil {
-			return path, nil, nil, fmt.Errorf("newSecretAgentFromCli failed: %v", err)
+			return context, path, nil, nil, fmt.Errorf("newSecretAgentFromCli failed: %v", err)
 		}
 		if stringValue, ok := expected.(string); ok {
 			if len(decryptPaths) != 1 || !(decryptPaths[0] == "" || decryptPaths[0] == "/") {
-				return path, nil, nil, errors.New("string value with non-root decrypt path")
+				return context, path, nil, nil, errors.New("string value with non-root decrypt path")
 			}
 			decrypted, err := secretAgent.Decrypt(stringValue)
 			if err != nil {
-				return path, nil, nil, err
+				return context, path, nil, nil, err
 			}
 			expected = decrypted
 		} else {
 			if err := secretAgent.DecryptPaths(expected, decryptPaths...); err != nil {
-				return path, nil, nil, fmt.Errorf("DecryptPaths failed: %v", err)
+				return context, path, nil, nil, fmt.Errorf("DecryptPaths failed: %v", err)
 			}
 		}
 	}
 
 	_, actual, err := getValue(context)
 	if ok && err != nil {
-		return path, nil, nil, fmt.Errorf("getValue %s failed and shouldn't have: %v", path, err)
+		return context, path, nil, nil, fmt.Errorf("getValue %s failed and shouldn't have: %v", path, err)
 	} else if !ok && err == nil {
-		return path, nil, nil, fmt.Errorf("getValue %s didn't fail and should have", path)
+		return context, path, nil, nil, fmt.Errorf("getValue %s didn't fail and should have", path)
 	}
 
-	return path, expected, actual, nil
+	return context, path, expected, actual, nil
 }
 
 func getSetvOutcome(file string, args, options []string) (string, interface{}, interface{}, error) {
@@ -92,7 +91,7 @@ func getSetvOutcome(file string, args, options []string) (string, interface{}, i
 		return "", nil, nil, err
 	}
 
-	context := NewSetvContext(file, args, options)
+	context := NewTestSetvContext(file, args, options)
 	if err := setv(context); err != nil {
 		return "", nil, nil, err
 	}
@@ -116,36 +115,6 @@ func getSetvOutcome(file string, args, options []string) (string, interface{}, i
 	}
 
 	return path, expected, actual, nil
-}
-
-func NewTestContext(name string, app *cli.App, flags []cli.Flag, parentContext *cli.Context, args []string, options []string) *cli.Context {
-	set := flag.NewFlagSet(name, 0)
-	for _, flag := range flags {
-		flag.Apply(set)
-	}
-	set.SetOutput(ioutil.Discard)
-	context := cli.NewContext(app, set, parentContext)
-	set.Parse(append(options, args...))
-	return context
-}
-
-func NewTestGlobalContext() *cli.Context {
-	return NewTestContext(Name, nil, globalFlags(), nil, []string{}, []string{
-		"--secret-keyring", NewTestKeysFile(),
-		"--yaml", NewTestConfigFile(),
-	})
-}
-
-func NewGetvContext(args []string, options []string) *cli.Context {
-	return NewTestContext("getv", nil, getvFlags(), NewTestGlobalContext(), args, options)
-}
-
-func NewSetvContext(yamlFile string, args []string, options []string) *cli.Context {
-	globalContext := NewTestContext(Name, nil, globalFlags(), nil, []string{}, []string{
-		"--secret-keyring", NewTestKeysFile(),
-		"--yaml", yamlFile,
-	})
-	return NewTestContext("setv", nil, setvFlags(), globalContext, args, options)
 }
 
 func testGetPath(t *testing.T, expected string, args []string, options []string) {
@@ -182,7 +151,7 @@ func testGetValue(t *testing.T, args []string, options []string) {
 		t.Error(err)
 	}
 
-	path, expected, actual, err := getGetvOutcome(config, args, options)
+	_, path, expected, actual, err := getGetvOutcome(config, args, options)
 	if err != nil {
 		t.Error(err)
 	}
@@ -209,33 +178,85 @@ func TestGetValue(t *testing.T) {
 	testGetValue(t, []string{"/app/db/username"}, []string{"--decrypt", "/"})
 }
 
+func TestGetValueWithTemplate(t *testing.T) {
+	config, err := NewTestConfig()
+	if err != nil {
+		t.Error(err)
+	}
+
+	context, _, expected, actual, err := getGetvOutcome(config,
+		[]string{"/app/db"},
+		[]string{
+			"--decrypt", "/username",
+			"--decrypt", "/password",
+			"--template-string", "{{ getv \"/username\" }}:{{getv \"/password\" }}",
+		})
+	if err != nil {
+		t.Errorf("GetValueWithTemplate failed: %v", err)
+	}
+
+	_, marshaled, err := marshal(context, actual, nil)
+	if err != nil {
+		t.Errorf("GetValueWithTemplate marshal failed: %v", err)
+	}
+
+	expectedString := fmt.Sprintf("%v:%v",
+		expected.(map[interface{}]interface{})["username"],
+		expected.(map[interface{}]interface{})["password"])
+	if expectedString != marshaled {
+		t.Errorf("GetValueWithTemplate invalid: [%v] != [%v]", expectedString, marshaled)
+	}
+
+	context, _, expected, actual, err = getGetvOutcome(config,
+		[]string{"/app/db"},
+		[]string{
+			"--template-string", "{{ cgetv \"/username\" }}:{{cgetv \"/password\" }}",
+		})
+	if err != nil {
+		t.Errorf("GetValueWithTemplate cget failed: %v", err)
+	}
+
+	_, marshaled, err = marshal(context, actual, nil)
+	if err != nil {
+		t.Errorf("GetValueWithTemplate cget marshal failed: %v", err)
+	}
+
+	expectedString = fmt.Sprintf("%v:%v",
+		expected.(map[interface{}]interface{})["username"],
+		expected.(map[interface{}]interface{})["password"])
+	if expectedString != marshaled {
+		t.Errorf("GetValueWithTemplate cget invalid: [%v] != [%v]", expectedString, marshaled)
+	}
+}
+
 func TestMarshal(t *testing.T) {
 	var expected interface{}
 	var actual interface{}
 
+	context := NewTestGlobalContext()
 	expected = "foo"
-	context, actual, err := marshal(nil, expected, nil)
-	if context != nil || actual != expected || err != nil {
+	context, actual, err := marshal(context, expected, nil)
+	if context != context || actual != expected || err != nil {
 		t.Errorf("Marshal string failed: [%v] [%v != %v] [%v]", context, actual, expected, err)
 	}
 
 	expected = "2"
-	context, actual, err = marshal(nil, expected, nil)
-	if context != nil || actual != expected || err != nil {
+	context, actual, err = marshal(context, expected, nil)
+	if context != context || actual != expected || err != nil {
 		t.Errorf("Marshal int failed: [%v] [%v != %v] [%v]", context, actual, expected, err)
 	}
 
 	expected, _ = UnmarshalYaml("a:\n  b: foo")
-	context, marshaled, err := marshal(nil, expected, nil)
+	context, marshaled, err := marshal(context, expected, nil)
 	actual, _ = UnmarshalYaml(marshaled)
-	if context != nil || !reflect.DeepEqual(actual, expected) || err != nil {
+	if context != context || !reflect.DeepEqual(actual, expected) || err != nil {
 		t.Errorf("Marshal map failed: [%v] [%v != %v] [%v]", context, actual, expected, err)
 	}
 
 	expected, _ = UnmarshalYaml("a:\n- foo\n- bar")
-	context, marshaled, err = marshal(nil, expected, nil)
+	context, marshaled, err = marshal(context, expected, nil)
 	actual, _ = UnmarshalYaml(marshaled)
-	if context != nil || !reflect.DeepEqual(actual, expected) || err != nil {
+	if context != context || !reflect.DeepEqual(actual, expected) || err != nil {
 		t.Errorf("Marshal array failed: [%v] [%v != %v] [%v]", context, actual, expected, err)
 	}
 }
@@ -329,12 +350,12 @@ func TestSetv(t *testing.T) {
 
 	file := filepath.Join(tempDir, "config.yml")
 
-	context := NewSetvContext(file, []string{}, []string{})
+	context := NewTestSetvContext(file, []string{}, []string{})
 	if err := setv(context); err == nil {
 		t.Error("Setv no args should have failed")
 	}
 
-	context = NewSetvContext(file, []string{"/a"}, []string{})
+	context = NewTestSetvContext(file, []string{"/a"}, []string{})
 	if err := setv(context); err == nil {
 		t.Error("Setv one arg should have failed")
 	}

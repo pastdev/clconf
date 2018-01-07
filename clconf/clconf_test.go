@@ -354,6 +354,58 @@ func TestSetValue(t *testing.T) {
 	}
 }
 
+func testToKvMap(t *testing.T, input, expected interface{}, message string) {
+	actual := clconf.ToKvMap(input)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("ToKvMap %s failed: [%v] != [%v]", message, expected, actual)
+	}
+}
+
+func TestToKvMap(t *testing.T) {
+	testToKvMap(t, nil, map[string]string{"/": ""}, "nil")
+	testToKvMap(t, "foo", map[string]string{"/": "foo"}, "string")
+	testToKvMap(t, 2, map[string]string{"/": "2"}, "number")
+	testToKvMap(t,
+		map[interface{}]interface{}{
+			"a": "b",
+			"c": 2,
+		},
+		map[string]string{
+			"/a": "b",
+			"/c": "2",
+		}, "simple map")
+	testToKvMap(t,
+		map[interface{}]interface{}{
+			"a": "b",
+			"c": 2,
+			"d": map[interface{}]interface{}{
+				"e": "f",
+				"g": 2,
+			},
+		},
+		map[string]string{
+			"/a":   "b",
+			"/c":   "2",
+			"/d/e": "f",
+			"/d/g": "2",
+		}, "multi-level map")
+	testToKvMap(t,
+		map[interface{}]interface{}{
+			"a": "b",
+			"c": 2,
+			"d": map[interface{}]interface{}{
+				"e": []interface{}{"f", 2, 2.2},
+			},
+		},
+		map[string]string{
+			"/a":       "b",
+			"/c":       "2",
+			"/d/e/f":   "",
+			"/d/e/2":   "",
+			"/d/e/2.2": "",
+		}, "multi-level map with array")
+}
+
 func TestUnmarshalYaml(t *testing.T) {
 	_, err := clconf.UnmarshalYaml("foo")
 	if err == nil {

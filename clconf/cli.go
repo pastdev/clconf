@@ -78,6 +78,24 @@ func getv(c *cli.Context) error {
 	return dump(marshal(getValue(c)))
 }
 
+func getTemplate(c *cli.Context) (*cli.Context, *Template, cli.ExitCoder) {
+	var tmpl *Template
+	templateString := c.String("template-string")
+	if templateString != "" {
+		secretAgent, _ := newSecretAgentFromCli(c)
+
+		var err error
+		tmpl, err = NewTemplate("cli", templateString,
+			&TemplateConfig{
+				SecretAgent: secretAgent,
+			})
+		if err != nil {
+			return c, nil, cliError(err, 1)
+		}
+	}
+	return c, tmpl, nil
+}
+
 func getValue(c *cli.Context) (*cli.Context, interface{}, cli.ExitCoder) {
 	path := getPath(c)
 	config, err := load(c)
@@ -119,6 +137,7 @@ func getvFlags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringSliceFlag{Name: "decrypt"},
 		cli.StringFlag{Name: "default"},
+		cli.StringFlag{Name: "template-string"},
 	}
 }
 
@@ -150,7 +169,12 @@ func marshal(c *cli.Context, value interface{}, err cli.ExitCoder) (*cli.Context
 	if err != nil {
 		return c, "", err
 	}
-	if stringValue, ok := value.(string); ok {
+	if _, tmpl, err := getTemplate(c); err != nil {
+		return c, "", err
+	} else if tmpl != nil {
+		marshaled, err := tmpl.Execute(value)
+		return c, marshaled, cliError(err, 1)
+	} else if stringValue, ok := value.(string); ok {
 		return c, stringValue, nil
 	} else if mapValue, ok := value.(map[interface{}]interface{}); ok {
 		marshaled, err := MarshalYaml(mapValue)
@@ -231,7 +255,7 @@ func newSecretAgentFromCli(c *cli.Context) (*SecretAgent, cli.ExitCoder) {
 
 func setv(c *cli.Context) error {
 	if c.NArg() != 2 {
-		return cli.NewExitError("setv requires path and value args", 1)
+		return cli.NewExitError("setv requires key and value args", 1)
 	}
 
 	path := getPath(c)
