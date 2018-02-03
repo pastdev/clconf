@@ -220,23 +220,6 @@ func SetValue(config interface{}, keyPath string, value interface{}) error {
 	return nil
 }
 
-func unmarshalYaml(yamlBytes ...[]byte) (map[interface{}]interface{}, error) {
-	result := make(map[interface{}]interface{})
-	for index := len(yamlBytes) - 1; index >= 0; index-- {
-		yamlMap := make(map[interface{}]interface{})
-
-		err := yaml.Unmarshal(yamlBytes[index], &yamlMap)
-		if err != nil {
-			return nil, err
-		}
-
-		if err := mergo.Merge(&result, yamlMap); err != nil {
-			return nil, err
-		}
-	}
-	return result, nil
-}
-
 // SaveConf will save config to file as yaml
 func SaveConf(config interface{}, file string) error {
 	yamlBytes, err := MarshalYaml(config)
@@ -259,6 +242,23 @@ func ToKvMap(conf interface{}) map[string]string {
 		}
 	}, conf)
 	return kvMap
+}
+
+func unmarshalYaml(yamlBytes ...[]byte) (map[interface{}]interface{}, error) {
+	result := make(map[interface{}]interface{})
+	for index := len(yamlBytes) - 1; index >= 0; index-- {
+		yamlMap := make(map[interface{}]interface{})
+
+		err := yaml.Unmarshal(yamlBytes[index], &yamlMap)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := mergo.Merge(&result, yamlMap); err != nil {
+			return nil, err
+		}
+	}
+	return result, nil
 }
 
 // UnmarshalYaml will parse all the supplied yaml strings, merge the resulting

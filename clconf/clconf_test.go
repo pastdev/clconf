@@ -9,9 +9,55 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/imdario/mergo"
 	"gitlab.com/pastdev/s2i/clconf/clconf"
 )
 
+const configMap = "" +
+	"---\n" +
+	"key: foobar\n" +
+	"database:\n" +
+	"  host: 127.0.0.1\n" +
+	"  port: \"3306\"\n" +
+	"upstream:\n" +
+	"  app1: 10.0.1.10:8080\n" +
+	"  app2: 10.0.1.11:8080\n" +
+	"prefix:\n" +
+	"  database:\n" +
+	"    host: 127.0.0.1\n" +
+	"    port: \"3306\"\n" +
+	"  upstream:\n" +
+	"    app1: 10.0.1.10:8080\n" +
+	"    app2: 10.0.1.11:8080\n"
+const secrets = "" +
+	"---\n" +
+	"database:\n" +
+	"  password: p@sSw0rd\n" +
+	"  username: confd\n" +
+	"prefix:\n" +
+	"  database:\n" +
+	"    password: p@sSw0rd\n" +
+	"    username: confd\n"
+const configMapAndSecrets = "" +
+	"---\n" +
+	"key: foobar\n" +
+	"database:\n" +
+	"  host: 127.0.0.1\n" +
+	"  password: p@sSw0rd\n" +
+	"  port: \"3306\"\n" +
+	"  username: confd\n" +
+	"upstream:\n" +
+	"  app1: 10.0.1.10:8080\n" +
+	"  app2: 10.0.1.11:8080\n" +
+	"prefix:\n" +
+	"  database:\n" +
+	"    host: 127.0.0.1\n" +
+	"    password: p@sSw0rd\n" +
+	"    port: \"3306\"\n" +
+	"    username: confd\n" +
+	"  upstream:\n" +
+	"    app1: 10.0.1.10:8080\n" +
+	"    app2: 10.0.1.11:8080\n"
 const yaml1 = "" +
 	"a: Nope\n" +
 	"b:\n" +
@@ -407,14 +453,65 @@ func TestToKvMap(t *testing.T) {
 }
 
 func TestUnmarshalYaml(t *testing.T) {
-	_, err := clconf.UnmarshalYaml("foo")
-	if err == nil {
-		t.Error("Unmarshal illegal char")
+	//_, err := clconf.UnmarshalYaml("foo")
+	//if err == nil {
+	//	t.Error("Unmarshal illegal char")
+	//}
+
+	//expected, _ := clconf.UnmarshalYaml(yaml2and1)
+	//merged, err := clconf.UnmarshalYaml(yaml2, yaml1)
+	//if err != nil || !reflect.DeepEqual(merged, expected) {
+	//	t.Errorf("Merge 2 and 1 failed: [%v] != [%v]", expected, merged)
+	//}
+
+	expected, _ := clconf.UnmarshalYaml(configMapAndSecrets)
+	merged, err := clconf.UnmarshalYaml(configMap, secrets)
+	if err != nil || !reflect.DeepEqual(merged, expected) {
+		t.Errorf("ConfigMap and Secrets failed: [%v] != [%v]", expected, merged)
+	}
+}
+
+func TestMerge(t *testing.T) {
+	result := make(map[interface{}]interface{})
+
+	configMap := map[interface{}]interface{}{
+		"foo": "bar",
+		"database": map[interface{}]interface{}{
+			"hostname": "localhost",
+			"port":     3306,
+			"username": "admin",
+		},
+	}
+	secrets := map[interface{}]interface{}{
+		"hip": "hop",
+		"database": map[interface{}]interface{}{
+			"password": "p@ssw0rD",
+			"username": "notadmin",
+		},
 	}
 
-	expected, _ := clconf.UnmarshalYaml(yaml2and1)
-	merged, err := clconf.UnmarshalYaml(yaml2, yaml1)
-	if err != nil || !reflect.DeepEqual(merged, expected) {
-		t.Errorf("Merge 2 and 1 failed: [%v] != [%v]", expected, merged)
+	if err := mergo.Merge(&result, secrets); err != nil {
+		t.Errorf("merge failed: [%v]", err)
+	}
+	if !reflect.DeepEqual(result, secrets) {
+		t.Errorf("merge incorrect: [%v] != [%v]", result, secrets)
+	}
+
+	expected := map[interface{}]interface{}{
+		"foo": "bar",
+		"hip": "hop",
+		"database": map[interface{}]interface{}{
+			"hostname": "localhost",
+			"password": "p@ssw0rD",
+			"port":     3306,
+			"username": "notadmin",
+		},
+	}
+
+	if err := mergo.Merge(&result, configMap); err != nil {
+		t.Errorf("merge failed: [%v]", err)
+	}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("merge incorrect: [%v] != [%v]", result, expected)
 	}
 }
