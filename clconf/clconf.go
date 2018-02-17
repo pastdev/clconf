@@ -96,8 +96,8 @@ func LoadConf(files []string, overrides []string) (map[interface{}]interface{}, 
 }
 
 // LoadConfFromEnvironment will load all configurations present.  In order
-// of precedence (highest last), YAML_FILES env var, YAML_VARS env var,
-// files, overrides.
+// of precedence (highest last), files, YAML_FILES env var, overrides,
+// YAML_VARS env var.
 func LoadConfFromEnvironment(files []string, overrides []string) (map[interface{}]interface{}, error) {
 	if yamlFiles, ok := os.LookupEnv("YAML_FILES"); ok {
 		files = append(files, Splitter.Split(yamlFiles, -1)...)
