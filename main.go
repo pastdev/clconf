@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"gitlab.com/pastdev/s2i/clconf/clconf"
+	"github.com/pastdev/clconf/clconf"
 )
 
 func main() {

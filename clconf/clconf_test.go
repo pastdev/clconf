@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/imdario/mergo"
-	"gitlab.com/pastdev/s2i/clconf/clconf"
+	"github.com/pastdev/clconf/clconf"
 )
 
 const configMap = "" +
