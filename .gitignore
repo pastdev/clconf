@@ -1,0 +1,6 @@
+# Editor artifacts
+*~
+.*.swp
+
+# Go project artifacts
+/vendor

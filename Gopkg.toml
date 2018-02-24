@@ -1,0 +1,33 @@
+# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
+# for detailed Gopkg.toml documentation.
+[[constraint]]
+  name = "github.com/imdario/mergo"
+  version = "0.3.2"
+
+[[constraint]]
+  name = "github.com/kelseyhightower/memkv"
+  version = "0.1.1"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/mitchellh/mapstructure"
+
+[[constraint]]
+  name = "github.com/sirupsen/logrus"
+  version = "1.0.3"
+
+[[constraint]]
+  name = "github.com/urfave/cli"
+  version = "1.20.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/xordataexchange/crypt"
+
+[[constraint]]
+  name = "gopkg.in/yaml.v2"
+  version = "2.1.1"
+
+[prune]
+  go-tests = true
+  unused-packages = true
