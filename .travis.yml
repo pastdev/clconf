@@ -1,6 +1,5 @@
 language: go
 go:
-- 1.x
 - '1.10'
 - '1.9'
 - '1.8'
@@ -16,7 +15,7 @@ script:
 before_deploy:
 - |
   for PLATFORM in windows linux darwin; do
-    if [ $PLATFORM -eq 'windows' ]; then
+    if [[ $PLATFORM = 'windows' ]]; then
       EXTENSION=".exe"
     fi
     export GOOS=$PLATFORM
@@ -36,5 +35,3 @@ deploy:
   on:
     condition: $TRAVIS_GO_VERSION = "1.10" 
     tags: true
-
-
