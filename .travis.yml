@@ -1,6 +1,13 @@
 language: go
+
 go:
 - "1.x"
+- "1.10"
 - "1.9"
 - "1.8"
 
+before-install:
+- dep ensure
+
+script:
+- go test .
