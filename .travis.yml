@@ -34,5 +34,6 @@ deploy:
   - $GOPATH/bin/clconf-windows.exe
   skip_cleanup: true
   on:
+    condition: $TRAVIS_GO_VERSION = "1.10" 
     tags: true
 
