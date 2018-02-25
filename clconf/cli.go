@@ -9,11 +9,12 @@ import (
 	"github.com/urfave/cli"
 )
 
+// Set by -ldflags "-X github.com/pastdev/clconf/clconf.version=?"
+var version string
+
 const (
 	// Name is the name of this application
 	Name = "clconf"
-	// Version is the version of this application
-	Version = "0.0.1"
 )
 
 // Makes dump unit testable as test classes can override print
@@ -236,7 +237,9 @@ func marshal(c *cli.Context, value interface{}, err cli.ExitCoder) (*cli.Context
 func NewApp() *cli.App {
 	app := cli.NewApp()
 	app.Name = Name
-	app.Version = Version
+	if version != "" {
+		app.Version = version
+	}
 	app.UsageText = "clconf [global options] command [command options] [args...]"
 
 	app.Flags = globalFlags()

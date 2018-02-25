@@ -24,8 +24,8 @@ before_deploy:
     export CGO_ENABLED=0
 
     OUT_FILE="$GOPATH/bin/clconf-$PLATFORM$EXTENSION"
-    echo "Creating $OUT_FILE"
-    go build -o $OUT_FILE
+    echo "Creating $OUT_FILE ($TRAVIS_TAG)"
+    go build -ldflags "-X github.com/pastdev/clconf/clconf.version=$TRAVIS_TAG" -o $OUT_FILE
   done
   ls -lrt $GOPATH/bin
 deploy:
