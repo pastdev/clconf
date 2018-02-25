@@ -15,14 +15,19 @@ script:
 before_deploy:
 - |
   for PLATFORM in windows linux darwin; do
+    EXTENSION=""
     if [[ $PLATFORM = 'windows' ]]; then
       EXTENSION=".exe"
     fi
     export GOOS=$PLATFORM
     export GOARCH=amd64
     export CGO_ENABLED=0
-    go build -o $GOPATH/bin/clconf-$PLATFORM$EXTENSION
+
+    OUT_FILE="$GOPATH/bin/clconf-$PLATFORM$EXTENSION"
+    echo "Creating $OUT_FILE"
+    go build -o $OUT_FILE
   done
+  ls -lrt $GOPATH/bin
 deploy:
   provider: releases
   api_key:
