@@ -38,9 +38,10 @@ db:
 ```
 Then with:
 ```
-clconf getv \
+clconf \
     --yaml /etc/myapp/config.yml \
     --yaml /etc/myapp/secrets.yml \
+    getv \
     > /app/config/application.yml
 ```
 You would have a file containing:
@@ -115,9 +116,10 @@ for tomcat's `server.xml`:
 ```
 Then use:
 ```
-clconf getv \
+clconf \
     --yaml /etc/myapp/config.yml \
     --yaml /etc/myapp/secrets.yml \
+    getv \
     --template-file templates/server.xml.tmpl
     > config/server.xml
 ```
