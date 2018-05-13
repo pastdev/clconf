@@ -1,6 +1,7 @@
 # Editor artifacts
 *~
 .*.swp
+debug.test
 
 # Go project artifacts
 /vendor
