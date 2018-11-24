@@ -453,17 +453,6 @@ func TestToKvMap(t *testing.T) {
 }
 
 func TestUnmarshalYaml(t *testing.T) {
-	//_, err := clconf.UnmarshalYaml("foo")
-	//if err == nil {
-	//	t.Error("Unmarshal illegal char")
-	//}
-
-	//expected, _ := clconf.UnmarshalYaml(yaml2and1)
-	//merged, err := clconf.UnmarshalYaml(yaml2, yaml1)
-	//if err != nil || !reflect.DeepEqual(merged, expected) {
-	//	t.Errorf("Merge 2 and 1 failed: [%v] != [%v]", expected, merged)
-	//}
-
 	expected, _ := clconf.UnmarshalYaml(configMapAndSecrets)
 	merged, err := clconf.UnmarshalYaml(configMap, secrets)
 	if err != nil || !reflect.DeepEqual(merged, expected) {

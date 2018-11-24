@@ -1,11 +1,9 @@
 package main
 
 import (
-	"os"
-
-	"github.com/pastdev/clconf/clconf"
+	"github.com/pastdev/clconf/cmd"
 )
 
 func main() {
-	clconf.NewApp().Run(os.Args)
+	cmd.Execute()
 }
