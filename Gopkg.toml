@@ -17,10 +17,6 @@
   version = "1.0.3"
 
 [[constraint]]
-  name = "github.com/urfave/cli"
-  version = "1.20.0"
-
-[[constraint]]
   branch = "master"
   name = "github.com/xordataexchange/crypt"
 

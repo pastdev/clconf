@@ -1,37 +1,25 @@
-package main
+package cmd
 
 import (
 	"os"
-
-	"github.com/pastdev/clconf/clconf"
+	"path/filepath"
 )
 
-func WithEnv(do func()) {
-	env := map[string]string{
-		"YAML_FILES":     clconf.NewTestConfigFile(),
-		"SECRET_KEYRING": clconf.NewTestKeysFile(),
-	}
-	defer func() {
-		for key := range env {
-			os.Unsetenv(key)
-		}
-	}()
-	for key, value := range env {
-		os.Setenv(key, value)
-	}
-	do()
-}
-
 func Example_noArg() {
+	reinit()
 	os.Args = []string{"clconf"}
-	main()
+	Execute()
 	// Output:
 	// {}
 }
 
 func Example_testConfig() {
-	os.Args = []string{"clconf", "--yaml", clconf.NewTestConfigFile()}
-	main()
+	reinit()
+	os.Args = []string{
+		"clconf",
+		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
+	}
+	Execute()
 	// Output:
 	// app:
 	//   aliases:
@@ -48,8 +36,13 @@ func Example_testConfig() {
 }
 
 func Example_testConfigGetv() {
-	os.Args = []string{"clconf", "--yaml", clconf.NewTestConfigFile(), "getv"}
-	main()
+	reinit()
+	os.Args = []string{
+		"clconf",
+		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
+		"getv",
+	}
+	Execute()
 	// Output:
 	// app:
 	//   aliases:
@@ -66,15 +59,16 @@ func Example_testConfigGetv() {
 }
 
 func Example_testConfigGetvDecrypt() {
+	reinit()
 	os.Args = []string{
 		"clconf",
-		"--yaml", clconf.NewTestConfigFile(),
-		"--secret-keyring", clconf.NewTestKeysFile(),
+		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
+		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"getv",
 		"--decrypt", "/app/db/username",
 		"--decrypt", "/app/db/password",
 	}
-	main()
+	Execute()
 	// Output:
 	// app:
 	//   aliases:
@@ -91,16 +85,17 @@ func Example_testConfigGetvDecrypt() {
 }
 
 func Example_testConfigGetvDecryptWithPath() {
+	reinit()
 	os.Args = []string{
 		"clconf",
-		"--yaml", clconf.NewTestConfigFile(),
-		"--secret-keyring", clconf.NewTestKeysFile(),
+		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
+		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"getv",
 		"/app/db",
 		"--decrypt", "/username",
 		"--decrypt", "/password",
 	}
-	main()
+	Execute()
 	// Output:
 	// hostname: db.pastdev.com
 	// password: SECRET_PASS
@@ -112,103 +107,124 @@ func Example_testConfigGetvDecryptWithPath() {
 }
 
 func Example_testConfigGetvDecryptWithPathAndTemplate() {
+	reinit()
 	os.Args = []string{
 		"clconf",
-		"--yaml", clconf.NewTestConfigFile(),
-		"--secret-keyring", clconf.NewTestKeysFile(),
+		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
+		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"getv",
 		"/app/db",
 		"--template-string", "{{ cgetv \"/username\" }}:{{ cgetv \"/password\" }}",
 	}
-	main()
+	Execute()
 	// Output:
 	// SECRET_USER:SECRET_PASS
 }
 
 func Example_testConfigGetvDecryptWithPrefixAndPathAndTemplate() {
+	reinit()
 	os.Args = []string{
 		"clconf",
-		"--yaml", clconf.NewTestConfigFile(),
-		"--secret-keyring", clconf.NewTestKeysFile(),
+		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
+		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"--prefix", "/app/db",
 		"getv",
 		"/",
 		"--template-string", "{{ cgetv \"/username\" }}:{{ cgetv \"/password\" }}",
 	}
-	main()
+	Execute()
 	// Output:
 	// SECRET_USER:SECRET_PASS
 }
 
 func Example_testConfigGetvAppAliases() {
-	os.Args = []string{"clconf", "--yaml", clconf.NewTestConfigFile(), "getv", "/app/aliases"}
-	main()
+	reinit()
+	os.Args = []string{
+		"clconf",
+		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
+		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
+		"getv",
+		"/app/aliases",
+	}
+	Execute()
 	// Output:
 	// - foo
 	// - bar
 }
 
 func Example_testConfigGetvAppDbPort() {
-	os.Args = []string{"clconf", "--yaml", clconf.NewTestConfigFile(), "getv", "/app/db/port"}
-	main()
+	reinit()
+	os.Args = []string{
+		"clconf",
+		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
+		"getv",
+		"/app/db/port",
+	}
+	Execute()
 	// Output:
 	// 3306
 }
 
 func Example_testConfigGetvAppDbHostname() {
+	reinit()
 	os.Args = []string{
 		"clconf",
-		"--yaml", clconf.NewTestConfigFile(),
+		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"getv",
 		"/app/db/hostname",
 	}
-	main()
+	Execute()
 	// Output:
 	// db.pastdev.com
 }
 
 func Example_testConfigGetvInvalidWithDefault() {
+	reinit()
 	os.Args = []string{
 		"clconf",
-		"--yaml", clconf.NewTestConfigFile(),
+		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"getv",
 		"/INVALID_PATH",
 		"--default", "foo",
 	}
-	main()
+	Execute()
 	// Output:
 	// foo
 }
 
 func Example_testConfigGetvAppDbHostnameWithDefault() {
+	reinit()
 	os.Args = []string{
 		"clconf",
-		"--yaml", clconf.NewTestConfigFile(),
+		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
+		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"getv",
 		"/app/db/hostname",
 		"--default", "INVALID_HOSTNAME",
 	}
-	main()
+	Execute()
 	// Output:
 	// db.pastdev.com
 }
 
 func Example_testConfigCgetvAppDbUsername() {
+	reinit()
 	os.Args = []string{
 		"clconf",
-		"--yaml", clconf.NewTestConfigFile(),
-		"--secret-keyring", clconf.NewTestKeysFile(),
+		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
+		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"cgetv",
 		"/app/db/username",
 	}
-	main()
+	Execute()
 	// Output:
 	// SECRET_USER
 }
 
 func Example_withEnvNoArg() {
+	reinit()
 	os.Args = []string{"clconf"}
-	WithEnv(main)
+	WithEnv(Execute)
 	// Output:
 	// app:
 	//   aliases:
@@ -225,8 +241,41 @@ func Example_withEnvNoArg() {
 }
 
 func Example_withEnvCgetvAppDbPassword() {
+	reinit()
 	os.Args = []string{"clconf", "cgetv", "/app/db/password"}
-	WithEnv(main)
+	WithEnv(Execute)
 	// Output:
 	// SECRET_PASS
+}
+
+func reinit() {
+	// package variables are set at beginning of run, and not re-set
+	// between tests.  we must do so manually
+	rootCmdContext.prefix = *newOptionalString("", false)
+	rootCmdContext.secretKeyring = *newOptionalString("", false)
+	rootCmdContext.secretKeyringBase64 = *newOptionalString("", false)
+	rootCmdContext.yaml = []string{}
+	rootCmdContext.yamlBase64 = []string{}
+	getvCmdContext.decrypt = []string{}
+	getvCmdContext.defaultValue = *newOptionalString("", false)
+	getvCmdContext.template = *newOptionalString("", false)
+	getvCmdContext.templateBase64 = *newOptionalString("", false)
+	getvCmdContext.templateString = *newOptionalString("", false)
+	setvCmdContext.encrypt = false
+}
+
+func WithEnv(do func()) {
+	env := map[string]string{
+		"YAML_FILES":     filepath.Join("..", "testdata", "testconfig.yml"),
+		"SECRET_KEYRING": filepath.Join("..", "testdata", "test.secring.gpg"),
+	}
+	defer func() {
+		for key := range env {
+			os.Unsetenv(key)
+		}
+	}()
+	for key, value := range env {
+		os.Setenv(key, value)
+	}
+	do()
 }

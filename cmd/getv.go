@@ -1,10 +1,7 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"os"
-	"path"
 
 	"github.com/pastdev/clconf/clconf"
 	"github.com/spf13/cobra"
@@ -23,27 +20,21 @@ type getvContext struct {
 	templateString optionalString
 }
 
+var cgetvCmd = &cobra.Command{
+	Use:   "cgetv [options]",
+	Short: "Get a secret value.  Simply an alias to `getv --decrypt /`",
+	RunE:  cgetv,
+}
+
 var getvCmd = &cobra.Command{
 	Use:   "getv [options]",
 	Short: "Get a value",
 	RunE:  getv,
 }
 
-// Makes dump unit testable as test classes can override print
-// https://stackoverflow.com/a/26804949/516433
-var print = fmt.Print
-
-func (c *getvContext) getPath(valuePath string) string {
-	if c.prefix.set {
-		return path.Join(c.prefix.value, valuePath)
-	} else if prefix, ok := os.LookupEnv("CONFIG_PREFIX"); ok {
-		return path.Join(prefix, valuePath)
-	}
-
-	if valuePath == "" {
-		return "/"
-	}
-	return valuePath
+func cgetv(cmd *cobra.Command, args []string) error {
+	getvCmdContext.decrypt = []string{"/"}
+	return getv(cmd, args)
 }
 
 func (c *getvContext) getTemplate() (*clconf.Template, error) {
@@ -93,7 +84,7 @@ func getv(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	print(value)
+	fmt.Print(value)
 	return nil
 }
 
@@ -109,7 +100,7 @@ func (c *getvContext) getValue(path string) (interface{}, error) {
 		if c.defaultValue.set {
 			value = c.defaultValue.value
 		} else {
-			return nil, NewExitError(1, fmt.Sprintf("[%v] does not exist", path))
+			return nil, fmt.Errorf("[%v] does not exist", path)
 		}
 	}
 
@@ -138,7 +129,7 @@ func (c *getvContext) getValue(path string) (interface{}, error) {
 }
 
 func init() {
-	rootCmd.AddCommand(getvCmd)
+	rootCmd.AddCommand(getvCmd, cgetvCmd)
 
 	getvCmd.Flags().StringArrayVarP(&getvCmdContext.decrypt, "decrypt", "", nil,
 		"A `list` of paths whose values needs to be decrypted")
@@ -150,6 +141,8 @@ func init() {
 		"A base64 encoded string containing a go template that will be executed against the resulting data.")
 	getvCmd.Flags().VarP(&getvCmdContext.templateString, "template-string", "",
 		"A string containing a go template that will be executed against the resulting data.")
+
+	cgetvCmd.Flags().AddFlagSet(getvCmd.Flags())
 }
 
 func (c *getvContext) marshal(value interface{}) (string, error) {
@@ -160,36 +153,17 @@ func (c *getvContext) marshal(value interface{}) (string, error) {
 	} else if stringValue, ok := value.(string); ok {
 		return stringValue, nil
 	} else if mapValue, ok := value.(map[interface{}]interface{}); ok {
-		if marshaled, err := clconf.MarshalYaml(mapValue); err != nil {
+		marshaled, err := clconf.MarshalYaml(mapValue)
+		if err != nil {
 			return "", err
-		} else {
-			return string(marshaled), nil
 		}
+		return string(marshaled), nil
 	} else if arrayValue, ok := value.([]interface{}); ok {
-		if marshaled, err := clconf.MarshalYaml(arrayValue); err != nil {
+		marshaled, err := clconf.MarshalYaml(arrayValue)
+		if err != nil {
 			return "", err
-		} else {
-			return string(marshaled), nil
 		}
+		return string(marshaled), nil
 	}
 	return fmt.Sprintf("%v", value), nil
-}
-
-func (c *getvContext) newSecretAgent() (*clconf.SecretAgent, error) {
-	var secretAgent *clconf.SecretAgent
-	var err error
-
-	if c.secretKeyringBase64.set {
-		secretAgent, err = clconf.NewSecretAgentFromBase64(c.secretKeyringBase64.value)
-	} else if c.secretKeyring.set {
-		secretAgent, err = clconf.NewSecretAgentFromFile(c.secretKeyring.value)
-	} else if keyBase64, ok := os.LookupEnv("SECRET_KEYRING_BASE64"); ok {
-		secretAgent, err = clconf.NewSecretAgentFromBase64(keyBase64)
-	} else if keyFile, ok := os.LookupEnv("SECRET_KEYRING"); ok {
-		secretAgent, err = clconf.NewSecretAgentFromFile(keyFile)
-	} else {
-		err = errors.New("requires --secret-keyring-base64, --secret-keyring, or SECRET_KEYRING")
-	}
-
-	return secretAgent, err
 }

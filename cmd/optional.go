@@ -5,8 +5,7 @@ type optionalString struct {
 	value string
 }
 
-// NewOptionalString returns a new optional string
-func NewOptionalString(value string, set bool) *optionalString {
+func newOptionalString(value string, set bool) *optionalString {
 	return &optionalString{set: set, value: value}
 }
 

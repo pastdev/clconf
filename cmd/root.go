@@ -2,9 +2,16 @@ package cmd
 
 import (
 	"os"
+	"path"
 
 	"github.com/spf13/cobra"
 )
+
+var rootCmd = &cobra.Command{
+	Use:   "clconf [global options] command [command options] [args...]",
+	Short: `A utility for merging multiple config files and extracting values using a path string`,
+	RunE:  getv,
+}
 
 var rootCmdContext = &rootContext{}
 
@@ -14,6 +21,19 @@ type rootContext struct {
 	secretKeyringBase64 optionalString
 	yaml                []string
 	yamlBase64          []string
+}
+
+func (c *rootContext) getPath(valuePath string) string {
+	if c.prefix.set {
+		return path.Join(c.prefix.value, valuePath)
+	} else if prefix, ok := os.LookupEnv("CONFIG_PREFIX"); ok {
+		return path.Join(prefix, valuePath)
+	}
+
+	if valuePath == "" {
+		return "/"
+	}
+	return valuePath
 }
 
 func init() {
@@ -27,12 +47,6 @@ func init() {
 		"A `list` of yaml files containing config (env: YAML_FILES).  If specified, YAML_FILES will be split on ',' and appended to this option.")
 	rootCmd.PersistentFlags().StringArrayVarP(&rootCmdContext.yamlBase64, "yaml-base64", "", nil,
 		"A `list` of base 64 encoded yaml strings containing config (env: YAML_VARS).  If specified, YAML_VARS will be split on ',' and each value will be used to load a base64 string from an environtment variable of that name.  The values will be appended to this option.")
-}
-
-var rootCmd = &cobra.Command{
-	Use:   "clconf [global options] command [command options] [args...]",
-	Short: `A utility for merging multiple config files and extracting values using a path string`,
-	RunE:  getv,
 }
 
 // Execute runs the root command
