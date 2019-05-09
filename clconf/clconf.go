@@ -10,6 +10,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/imdario/mergo"
@@ -289,12 +290,13 @@ func walk(callback func(key []string, value interface{}), node map[interface{}]i
 		case map[interface{}]interface{}:
 			walk(callback, v.(map[interface{}]interface{}), keyStack)
 		case []interface{}:
-			for _, j := range v.([]interface{}) {
+			for i, j := range v.([]interface{}) {
+				arrayKeyStack := append(keyStack, strconv.Itoa(i))
 				switch j.(type) {
 				case map[interface{}]interface{}:
-					walk(callback, j.(map[interface{}]interface{}), keyStack)
+					walk(callback, j.(map[interface{}]interface{}), arrayKeyStack)
 				default:
-					callback(append(keyStack, fmt.Sprintf("%v", j)), "")
+					callback(append(arrayKeyStack, fmt.Sprintf("%v", j)), "")
 				}
 			}
 		default:

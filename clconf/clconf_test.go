@@ -444,11 +444,11 @@ func TestToKvMap(t *testing.T) {
 			},
 		},
 		map[string]string{
-			"/a":       "b",
-			"/c":       "2",
-			"/d/e/f":   "",
-			"/d/e/2":   "",
-			"/d/e/2.2": "",
+			"/a":         "b",
+			"/c":         "2",
+			"/d/e/0/f":   "",
+			"/d/e/1/2":   "",
+			"/d/e/2/2.2": "",
 		}, "multi-level map with array")
 }
 
