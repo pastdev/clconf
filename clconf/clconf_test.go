@@ -270,6 +270,51 @@ func TestMarshalYaml(t *testing.T) {
 	}
 }
 
+func TestMerge(t *testing.T) {
+	result := make(map[interface{}]interface{})
+
+	configMap := map[interface{}]interface{}{
+		"foo": "bar",
+		"database": map[interface{}]interface{}{
+			"hostname": "localhost",
+			"port":     3306,
+			"username": "admin",
+		},
+	}
+	secrets := map[interface{}]interface{}{
+		"hip": "hop",
+		"database": map[interface{}]interface{}{
+			"password": "p@ssw0rD",
+			"username": "notadmin",
+		},
+	}
+
+	if err := mergo.Merge(&result, secrets); err != nil {
+		t.Errorf("merge failed: [%v]", err)
+	}
+	if !reflect.DeepEqual(result, secrets) {
+		t.Errorf("merge incorrect: [%v] != [%v]", result, secrets)
+	}
+
+	expected := map[interface{}]interface{}{
+		"foo": "bar",
+		"hip": "hop",
+		"database": map[interface{}]interface{}{
+			"hostname": "localhost",
+			"password": "p@ssw0rD",
+			"port":     3306,
+			"username": "notadmin",
+		},
+	}
+
+	if err := mergo.Merge(&result, configMap); err != nil {
+		t.Errorf("merge failed: [%v]", err)
+	}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("merge incorrect: [%v] != [%v]", result, expected)
+	}
+}
+
 func TestReadEnvVars(t *testing.T) {
 	actual := clconf.ReadEnvVars()
 	if len(actual) > 0 {
@@ -444,12 +489,21 @@ func TestToKvMap(t *testing.T) {
 			},
 		},
 		map[string]string{
-			"/a":         "b",
-			"/c":         "2",
-			"/d/e/0/f":   "",
-			"/d/e/1/2":   "",
-			"/d/e/2/2.2": "",
+			"/a":     "b",
+			"/c":     "2",
+			"/d/e/0": "f",
+			"/d/e/1": "2",
+			"/d/e/2": "2.2",
 		}, "multi-level map with array")
+	testToKvMap(t,
+		map[interface{}]interface{}{
+			1: "one",
+			2: "two",
+		},
+		map[string]string{
+			"/1": "one",
+			"/2": "two",
+		}, "numeric keys")
 }
 
 func TestUnmarshalYaml(t *testing.T) {
@@ -460,47 +514,13 @@ func TestUnmarshalYaml(t *testing.T) {
 	}
 }
 
-func TestMerge(t *testing.T) {
-	result := make(map[interface{}]interface{})
-
-	configMap := map[interface{}]interface{}{
-		"foo": "bar",
-		"database": map[interface{}]interface{}{
-			"hostname": "localhost",
-			"port":     3306,
-			"username": "admin",
-		},
-	}
-	secrets := map[interface{}]interface{}{
-		"hip": "hop",
-		"database": map[interface{}]interface{}{
-			"password": "p@ssw0rD",
-			"username": "notadmin",
-		},
-	}
-
-	if err := mergo.Merge(&result, secrets); err != nil {
-		t.Errorf("merge failed: [%v]", err)
-	}
-	if !reflect.DeepEqual(result, secrets) {
-		t.Errorf("merge incorrect: [%v] != [%v]", result, secrets)
-	}
-
+func TestUnmarshalYamlNumericKey(t *testing.T) {
 	expected := map[interface{}]interface{}{
-		"foo": "bar",
-		"hip": "hop",
-		"database": map[interface{}]interface{}{
-			"hostname": "localhost",
-			"password": "p@ssw0rD",
-			"port":     3306,
-			"username": "notadmin",
-		},
+		1: "one",
+		2: "two",
 	}
-
-	if err := mergo.Merge(&result, configMap); err != nil {
-		t.Errorf("merge failed: [%v]", err)
-	}
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("merge incorrect: [%v] != [%v]", result, expected)
+	actual, err := clconf.UnmarshalYaml("1: one\n2: two")
+	if err != nil || !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Numeric keys failed: [%v] != [%v]", expected, actual)
 	}
 }
