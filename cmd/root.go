@@ -44,9 +44,9 @@ func init() {
 	rootCmd.PersistentFlags().VarP(&rootCmdContext.secretKeyringBase64, "secret-keyring-base64", "",
 		"Base64 encoded gpg secring (env: SECRET_KEYRING_BASE64)")
 	rootCmd.PersistentFlags().StringArrayVarP(&rootCmdContext.yaml, "yaml", "", nil,
-		"A `list` of yaml files containing config (env: YAML_FILES).  If specified, YAML_FILES will be split on ',' and appended to this option.")
+		"A `list` of yaml files containing config (env: YAML_FILES).  If specified, YAML_FILES will be split on ',' and appended to this option.  Last defined value takes precedence when merged.")
 	rootCmd.PersistentFlags().StringArrayVarP(&rootCmdContext.yamlBase64, "yaml-base64", "", nil,
-		"A `list` of base 64 encoded yaml strings containing config (env: YAML_VARS).  If specified, YAML_VARS will be split on ',' and each value will be used to load a base64 string from an environtment variable of that name.  The values will be appended to this option.")
+		"A `list` of base 64 encoded yaml strings containing config (env: YAML_VARS).  If specified, YAML_VARS will be split on ',' and each value will be used to load a base64 string from an environtment variable of that name.  The values will be appended to this option.  Last defined value takes precedence when merged")
 }
 
 // Execute runs the root command
