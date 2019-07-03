@@ -1,8 +1,7 @@
 # clconf
-`clconf` provides a utility for merging multiple config files and extracting
-values using a path string.  
+`clconf` provides a utility for merging multiple config files and extracting values using a path string.  `clconf` is both a _library_, and a _command line application_.
 
-See `clconf --help` for details.
+For details, see `clconf --help`.
 
 ## Background
 `clconf` was primarily designed for use in
@@ -19,6 +18,42 @@ by itself, or combined with other tools like
 [confd](https://github.com/pastdev/confd) (_note, this is my fork of
 confd as
 [they chose a different direction](https://github.com/kelseyhightower/confd/pull/663)_).
+
+## Configuration
+Using `clconf` requires one or more yaml files (or strings) to merge together.  They are specified using either using environment variables or command line options, as either files or base64 encoded strings.  The order they are processed in is as follows:
+
+1. *`--yaml`*: One or more files.
+1. *`YAML_FILES` environment variable*: A comma separated list of files.
+1. *`--yaml-base64`*: One or more base64 encoded strings containing yaml.
+1. *`YAML_VARS` environment variable*: A comma separated list of environment variable names, each a base64 encoded string containing yaml.
+
+All of these categories of input will be appended to each other and the _last defined value of any key will take precedence_.  For example:
+```
+YAML_FILES="a.yml,b.yml"
+YAML_VARS="C_YML_B64,D_YML_B64"
+C_YML_B64"$(echo -e "c:\n  foo: bar" | base64 -w 0)
+D_YML_B64"$(echo -e "d:\n  foo: bar" | base64 -w 0)
+
+G_YML_B64="$(echo -e "g:\n  foo: bar" | base64 -w 0)
+H_YML_B64="$(echo -e "h:\n  foo: bar" | base64 -w 0)
+
+clconf \
+  --yaml e.yml \
+  --yaml f.yml \
+  --yaml-base64 "$G_YML_B64" \
+  --yaml-base64 "$H_YML_B64"
+```
+
+Would be processed in the following order:
+
+1. `a.yml`
+1. `b.yml`
+1. `C_YML_B64`
+1. `D_YML_B64`
+1. `e.yml`
+1. `f.yml`
+1. `G_YML_B64`
+1. `H_YML_B64`
 
 ## Use Cases
 
