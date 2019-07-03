@@ -18,14 +18,18 @@ const configMap = "" +
 	"key: foobar\n" +
 	"database:\n" +
 	"  host: 127.0.0.1\n" +
+	"  password: REDACTED\n" +
 	"  port: \"3306\"\n" +
+	"  username: REDACTED\n" +
 	"upstream:\n" +
 	"  app1: 10.0.1.10:8080\n" +
 	"  app2: 10.0.1.11:8080\n" +
 	"prefix:\n" +
 	"  database:\n" +
 	"    host: 127.0.0.1\n" +
+	"    password: REDACTED\n" +
 	"    port: \"3306\"\n" +
+	"    username: REDACTED\n" +
 	"  upstream:\n" +
 	"    app1: 10.0.1.10:8080\n" +
 	"    app2: 10.0.1.11:8080\n"
