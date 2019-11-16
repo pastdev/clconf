@@ -15,7 +15,6 @@ import (
 
 	"github.com/imdario/mergo"
 	"github.com/mitchellh/mapstructure"
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -35,7 +34,7 @@ func DecodeBase64Strings(values ...string) ([]string, error) {
 	return contents, nil
 }
 
-// Fill will fill a out with the values from conf or return an error.
+// Fill will fill a according to DecoderConfig with the values from conf.
 func Fill(keyPath string, conf interface{}, decoderConfig *mapstructure.DecoderConfig) error {
 	value, err := GetValue(conf, keyPath)
 	if err != nil {
@@ -118,7 +117,11 @@ func LoadConfFromEnvironment(files []string, overrides []string) (map[interface{
 		files = append(files, Splitter.Split(yamlFiles, -1)...)
 	}
 	if yamlVars, ok := os.LookupEnv("YAML_VARS"); ok {
-		overrides = append(overrides, ReadEnvVars(Splitter.Split(yamlVars, -1)...)...)
+		envVars, err := ReadEnvVars(Splitter.Split(yamlVars, -1)...)
+		if err != nil {
+			return nil, err
+		}
+		overrides = append(overrides, envVars...)
 	}
 	return LoadConf(files, overrides)
 }
@@ -157,16 +160,16 @@ func MarshalYaml(in interface{}) ([]byte, error) {
 // ReadEnvVars will read all the environment variables named and return an
 // array of their values.  The order of the names to values will be
 // preserved.
-func ReadEnvVars(names ...string) []string {
+func ReadEnvVars(names ...string) ([]string, error) {
 	var values []string
 	for _, name := range names {
 		if value, ok := os.LookupEnv(name); ok {
 			values = append(values, value)
 		} else {
-			log.Panicf("Read env var [%s] failed, does not exist", name)
+			return nil, fmt.Errorf("Read env var [%s] failed, does not exist", name)
 		}
 	}
-	return values
+	return values, nil
 }
 
 // ReadFiles will read all the files supplied and return an array of their

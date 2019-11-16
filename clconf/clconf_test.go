@@ -390,18 +390,20 @@ func TestMerge(t *testing.T) {
 }
 
 func TestReadEnvVars(t *testing.T) {
-	actual := clconf.ReadEnvVars()
+	actual, err := clconf.ReadEnvVars()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(actual) > 0 {
 		t.Errorf("ReadEnvVars empty failed")
 	}
 }
 
 func TestReadEnvVarsDoesNotExist(t *testing.T) {
-	defer func() {
-		recover()
-	}()
-	clconf.ReadEnvVars("NOT_AN_ENV_VAR_OR_PROBABLY_SHOULDNT_BE")
-	t.Errorf("ReadEnvVars does not exist should have paniced")
+	_, err := clconf.ReadEnvVars("NOT_AN_ENV_VAR_OR_PROBABLY_SHOULDNT_BE")
+	if err == nil {
+		t.Errorf("ReadEnvVars does not exist should have paniced")
+	}
 }
 
 func TestReadEnvVarsTempValues(t *testing.T) {
@@ -416,7 +418,10 @@ func TestReadEnvVarsTempValues(t *testing.T) {
 	for index, name := range names {
 		os.Setenv(name, values[index])
 	}
-	actual := clconf.ReadEnvVars(names...)
+	actual, err := clconf.ReadEnvVars(names...)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !reflect.DeepEqual(values, actual) {
 		t.Errorf("ReadEnvVars FOO BAZ failed: [%v] [%v]", values, actual)
 	}
