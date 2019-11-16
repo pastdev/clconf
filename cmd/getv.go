@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/pastdev/clconf/clconf"
+	"github.com/pastdev/clconf/v2/clconf"
 	"github.com/spf13/cobra"
 )
 

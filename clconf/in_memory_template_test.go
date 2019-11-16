@@ -3,7 +3,7 @@ package clconf_test
 import (
 	"testing"
 
-	"github.com/pastdev/clconf/clconf"
+	"github.com/pastdev/clconf/v2/clconf"
 )
 
 func TestNewTemplate(t *testing.T) {

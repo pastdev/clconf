@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/pastdev/clconf/clconf"
+	"github.com/pastdev/clconf/v2/clconf"
 	yaml "gopkg.in/yaml.v2"
 )
 

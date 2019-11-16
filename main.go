@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/pastdev/clconf/cmd"
+	"github.com/pastdev/clconf/v2/cmd"
 )
 
 func main() {

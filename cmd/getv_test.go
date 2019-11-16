@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/pastdev/clconf/clconf"
+	"github.com/pastdev/clconf/v2/clconf"
 )
 
 func testBase64Yaml(yaml string) []string {

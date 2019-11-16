@@ -6,7 +6,7 @@ import (
 	"text/template"
 
 	"github.com/kelseyhightower/memkv"
-	clconftemplate "github.com/pastdev/clconf/clconf/template"
+	clconftemplate "github.com/pastdev/clconf/v2/clconf/template"
 )
 
 // TemplateConfig allows for optional configuration.
