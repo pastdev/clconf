@@ -1,4 +1,4 @@
-module github.com/pastdev/clconf
+module github.com/pastdev/clconf/v2
 
 require (
 	github.com/imdario/mergo v0.3.6
