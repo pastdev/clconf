@@ -35,17 +35,33 @@ func DecodeBase64Strings(values ...string) ([]string, error) {
 	return contents, nil
 }
 
-// FillValue will fill a struct, out, with values from conf.
-func FillValue(keyPath string, conf interface{}, out interface{}) bool {
+// Fill will fill a out with the values from conf or return an error.
+func Fill(keyPath string, conf interface{}, decoderConfig *mapstructure.DecoderConfig) error {
 	value, ok := GetValue(conf, keyPath)
 	if !ok {
-		return false
+		return fmt.Errorf("no value found for %s", keyPath)
 	}
-	err := mapstructure.Decode(value, out)
+
+	decoder, err := mapstructure.NewDecoder(decoderConfig)
 	if err != nil {
-		return false
+		return fmt.Errorf("cant create decoder: %v", err)
 	}
-	return ok
+
+	err = decoder.Decode(value)
+	if err != nil {
+		return fmt.Errorf("failed to decode into `out`: %v", err)
+	}
+
+	return nil
+}
+
+// FillValue will fill a struct, out, with values from conf.
+func FillValue(keyPath string, conf interface{}, out interface{}) bool {
+	err := Fill(keyPath, conf, &mapstructure.DecoderConfig{Result: out})
+	if err == nil {
+		return true
+	}
+	return false
 }
 
 // GetValue returns the value at the indicated path.  Paths are separated by

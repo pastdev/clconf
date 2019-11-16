@@ -2,14 +2,17 @@ package clconf_test
 
 import (
 	"encoding/base64"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/imdario/mergo"
+	"github.com/mitchellh/mapstructure"
 	"github.com/pastdev/clconf/clconf"
 )
 
@@ -106,6 +109,73 @@ func TestBase64Strings(t *testing.T) {
 
 	if _, err := clconf.DecodeBase64Strings("&*INVALID*&"); err == nil {
 		t.Error("Base64Strings invalid should have failed")
+	}
+}
+
+func TestFill(t *testing.T) {
+	expectedTimestampString := "2019-10-16T12:28:49Z"
+	conf, err := clconf.UnmarshalYaml("---\n" +
+		"data:\n" +
+		fmt.Sprintf("  timestamp: %s\n", expectedTimestampString) +
+		"  bool_as_string: 'true'\n" +
+		"  bool_as_bool: false\n" +
+		"  string_value: 'foo'\n" +
+		"  subtype:\n" +
+		"    value: 'bar'\n")
+	if err != nil {
+		t.Fatalf("unmarshal yaml failed: %v", err)
+	}
+
+	type Subtype struct {
+		Value string
+	}
+
+	type Data struct {
+		Timestamp    time.Time
+		BoolAsString bool   `yaml:"bool_as_string"`
+		BoolAsBool   bool   `yaml:"bool_as_bool"`
+		StringValue  string `yaml:"string_value"`
+		Subtype      Subtype
+	}
+
+	type Root struct {
+		Data Data
+	}
+
+	actual := Root{}
+	err = clconf.Fill(
+		"",
+		conf,
+		&mapstructure.DecoderConfig{
+			DecodeHook:       mapstructure.StringToTimeHookFunc(time.RFC3339),
+			Result:           &actual,
+			TagName:          "yaml",
+			WeaklyTypedInput: true,
+		})
+	if err != nil {
+		t.Fatalf("unable to fill: %v", err)
+	}
+
+	expectedTimestamp, err := time.Parse(
+		time.RFC3339,
+		expectedTimestampString)
+	if err != nil {
+		t.Fatalf("unable to parse [%s]: %v", expectedTimestampString, err)
+	}
+	expected := Root{
+		Data{
+			Timestamp:    expectedTimestamp,
+			BoolAsString: true,
+			BoolAsBool:   false,
+			StringValue:  "foo",
+			Subtype: Subtype{
+				Value: "bar",
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("%v != %v", expected, actual)
 	}
 }
 
