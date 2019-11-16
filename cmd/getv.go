@@ -95,12 +95,12 @@ func (c *getvContext) getValue(path string) (interface{}, error) {
 		return nil, err
 	}
 
-	value, ok := clconf.GetValue(config, path)
-	if !ok {
+	value, err := clconf.GetValue(config, path)
+	if err != nil {
 		if c.defaultValue.set {
 			value = c.defaultValue.value
 		} else {
-			return nil, fmt.Errorf("[%v] does not exist", path)
+			return nil, err
 		}
 	}
 

@@ -35,9 +35,9 @@ func (secretAgent *SecretAgent) Decrypt(encrypted string) (string, error) {
 // decrypted values
 func (secretAgent *SecretAgent) DecryptPaths(config interface{}, encryptedPaths ...string) error {
 	for _, encryptedPath := range encryptedPaths {
-		value, ok := GetValue(config, encryptedPath)
-		if !ok {
-			return fmt.Errorf("%v not found", encryptedPath)
+		value, err := GetValue(config, encryptedPath)
+		if err != nil {
+			return err
 		}
 		stringValue, ok := value.(string)
 		if !ok {

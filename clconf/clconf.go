@@ -37,9 +37,9 @@ func DecodeBase64Strings(values ...string) ([]string, error) {
 
 // Fill will fill a out with the values from conf or return an error.
 func Fill(keyPath string, conf interface{}, decoderConfig *mapstructure.DecoderConfig) error {
-	value, ok := GetValue(conf, keyPath)
-	if !ok {
-		return fmt.Errorf("no value found for %s", keyPath)
+	value, err := GetValue(conf, keyPath)
+	if err != nil {
+		return err
 	}
 
 	decoder, err := mapstructure.NewDecoder(decoderConfig)
@@ -66,9 +66,9 @@ func FillValue(keyPath string, conf interface{}, out interface{}) bool {
 
 // GetValue returns the value at the indicated path.  Paths are separated by
 // the '/' character.  The empty string or "/" will return conf itself.
-func GetValue(conf interface{}, keyPath string) (interface{}, bool) {
+func GetValue(conf interface{}, keyPath string) (interface{}, error) {
 	if keyPath == "" {
-		return conf, true
+		return conf, nil
 	}
 
 	var value = conf
@@ -77,17 +77,15 @@ func GetValue(conf interface{}, keyPath string) (interface{}, bool) {
 			continue
 		}
 		if reflect.ValueOf(value).Kind() != reflect.Map {
-			log.Warnf("value at [%v] not a map: %v", part, reflect.ValueOf(value).Kind())
-			return nil, false
+			return nil, fmt.Errorf("value at [%v] not a map: %v", part, reflect.ValueOf(value).Kind())
 		}
 		partValue, ok := value.(map[interface{}]interface{})[part]
 		if !ok {
-			log.Warnf("value at [%v] does not exist", part)
-			return nil, false
+			return nil, fmt.Errorf("value at [%v] does not exist", part)
 		}
 		value = partValue
 	}
-	return value, true
+	return value, nil
 }
 
 // LoadConf will load all configurations provided.  In order of precedence

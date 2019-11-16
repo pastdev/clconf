@@ -30,12 +30,12 @@ func NewTestSecretAgent() (*SecretAgent, error) {
 }
 
 func ValuesAtPathsAreEqual(config interface{}, a, b string) bool {
-	aValue, ok := GetValue(config, a)
-	if !ok {
+	aValue, err := GetValue(config, a)
+	if err != nil {
 		return false
 	}
-	bValue, ok := GetValue(config, b)
-	if !ok {
+	bValue, err := GetValue(config, b)
+	if err != nil {
 		return false
 	}
 	return aValue == bValue
