@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -88,6 +89,21 @@ func TestSetValue(t *testing.T) {
 		"foo:",
 		"/foo/bar/hip", "hop",
 		context)
+	testSetValue(t, "yaml value",
+		"foo:\n  bar: baz",
+		"foo:",
+		"/foo", "{\"bar\": \"baz\"}",
+		&setvContext{rootContext: rootContext, yamlValue: true})
+	testSetValue(t, "base64 value",
+		"foo: bar",
+		"foo:",
+		"/foo", base64.StdEncoding.EncodeToString([]byte("bar")),
+		&setvContext{rootContext: rootContext, base64Value: true})
+	testSetValue(t, "yaml base64 value",
+		"foo:\n  bar: baz",
+		"foo:",
+		"/foo", base64.StdEncoding.EncodeToString([]byte("{\"bar\": \"baz\"}")),
+		&setvContext{rootContext: rootContext, base64Value: true, yamlValue: true})
 
 	secretAgent, err := clconf.NewSecretAgentFromFile(keyFile)
 	if err != nil {

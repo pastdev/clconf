@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"encoding/base64"
+	"errors"
 	"fmt"
 
 	"github.com/pastdev/clconf/v2/clconf"
@@ -13,7 +15,9 @@ var setvCmdContext = &setvContext{
 
 type setvContext struct {
 	*rootContext
-	encrypt bool
+	encrypt     bool
+	yamlValue   bool
+	base64Value bool
 }
 
 var csetvCmd = &cobra.Command{
@@ -39,15 +43,31 @@ func init() {
 
 	setvCmd.Flags().BoolVarP(&setvCmdContext.encrypt, "encrypt", "", false,
 		"Encrypt the value")
+	setvCmd.Flags().BoolVarP(&setvCmdContext.base64Value, "base64-value", "", false,
+		"The value is base64 encoded")
+	setvCmd.Flags().BoolVarP(&setvCmdContext.yamlValue, "yaml-value", "", false,
+		"The value is yaml/json")
 
 	csetvCmd.Flags().AddFlagSet(setvCmd.Flags())
 }
 
 func (c *setvContext) setValue(key, value string) error {
+	if c.encrypt && c.yamlValue {
+		return errors.New("--encrypt only works on strings (mutually exclusive with --yaml-value)")
+	}
+
 	path := c.getPath(key)
 	file, config, err := clconf.LoadSettableConfFromEnvironment(c.yaml)
 	if err != nil {
 		return fmt.Errorf("Failed to load config %s: %s", c.yaml, err)
+	}
+
+	if c.base64Value {
+		newValue, err := base64.StdEncoding.DecodeString(value)
+		if err != nil {
+			return fmt.Errorf("Failed to base64 decode %s: %v", value, err)
+		}
+		value = string(newValue)
 	}
 
 	if c.encrypt {
@@ -62,7 +82,18 @@ func (c *setvContext) setValue(key, value string) error {
 		value = encrypted
 	}
 
-	err = clconf.SetValue(config, path, value)
+	var valueObject interface{}
+	valueObject = value
+
+	if c.yamlValue {
+		newValue, err := clconf.UnmarshalYaml(value)
+		if err != nil {
+			return fmt.Errorf("Failed to unmarshal %s: %v", value, err)
+		}
+		valueObject = newValue
+	}
+
+	err = clconf.SetValue(config, path, valueObject)
 	if err != nil {
 		return fmt.Errorf("Failed to set vaule at %s: %s", path, err)
 	}
