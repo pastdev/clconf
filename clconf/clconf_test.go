@@ -90,6 +90,33 @@ const yaml2and1 = "" +
 	"  f:\n" +
 	"    g: foobar\n"
 
+func assertMergeValue(
+	t *testing.T,
+	expected interface{},
+	conf interface{},
+	path string,
+	value interface{},
+	overwrite bool,
+) {
+	expectedYaml, _ := clconf.MarshalYaml(expected)
+	confYaml, _ := clconf.MarshalYaml(conf)
+	valueYaml, _ := clconf.MarshalYaml(value)
+	err := clconf.MergeValue(conf, path, value, overwrite)
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
+	if !reflect.DeepEqual(expected, conf) {
+		actualYaml, _ := clconf.MarshalYaml(conf)
+		t.Errorf(
+			"\nexpected:\n---\n%v\nactual:\n---\n%v\nconf:\n---\n%v\nvalue at %s\n---\n%v",
+			string(expectedYaml),
+			string(actualYaml),
+			string(confYaml),
+			path,
+			string(valueYaml))
+	}
+}
+
 func TestBase64Strings(t *testing.T) {
 	expected := []string{}
 	encoded := []string{}
@@ -389,6 +416,135 @@ func TestMerge(t *testing.T) {
 	}
 }
 
+func TestMergeValue(t *testing.T) {
+	t.Run("merge root",
+		func(t *testing.T) {
+			conf := map[interface{}]interface{}{"foo": "baz"}
+			value := map[interface{}]interface{}{"foo": "bar"}
+			assertMergeValue(t,
+				map[interface{}]interface{}{"foo": "baz"},
+				conf,
+				"/",
+				value,
+				false)
+		})
+	t.Run("merge root overwrite",
+		func(t *testing.T) {
+			conf := map[interface{}]interface{}{"foo": "baz"}
+			value := map[interface{}]interface{}{"foo": "bar"}
+			assertMergeValue(t,
+				map[interface{}]interface{}{"foo": "bar"},
+				conf,
+				"/",
+				value,
+				true)
+		})
+	t.Run("merge root deep",
+		func(t *testing.T) {
+			conf := map[interface{}]interface{}{
+				"foo": map[interface{}]interface{}{
+					"bar": "bap",
+					"hip": "hop",
+				},
+			}
+			value := map[interface{}]interface{}{
+				"foo": map[interface{}]interface{}{
+					"bar": "baz",
+					"zip": "zap",
+				},
+			}
+			assertMergeValue(t,
+				map[interface{}]interface{}{
+					"foo": map[interface{}]interface{}{
+						"bar": "bap",
+						"hip": "hop",
+						"zip": "zap",
+					},
+				},
+				conf,
+				"/",
+				value,
+				false)
+		})
+	t.Run("merge root deep overwrite",
+		func(t *testing.T) {
+			conf := map[interface{}]interface{}{
+				"foo": map[interface{}]interface{}{
+					"bar": "bap",
+					"hip": "hop",
+				},
+			}
+			value := map[interface{}]interface{}{
+				"foo": map[interface{}]interface{}{
+					"bar": "baz",
+					"zip": "zap",
+				},
+			}
+			assertMergeValue(t,
+				map[interface{}]interface{}{
+					"foo": map[interface{}]interface{}{
+						"bar": "baz",
+						"hip": "hop",
+						"zip": "zap",
+					},
+				},
+				conf,
+				"/",
+				value,
+				true)
+		})
+	t.Run("merge deep",
+		func(t *testing.T) {
+			conf := map[interface{}]interface{}{
+				"foo": map[interface{}]interface{}{
+					"bar": "bap",
+					"hip": "hop",
+				},
+			}
+			value := map[interface{}]interface{}{
+				"bar": "baz",
+				"zip": "zap",
+			}
+			assertMergeValue(t,
+				map[interface{}]interface{}{
+					"foo": map[interface{}]interface{}{
+						"bar": "bap",
+						"hip": "hop",
+						"zip": "zap",
+					},
+				},
+				conf,
+				"/foo",
+				value,
+				false)
+		})
+	t.Run("merge deep overwrite",
+		func(t *testing.T) {
+			conf := map[interface{}]interface{}{
+				"foo": map[interface{}]interface{}{
+					"bar": "bap",
+					"hip": "hop",
+				},
+			}
+			value := map[interface{}]interface{}{
+				"bar": "baz",
+				"zip": "zap",
+			}
+			assertMergeValue(t,
+				map[interface{}]interface{}{
+					"foo": map[interface{}]interface{}{
+						"bar": "baz",
+						"hip": "hop",
+						"zip": "zap",
+					},
+				},
+				conf,
+				"/foo",
+				value,
+				true)
+		})
+}
+
 func TestReadEnvVars(t *testing.T) {
 	actual, err := clconf.ReadEnvVars()
 	if err != nil {
@@ -488,11 +644,11 @@ func TestSaveConf(t *testing.T) {
 }
 
 func TestSetValue(t *testing.T) {
-	expected := map[interface{}]interface{}{}
+	expected := map[interface{}]interface{}{"foo": "baz"}
 	actual := map[interface{}]interface{}{}
-	err := clconf.SetValue(actual, "", "baz")
-	if err == nil {
-		t.Error("SetValue empty config no path should have failed")
+	err := clconf.SetValue(actual, "", map[interface{}]interface{}{"foo": "baz"})
+	if err != nil || !reflect.DeepEqual(expected, actual) {
+		t.Errorf("SetValue empty config no path should replace root failed [%v] != [%v]: %v", expected, actual, err)
 	}
 
 	expected = map[interface{}]interface{}{
@@ -583,6 +739,51 @@ func TestToKvMap(t *testing.T) {
 			"/1": "one",
 			"/2": "two",
 		}, "numeric keys")
+}
+
+func TestUnmarshallSingleYaml(t *testing.T) {
+	t.Run("string", func(t *testing.T) {
+		yamlObj, err := clconf.UnmarshalSingleYaml("foo")
+		if err != nil {
+			t.Errorf("failed to unmarshal; %v", err)
+		}
+		if actual, ok := yamlObj.(interface{}); !ok {
+			t.Errorf("%v not a scalar", yamlObj)
+		} else {
+			expected := "foo"
+			if expected != actual {
+				t.Errorf("%v != %v", expected, actual)
+			}
+		}
+	})
+	t.Run("number", func(t *testing.T) {
+		yamlObj, err := clconf.UnmarshalSingleYaml("10")
+		if err != nil {
+			t.Errorf("failed to unmarshal; %v", err)
+		}
+		if actual, ok := yamlObj.(interface{}); !ok {
+			t.Errorf("%v not a scalar", yamlObj)
+		} else {
+			expected := 10
+			if expected != actual {
+				t.Errorf("%v != %v", expected, actual)
+			}
+		}
+	})
+	t.Run("array", func(t *testing.T) {
+		yamlObj, err := clconf.UnmarshalSingleYaml("[\"bar\", \"baz\"]")
+		if err != nil {
+			t.Errorf("failed to unmarshal; %v", err)
+		}
+		if actual, ok := yamlObj.([]interface{}); !ok {
+			t.Errorf("%v not an slice", yamlObj)
+		} else {
+			expected := []interface{}{"bar", "baz"}
+			if !reflect.DeepEqual(expected, actual) {
+				t.Errorf("%v != %v", expected, actual)
+			}
+		}
+	})
 }
 
 func TestUnmarshalYaml(t *testing.T) {

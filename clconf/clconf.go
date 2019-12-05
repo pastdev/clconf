@@ -66,7 +66,7 @@ func FillValue(keyPath string, conf interface{}, out interface{}) bool {
 // GetValue returns the value at the indicated path.  Paths are separated by
 // the '/' character.  The empty string or "/" will return conf itself.
 func GetValue(conf interface{}, keyPath string) (interface{}, error) {
-	if keyPath == "" {
+	if keyPath == "" || keyPath == "/" {
 		return conf, nil
 	}
 
@@ -191,6 +191,10 @@ func ReadFiles(files ...string) ([]string, error) {
 }
 
 func splitKeyPath(keyPath string) ([]string, string) {
+	if keyPath == "" || keyPath == "/" {
+		return []string{}, ""
+	}
+
 	parts := []string{}
 
 	for _, parentPart := range strings.Split(keyPath, "/") {
@@ -207,15 +211,38 @@ func splitKeyPath(keyPath string) ([]string, string) {
 	return parts, keyPath
 }
 
-// SetValue will set the value of config at keyPath to value
-func SetValue(config interface{}, keyPath string, value interface{}) error {
+// MergeValue will merge the values from value into config at keyPath.
+// If overwrite is true, values from value will overwrite existing
+// values in config.
+func MergeValue(config interface{}, keyPath string, value interface{}, overwrite bool) error {
+	parent, key, err := getParentAndKey(config, keyPath)
+	if err != nil {
+		return err
+	}
+
+	// ensure the root element is always a map for the merge library
+	if key == "" {
+		parent = map[interface{}]interface{}{key: parent}
+		value = map[interface{}]interface{}{key: value}
+	} else {
+		parent = map[interface{}]interface{}{key: parent[key]}
+		value = map[interface{}]interface{}{key: value}
+	}
+
+	return mergo.Merge(
+		&parent,
+		value,
+		func(c *mergo.Config) { c.Overwrite = overwrite })
+}
+
+func getParentAndKey(config interface{}, keyPath string) (map[interface{}]interface{}, string, error) {
 	configMap, ok := config.(map[interface{}]interface{})
 	if !ok {
-		return fmt.Errorf("Config not a map")
+		return nil, "", fmt.Errorf("Config not a map")
 	}
 	parentParts, key := splitKeyPath(keyPath)
 	if key == "" {
-		return fmt.Errorf("[%v] is an invalid keyPath", keyPath)
+		return configMap, "", nil
 	}
 
 	parent := configMap
@@ -227,10 +254,33 @@ func SetValue(config interface{}, keyPath string, value interface{}) error {
 		}
 		valueMap, ok := parentValue.(map[interface{}]interface{})
 		if !ok {
-			return fmt.Errorf("Parent not a map")
+			return nil, "", fmt.Errorf("Parent not a map")
 		}
 
 		parent = valueMap
+	}
+
+	return parent, key, nil
+}
+
+// SetValue will set the value of config at keyPath to value.
+func SetValue(config interface{}, keyPath string, value interface{}) error {
+	parent, key, err := getParentAndKey(config, keyPath)
+	if err != nil {
+		return err
+	}
+	if key == "" {
+		valueMap, ok := value.(map[interface{}]interface{})
+		if !ok {
+			return fmt.Errorf("if replacing root, value must be a map")
+		}
+		for k := range parent {
+			delete(parent, k)
+		}
+		for k := range valueMap {
+			parent[k] = valueMap[k]
+		}
+		return nil
 	}
 
 	parent[key] = value
@@ -262,6 +312,14 @@ func ToKvMap(conf interface{}) map[string]string {
 	return kvMap
 }
 
+// UnmarshalSingleYaml will unmarshal a single yaml/json string without merging.
+// This form works for any yaml data, not just objects.
+func UnmarshalSingleYaml(yamlString string) (interface{}, error) {
+	var value interface{}
+	err := yaml.Unmarshal([]byte(yamlString), &value)
+	return value, err
+}
+
 func unmarshalYaml(yamlBytes ...[]byte) (map[interface{}]interface{}, error) {
 	result := make(map[interface{}]interface{})
 	for index := len(yamlBytes) - 1; index >= 0; index-- {
@@ -280,7 +338,8 @@ func unmarshalYaml(yamlBytes ...[]byte) (map[interface{}]interface{}, error) {
 }
 
 // UnmarshalYaml will parse all the supplied yaml strings, merge the resulting
-// objects, and return the resulting map
+// objects, and return the resulting map.  This only works for objects because
+// the merge requires objects.
 func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
 	yamlBytes := make([][]byte, len(yamlStrings))
 	for _, yaml := range yamlStrings {

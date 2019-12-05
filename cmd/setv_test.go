@@ -104,6 +104,21 @@ func TestSetValue(t *testing.T) {
 		"foo:",
 		"/foo", base64.StdEncoding.EncodeToString([]byte("{\"bar\": \"baz\"}")),
 		&setvContext{rootContext: rootContext, base64Value: true, yamlValue: true})
+	testSetValue(t, "yaml base64 array value",
+		"foo:\n- bar\n- baz",
+		"foo:",
+		"/foo", base64.StdEncoding.EncodeToString([]byte("[\"bar\", \"baz\"]")),
+		&setvContext{rootContext: rootContext, base64Value: true, yamlValue: true})
+	testSetValue(t, "merge",
+		"foo:\n  bar: bop",
+		"foo:\n  bar: bop",
+		"/foo", "{\"bar\": \"baz\"}",
+		&setvContext{rootContext: rootContext, yamlValue: true, merge: true})
+	testSetValue(t, "merge overwrite",
+		"foo:\n  bar: baz",
+		"foo:\n  bar: bop",
+		"/foo", "{\"bar\": \"baz\"}",
+		&setvContext{rootContext: rootContext, yamlValue: true, merge: true, mergeOverwrite: true})
 
 	secretAgent, err := clconf.NewSecretAgentFromFile(keyFile)
 	if err != nil {

@@ -15,9 +15,11 @@ var setvCmdContext = &setvContext{
 
 type setvContext struct {
 	*rootContext
-	encrypt     bool
-	yamlValue   bool
-	base64Value bool
+	base64Value    bool
+	encrypt        bool
+	merge          bool
+	mergeOverwrite bool
+	yamlValue      bool
 }
 
 var csetvCmd = &cobra.Command{
@@ -45,6 +47,10 @@ func init() {
 		"Encrypt the value")
 	setvCmd.Flags().BoolVarP(&setvCmdContext.base64Value, "base64-value", "", false,
 		"The value is base64 encoded")
+	setvCmd.Flags().BoolVarP(&setvCmdContext.mergeOverwrite, "merge-overwrite", "", false,
+		"Merged values should overwrite existing values (not used unless --merge)")
+	setvCmd.Flags().BoolVarP(&setvCmdContext.merge, "merge", "", false,
+		"Values should be merged rather than overwrite at path")
 	setvCmd.Flags().BoolVarP(&setvCmdContext.yamlValue, "yaml-value", "", false,
 		"The value is yaml/json")
 
@@ -86,16 +92,23 @@ func (c *setvContext) setValue(key, value string) error {
 	valueObject = value
 
 	if c.yamlValue {
-		newValue, err := clconf.UnmarshalYaml(value)
+		newValue, err := clconf.UnmarshalSingleYaml(value)
 		if err != nil {
 			return fmt.Errorf("Failed to unmarshal %s: %v", value, err)
 		}
 		valueObject = newValue
 	}
 
-	err = clconf.SetValue(config, path, valueObject)
-	if err != nil {
-		return fmt.Errorf("Failed to set vaule at %s: %s", path, err)
+	if c.merge {
+		err = clconf.MergeValue(config, path, valueObject, c.mergeOverwrite)
+		if err != nil {
+			return fmt.Errorf("Failed to merge value at %s: %s", path, err)
+		}
+	} else {
+		err = clconf.SetValue(config, path, valueObject)
+		if err != nil {
+			return fmt.Errorf("Failed to set value at %s: %s", path, err)
+		}
 	}
 
 	err = clconf.SaveConf(config, file)
