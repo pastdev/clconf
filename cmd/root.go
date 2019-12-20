@@ -16,6 +16,7 @@ var rootCmd = &cobra.Command{
 var rootCmdContext = &rootContext{}
 
 type rootContext struct {
+	ignoreEnv           bool
 	prefix              optionalString
 	secretKeyring       optionalString
 	secretKeyringBase64 optionalString
@@ -26,7 +27,7 @@ type rootContext struct {
 func (c *rootContext) getPath(valuePath string) string {
 	if c.prefix.set {
 		return path.Join(c.prefix.value, valuePath)
-	} else if prefix, ok := os.LookupEnv("CONFIG_PREFIX"); ok {
+	} else if prefix, ok := os.LookupEnv("CONFIG_PREFIX"); !c.ignoreEnv && ok {
 		return path.Join(prefix, valuePath)
 	}
 
@@ -37,6 +38,8 @@ func (c *rootContext) getPath(valuePath string) string {
 }
 
 func init() {
+	rootCmd.PersistentFlags().BoolVar(&rootCmdContext.ignoreEnv, "ignore-env", false,
+		"Tells clconf to use only command options (not environment variable equivalents).")
 	rootCmd.PersistentFlags().VarP(&rootCmdContext.prefix, "prefix", "",
 		"Prepended to all getv/setv paths (env: CONFIG_PREFIX)")
 	rootCmd.PersistentFlags().VarP(&rootCmdContext.secretKeyring, "secret-keyring", "",

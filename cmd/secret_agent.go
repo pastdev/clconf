@@ -15,9 +15,9 @@ func (c *rootContext) newSecretAgent() (*clconf.SecretAgent, error) {
 		secretAgent, err = clconf.NewSecretAgentFromBase64(c.secretKeyringBase64.value)
 	} else if c.secretKeyring.set {
 		secretAgent, err = clconf.NewSecretAgentFromFile(c.secretKeyring.value)
-	} else if keyBase64, ok := os.LookupEnv("SECRET_KEYRING_BASE64"); ok {
+	} else if keyBase64, ok := os.LookupEnv("SECRET_KEYRING_BASE64"); !c.ignoreEnv && ok {
 		secretAgent, err = clconf.NewSecretAgentFromBase64(keyBase64)
-	} else if keyFile, ok := os.LookupEnv("SECRET_KEYRING"); ok {
+	} else if keyFile, ok := os.LookupEnv("SECRET_KEYRING"); !c.ignoreEnv && ok {
 		secretAgent, err = clconf.NewSecretAgentFromFile(keyFile)
 	} else {
 		err = errors.New("requires --secret-keyring-base64, --secret-keyring, or SECRET_KEYRING")
