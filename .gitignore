@@ -2,6 +2,7 @@
 *~
 .*.swp
 debug.test
+launch.json
 
 # Go project artifacts
 /vendor

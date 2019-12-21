@@ -61,6 +61,62 @@ Would be processed in the following order:
 
 ## Use Cases
 
+### Getv Templates (confd compatible)
+
+Note that when used in conjunction with the `--template` options,
+`getv` templates see a one-level key-value map, not the map 
+represented by the yaml.  For example, this yaml (`foo.yml`):
+
+```yaml
+applications:
+- a
+- b
+- c
+credentials:
+  username: foo
+  password: bar
+```
+
+Would be seen by inside the templates as:
+
+```yaml
+/applications/0: a
+/applications/1: b
+/applications/2: c
+/credentials/username: foo
+/credentials/password: bar
+```
+
+A simple bash program to utilize this might look like:
+
+```bash
+#!/bin/bash
+
+set -e
+
+function applications {
+  run_clconf \
+    getv '/' \
+    --template-string "
+      {{- range getvs \"/applications/*\" }}
+        {{- . }}
+      {{ end }}"
+}
+
+function getv {
+  local path=$1
+  run_clconf getv "${path}"
+}
+
+function run_clconf {
+  ./clconf --ignore-env --yaml 'foo.yml' "$@"
+}
+
+user="$(getv "/credentials/username")"
+pass="$(getv "/credentials/password")"
+applications | xargs -I {} {} --user "${user}" --pass "${pass}"
+```
+
 ### Kubernetes/OpenShift
 
 This is my primary use case.  It is a natural extension of the
@@ -232,6 +288,6 @@ Or in conjunction with templates
 clconf \
     --secret-keyring testdata/test.secring.gpg \
     --yaml C:/Temp/config.yml \
-    getv /
+    getv / \
     --template-string '{{ cgetv "/db/username" }}:{{ cgetv "/db/password" }}'
 ```
