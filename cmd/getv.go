@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/pastdev/clconf/v2/clconf"
@@ -13,6 +14,7 @@ var getvCmdContext = &getvContext{
 
 type getvContext struct {
 	*rootContext
+	asJSON         bool
 	decrypt        []string
 	defaultValue   optionalString
 	template       optionalString
@@ -35,6 +37,26 @@ var getvCmd = &cobra.Command{
 func cgetv(cmd *cobra.Command, args []string) error {
 	getvCmdContext.decrypt = []string{"/"}
 	return getv(cmd, args)
+}
+
+// json serialization requires string keys, but yaml deserialization creates
+// interface{} keys.  This function converts the keys to strings so json can
+// marshal the value
+//   https://stackoverflow.com/a/40737676/516433
+func convertMapIToMapS(mapI interface{}) interface{} {
+	switch x := mapI.(type) {
+	case map[interface{}]interface{}:
+		m2 := map[string]interface{}{}
+		for k, v := range x {
+			m2[k.(string)] = convertMapIToMapS(v)
+		}
+		return m2
+	case []interface{}:
+		for i, v := range x {
+			x[i] = convertMapIToMapS(v)
+		}
+	}
+	return mapI
 }
 
 func (c *getvContext) getTemplate() (*clconf.Template, error) {
@@ -138,6 +160,8 @@ func (c *getvContext) getValue(path string) (interface{}, error) {
 func init() {
 	rootCmd.AddCommand(getvCmd, cgetvCmd)
 
+	getvCmd.Flags().BoolVar(&getvCmdContext.asJSON, "as-json", false,
+		"Prints value as json")
 	getvCmd.Flags().StringArrayVarP(&getvCmdContext.decrypt, "decrypt", "", nil,
 		"A `list` of paths whose values needs to be decrypted")
 	getvCmd.Flags().VarP(&getvCmdContext.defaultValue, "default", "",
@@ -160,13 +184,25 @@ func (c *getvContext) marshal(value interface{}) (string, error) {
 	} else if stringValue, ok := value.(string); ok {
 		return stringValue, nil
 	} else if mapValue, ok := value.(map[interface{}]interface{}); ok {
-		marshaled, err := clconf.MarshalYaml(mapValue)
+		var marshaled []byte
+		var err error
+		if c.asJSON {
+			marshaled, err = json.Marshal(convertMapIToMapS(mapValue))
+		} else {
+			marshaled, err = clconf.MarshalYaml(mapValue)
+		}
 		if err != nil {
 			return "", err
 		}
 		return string(marshaled), nil
 	} else if arrayValue, ok := value.([]interface{}); ok {
-		marshaled, err := clconf.MarshalYaml(arrayValue)
+		var marshaled []byte
+		var err error
+		if c.asJSON {
+			marshaled, err = json.Marshal(convertMapIToMapS(arrayValue))
+		} else {
+			marshaled, err = clconf.MarshalYaml(arrayValue)
+		}
 		if err != nil {
 			return "", err
 		}

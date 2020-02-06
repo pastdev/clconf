@@ -61,6 +61,30 @@ Would be processed in the following order:
 
 ## Use Cases
 
+### Getv as JSON
+
+When using the `--as-json` option, the value obtained at the indicated path
+will be serialized to json.  For example, if you have `foo.yml`:
+
+```yaml
+applications:
+- a
+- b
+- c
+```
+
+You could use:
+
+```bash
+clconf --yaml foo.yml getv /applications --as-json
+```
+
+To get:
+
+```json
+["a","b","c"]
+```
+
 ### Getv Templates (confd compatible)
 
 Note that when used in conjunction with the `--template` options,
