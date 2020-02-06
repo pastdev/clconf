@@ -89,6 +89,11 @@ const yaml2and1 = "" +
 	"  e: 2\n" +
 	"  f:\n" +
 	"    g: foobar\n"
+const yamlWithList = "" +
+	"a:\n" +
+	"- one\n" +
+	"- two\n" +
+	"- three\n"
 
 func assertMergeValue(
 	t *testing.T,
@@ -292,6 +297,25 @@ func TestGetValue(t *testing.T) {
 	value, err = clconf.GetValue(conf, "/z")
 	if err == nil {
 		t.Errorf("GetValue missing have failed: [%v] [%v]", err, value)
+	}
+
+	conf, _ = clconf.UnmarshalYaml(yamlWithList)
+
+	value, err = clconf.GetValue(conf, "/a")
+	expected := []interface{}{"one", "two", "three"}
+	if err != nil || !reflect.DeepEqual(expected, value) {
+		t.Errorf("GetValue list failed: (err:[%v]) [%v] == [%v]", err, expected, value)
+	}
+
+	value, err = clconf.GetValue(conf, "/a/0")
+	stringExpected := "one"
+	if err != nil || !reflect.DeepEqual(stringExpected, value) {
+		t.Errorf("GetValue list item failed: (err:[%v]) [%v] == [%v]", err, stringExpected, value)
+	}
+
+	value, err = clconf.GetValue(conf, "/a/b")
+	if err == nil {
+		t.Errorf("GetValue list item invalid index should have failed")
 	}
 }
 

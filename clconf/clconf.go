@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -71,18 +72,39 @@ func GetValue(conf interface{}, keyPath string) (interface{}, error) {
 	}
 
 	var value = conf
+	currentPath := "/"
 	for _, part := range strings.Split(keyPath, "/") {
 		if part == "" {
 			continue
 		}
-		if reflect.ValueOf(value).Kind() != reflect.Map {
-			return nil, fmt.Errorf("value at [%v] not a map: %v", part, reflect.ValueOf(value).Kind())
+
+		currentPath = path.Join(currentPath, part)
+
+		switch reflect.ValueOf(value).Kind() {
+		case reflect.Map:
+			var ok bool
+			value, ok = value.(map[interface{}]interface{})[part]
+			if !ok {
+				return nil, fmt.Errorf(
+					"value at [%v] does not exist",
+					currentPath)
+			}
+		case reflect.Slice:
+			i, err := strconv.Atoi(part)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"value at [%v] is array, but index [%v] is not int: %v",
+					path.Dir(currentPath),
+					part,
+					err)
+			}
+			value = value.([]interface{})[i]
+		default:
+			return nil, fmt.Errorf(
+				"value at [%v] not a map or slice: %v",
+				part,
+				reflect.ValueOf(value).Kind())
 		}
-		partValue, ok := value.(map[interface{}]interface{})[part]
-		if !ok {
-			return nil, fmt.Errorf("value at [%v] does not exist", part)
-		}
-		value = partValue
 	}
 	return value, nil
 }
