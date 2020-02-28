@@ -26,9 +26,9 @@ type TemplateSettings struct {
 	Rm bool
 	// FileMode is a string of unix file permissions (e.g. 2755) that apply to templates. An empty string
 	// will copy permissions from the template itself.
-	FileMode os.FileMode
+	FileMode string
 	// DirMode is the permission similar to FileMode but for new folders.
-	DirMode os.FileMode
+	DirMode string
 	// Extension is the extension to use when searching folders. If missing all files will be used.
 	// The extension is stripped from the file name when templating.
 	Extension string
