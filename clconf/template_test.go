@@ -1,4 +1,4 @@
-package cmd
+package clconf
 
 import (
 	"fmt"
@@ -8,17 +8,23 @@ import (
 	"reflect"
 	"sort"
 	"testing"
-
-	"github.com/pastdev/clconf/v2/clconf"
 )
 
 const fakeValue = "bar"
 
 func makeTestSubfolder(t *testing.T, temp string, subPath string, perms os.FileMode) {
 	path := filepath.Join(temp, subPath)
-	err := os.MkdirAll(path, perms)
+	err := MkdirAllNoUmask(path, perms)
 	if err != nil {
 		t.Fatalf("Error making temp sub dir %q: %v", path, err)
+	}
+	stat, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("Error stating folder %q after creation: %v", path, err)
+	}
+	if stat.Mode()&0777 != perms {
+		t.Fatalf("Created folder %q does not have proper permissions after creation [%o != %o]",
+			path, stat.Mode()&0777, perms)
 	}
 }
 
@@ -192,15 +198,14 @@ func TestFindTemplatesSingleEmptyFolder(t *testing.T) {
 	}
 }
 
-func defaultContext() (*templatefContext, *clconf.SecretAgent) {
-	return &templatefContext{
-		inPlace:           false,
-		flatten:           false,
-		keepExistingPerms: false,
-		rm:                false,
-		dirMode:           "753", //We use a wonky value to look for it later
-		extension:         ".clconf",
-	}, clconf.NewSecretAgent([]byte(""))
+func defaultContext() (*TemplateSettings, *SecretAgent) {
+	return &TemplateSettings{
+		Flatten:           false,
+		KeepExistingPerms: false,
+		Rm:                false,
+		DirMode:           "753", //We use a wonky value to look for it later
+		Extension:         ".clconf",
+	}, NewSecretAgent([]byte(""))
 }
 
 func exists(path string) bool {
@@ -255,7 +260,7 @@ func TestProcessTemplateInPlace(t *testing.T) {
 		t.Errorf("Template went missing when it wasn't supposed to!")
 	}
 
-	context.fileMode = "610"
+	context.FileMode = "610"
 	err = context.processTemplate(pathWithRelative{
 		fullPath: template,
 		relPath:  filepath.Base(template),
@@ -269,9 +274,9 @@ func TestProcessTemplateInPlace(t *testing.T) {
 		t.Errorf("yes_basdir.html isn't proper: %v", err)
 	}
 
-	context.rm = true
-	context.fileMode = "601"
-	context.keepExistingPerms = true
+	context.Rm = true
+	context.FileMode = "601"
+	context.KeepExistingPerms = true
 	err = context.processTemplate(pathWithRelative{
 		fullPath: template,
 		relPath:  filepath.Base(template),
@@ -333,7 +338,7 @@ func TestProcessTemplateFolder(t *testing.T) {
 		t.Errorf("Template went missing when it wasn't supposed to!")
 	}
 
-	context.rm = true
+	context.Rm = true
 	template = filepath.Join(temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh")
 	err = context.processTemplate(pathWithRelative{
 		fullPath: template,
@@ -366,7 +371,7 @@ func TestProcessTemplateFolderFlatten(t *testing.T) {
 
 	value := map[interface{}]interface{}{"foo": fakeValue}
 
-	context.flatten = true
+	context.Flatten = true
 	template := filepath.Join(temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh")
 	err := context.processTemplate(pathWithRelative{
 		fullPath: template,
@@ -394,7 +399,7 @@ func TestProcessTemplatesNoExtension(t *testing.T) {
 
 	value := map[interface{}]interface{}{"foo": fakeValue}
 
-	err := context.processTemplates([]string{temp}, dest, value, secretAgent)
+	err := context.ProcessTemplates([]string{temp}, dest, value, secretAgent)
 	if err != nil {
 		t.Errorf("Error processing templates: %v", err)
 	}
