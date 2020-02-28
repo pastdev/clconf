@@ -14,97 +14,55 @@ import (
 
 const fakeValue = "bar"
 
+func makeTestSubfolder(t *testing.T, temp string, subPath string, perms os.FileMode) {
+	path := filepath.Join(temp, subPath)
+	err := os.MkdirAll(path, perms)
+	if err != nil {
+		t.Fatalf("Error making temp sub dir %q: %v", path, err)
+	}
+}
+
+func writeTestFile(t *testing.T, temp string, subPath string, perms os.FileMode) {
+	path := filepath.Join(temp, subPath)
+	content := []byte("{{ getv \"/foo\" }}")
+	err := ioutil.WriteFile(path, content, perms)
+	if err != nil {
+		t.Fatalf("Error making temp file %q: %v", path, err)
+	}
+	os.Chmod(path, perms)
+	stat, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("Error stating file %q after creation: %v", path, err)
+	}
+	if stat.Mode() != perms {
+		t.Fatalf("Created file %q does not have proper permissions after creation [%o != %o]",
+			path, stat.Mode(), perms)
+	}
+}
+
 func buildTestFolder(t *testing.T, extension string) string {
 	temp, err := ioutil.TempDir("", "")
 	if err != nil {
 		t.Fatalf("Error making temp folder %v", err)
 	}
-	os.MkdirAll(filepath.Join(temp, "subdir1/subsubdir1"), 0775)
-	if err != nil {
-		t.Fatalf("Error making temp dir 1 %v", err)
-	}
+	makeTestSubfolder(t, temp, "subdir1/subsubdir1", 0775)
+	makeTestSubfolder(t, temp, "subdir1/subsubdir2", 0775)
+	makeTestSubfolder(t, temp, "subdir2", 0775)
+	makeTestSubfolder(t, temp, "emptydir", 0775)
 
-	os.MkdirAll(filepath.Join(temp, "subdir1/subsubdir2"), 0775)
-	if err != nil {
-		t.Fatalf("Error making temp dir 2 %v", err)
-	}
-
-	os.MkdirAll(filepath.Join(temp, "subdir2"), 0775)
-	if err != nil {
-		t.Fatalf("Error making temp dir 3 %v", err)
-	}
-
-	os.MkdirAll(filepath.Join(temp, "emptydir"), 0775)
-	if err != nil {
-		t.Fatalf("Error making temp dir 4 %v", err)
-	}
-
-	content := []byte("{{ getv \"/foo\" }}")
-
-	err = ioutil.WriteFile(filepath.Join(temp, "yes_basedir.html"+extension), content, 0646)
-	if err != nil {
-		t.Fatalf("Error making temp file 1 %v", err)
-	}
-
-	err = ioutil.WriteFile(filepath.Join(temp, "yes_basedir1.html"+extension), content, 0640)
-	if err != nil {
-		t.Fatalf("Error making temp file 1.1 %v", err)
-	}
-
-	err = ioutil.WriteFile(filepath.Join(temp, "yes_basedir2.html"+extension), content, 0640)
-	if err != nil {
-		t.Fatalf("Error making temp file 1.1 %v", err)
-	}
-
-	err = ioutil.WriteFile(filepath.Join(temp, "no_basedir.html"), content, 0641)
-	if err != nil {
-		t.Fatalf("Error making temp file 2 %v", err)
-	}
-
-	err = ioutil.WriteFile(filepath.Join(temp, "no_basedir1.html"), content, 0640)
-	if err != nil {
-		t.Fatalf("Error making temp file 2.1 %v", err)
-	}
-
-	err = ioutil.WriteFile(filepath.Join(temp, "subdir1/yes_subdir1.sh"+extension), content, 0770)
-	if err != nil {
-		t.Fatalf("Error making temp file 3 %v", err)
-	}
-
-	err = ioutil.WriteFile(filepath.Join(temp, "subdir1/no_subdir1.sh"), content, 0770)
-	if err != nil {
-		t.Fatalf("Error making temp file 4 %v", err)
-	}
-
-	err = ioutil.WriteFile(filepath.Join(temp, "subdir1/subsubdir1/yes_subdir1subsubdir1.sh"+extension), content, 0775)
-	if err != nil {
-		t.Fatalf("Error making temp file 5 %v", err)
-	}
-
-	err = ioutil.WriteFile(filepath.Join(temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh"), content, 0775)
-	if err != nil {
-		t.Fatalf("Error making temp file 6 %v", err)
-	}
-
-	err = ioutil.WriteFile(filepath.Join(temp, "subdir1/subsubdir2/yes_subdir1subsubdir2.sh"+extension), content, 0777)
-	if err != nil {
-		t.Fatalf("Error making temp file 7 %v", err)
-	}
-
-	err = ioutil.WriteFile(filepath.Join(temp, "subdir1/subsubdir2/no_subdir1subsubdir2.sh"), content, 0777)
-	if err != nil {
-		t.Fatalf("Error making temp file 8 %v", err)
-	}
-
-	err = ioutil.WriteFile(filepath.Join(temp, "subdir2/yes_subdir2.sh"+extension), content, 0777)
-	if err != nil {
-		t.Fatalf("Error making temp file 9 %v", err)
-	}
-
-	err = ioutil.WriteFile(filepath.Join(temp, "subdir2/no_subdir2.sh"), content, 0777)
-	if err != nil {
-		t.Fatalf("Error making temp file 10 %v", err)
-	}
+	writeTestFile(t, temp, "yes_basedir.html"+extension, 0646)
+	writeTestFile(t, temp, "yes_basedir1.html"+extension, 0640)
+	writeTestFile(t, temp, "yes_basedir2.html"+extension, 0640)
+	writeTestFile(t, temp, "no_basedir.html", 0641)
+	writeTestFile(t, temp, "no_basedir1.html", 0640)
+	writeTestFile(t, temp, "subdir1/yes_subdir1.sh"+extension, 0770)
+	writeTestFile(t, temp, "subdir1/no_subdir1.sh", 0770)
+	writeTestFile(t, temp, "subdir1/subsubdir1/yes_subdir1subsubdir1.sh"+extension, 0775)
+	writeTestFile(t, temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh", 0775)
+	writeTestFile(t, temp, "subdir1/subsubdir2/yes_subdir1subsubdir2.sh"+extension, 0777)
+	writeTestFile(t, temp, "subdir1/subsubdir2/no_subdir1subsubdir2.sh", 0777)
+	writeTestFile(t, temp, "subdir2/yes_subdir2.sh"+extension, 0777)
+	writeTestFile(t, temp, "subdir2/no_subdir2.sh", 0777)
 
 	return temp
 }

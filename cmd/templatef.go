@@ -185,7 +185,7 @@ func (c *templatefContext) processTemplate(paths pathWithRelative, dest string, 
 		return fmt.Errorf("Error processing template: %v", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "Templating: %q => %q", paths.fullPath, target)
+	fmt.Fprintf(os.Stderr, "Templating: %q => %q\n", paths.fullPath, target)
 	err = ioutil.WriteFile(target, []byte(content), mode)
 	if err != nil {
 		return err
