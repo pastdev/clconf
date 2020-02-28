@@ -15,14 +15,23 @@ const setuid = 4
 const setgid = 2
 const sticky = 1
 
-// Settings for ProcessTemplates.
+// TemplateSettings are settings for ProcessTemplates.
 type TemplateSettings struct {
-	Flatten           bool
+	// Flatten determines if directory structure is preserved when scanning folders
+	// for templates.
+	Flatten bool
+	// KeepExistingPerms determines whether to use existing permissions on template files that are overwritten.
 	KeepExistingPerms bool
-	Rm                bool
-	FileMode          string
-	DirMode           string
-	Extension         string
+	// Rm determines whether template files distinct from their target are deleted after processing.
+	Rm bool
+	// FileMode is a string of unix file permissions (e.g. 2755) that apply to templates. An empty string
+	// will copy permissions from the template itself.
+	FileMode os.FileMode
+	// DirMode is the permission similar to FileMode but for new folders.
+	DirMode os.FileMode
+	// Extension is the extension to use when searching folders. If missing all files will be used.
+	// The extension is stripped from the file name when templating.
+	Extension string
 }
 
 type pathWithRelative struct {
@@ -30,7 +39,8 @@ type pathWithRelative struct {
 	relPath  string
 }
 
-// ProcessTemplates processes templates.
+// ProcessTemplates processes templates. If dest is populated src files/folders are searched for
+// templates and placed into dest. Otherwise files are replaced in the folders they are found.
 func (c *TemplateSettings) ProcessTemplates(srcs []string, dest string, value interface{}, secretAgent *SecretAgent) error {
 	if dest != "" {
 		perm, err := UnixModeToFileMode(c.DirMode)
