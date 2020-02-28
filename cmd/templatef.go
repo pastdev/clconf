@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/pastdev/clconf/v2/clconf"
 	"github.com/spf13/cobra"
@@ -85,5 +86,13 @@ func templatef(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return templatefCmdContext.templateSettings.ProcessTemplates(args, dest, value, secretAgent)
+	results, err := templatefCmdContext.templateSettings.ProcessTemplates(args, dest, value, secretAgent)
+	if err != nil {
+		return err
+	}
+
+	for _, result := range results {
+		fmt.Fprintf(os.Stderr, "Templating: %q => %q\n", result.Src, result.Dest)
+	}
+	return nil
 }

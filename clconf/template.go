@@ -39,18 +39,24 @@ type pathWithRelative struct {
 	relPath  string
 }
 
+// TemplateResult stores the result of a single template processing.
+type TemplateResult struct {
+	Src  string
+	Dest string
+}
+
 // ProcessTemplates processes templates. If dest is populated src files/folders are searched for
 // templates and placed into dest. Otherwise files are replaced in the folders they are found.
-func (c *TemplateSettings) ProcessTemplates(srcs []string, dest string, value interface{}, secretAgent *SecretAgent) error {
+func (c *TemplateSettings) ProcessTemplates(srcs []string, dest string, value interface{}, secretAgent *SecretAgent) ([]TemplateResult, error) {
 	if dest != "" {
 		perm, err := UnixModeToFileMode(c.DirMode)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		err = MkdirAllNoUmask(dest, perm)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -58,33 +64,38 @@ func (c *TemplateSettings) ProcessTemplates(srcs []string, dest string, value in
 	for _, templateSrc := range srcs {
 		srcTemplates, err := findTemplates(templateSrc, c.Extension)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		templates = append(templates, srcTemplates...)
 	}
 
+	results := []TemplateResult{}
+
 	for _, template := range templates {
-		err := c.processTemplate(template, dest, value, secretAgent)
+		result, err := c.processTemplate(template, dest, value, secretAgent)
 		if err != nil {
-			return err
+			return nil, err
 		}
+		results = append(results, result)
 	}
-	return nil
+	return results, nil
 }
 
-func (c *TemplateSettings) processTemplate(paths pathWithRelative, dest string, value interface{}, secretAgent *SecretAgent) error {
+func (c *TemplateSettings) processTemplate(paths pathWithRelative, dest string, value interface{}, secretAgent *SecretAgent) (TemplateResult, error) {
 	var mode os.FileMode
 	var err error
+
+	result := TemplateResult{}
 
 	if c.FileMode != "" {
 		mode, err = UnixModeToFileMode(c.FileMode)
 		if err != nil {
-			return err
+			return result, err
 		}
 	} else {
 		stat, err := os.Stat(paths.fullPath)
 		if err != nil {
-			return err
+			return result, err
 		}
 		mode = stat.Mode()
 	}
@@ -103,11 +114,11 @@ func (c *TemplateSettings) processTemplate(paths pathWithRelative, dest string, 
 	targetDir := filepath.Dir(target)
 	dirPerm, err := UnixModeToFileMode(c.DirMode)
 	if err != nil {
-		return err
+		return result, err
 	}
 	err = MkdirAllNoUmask(targetDir, dirPerm)
 	if err != nil {
-		return fmt.Errorf("Error making target dir %q: %v", targetDir, err)
+		return result, fmt.Errorf("Error making target dir %q: %v", targetDir, err)
 	}
 
 	template, err := NewTemplateFromFile("cli", paths.fullPath,
@@ -115,31 +126,37 @@ func (c *TemplateSettings) processTemplate(paths pathWithRelative, dest string, 
 			SecretAgent: secretAgent,
 		})
 	if err != nil {
-		return err
+		return result, err
 	}
 
 	content, err := template.Execute(value)
 	if err != nil {
-		return fmt.Errorf("Error processing template: %v", err)
+		return result, fmt.Errorf("Error processing template: %v", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "Templating: %q => %q\n", paths.fullPath, target)
 	err = ioutil.WriteFile(target, []byte(content), mode)
 	if err != nil {
-		return err
+		return result, err
 	}
 
 	if !c.KeepExistingPerms {
-		os.Chmod(target, mode)
+		err = os.Chmod(target, mode)
+		if err != nil {
+			return result, err
+		}
 	}
 
 	if c.Rm && paths.fullPath != target {
 		err = os.Remove(paths.fullPath)
 		if err != nil {
-			return err
+			return result, err
 		}
 	}
-	return nil
+
+	result.Dest = target
+	result.Src = paths.fullPath
+
+	return result, nil
 }
 
 // findTemplates returns the templates under the given path as strings in the format

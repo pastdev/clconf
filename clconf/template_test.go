@@ -1,7 +1,6 @@
 package clconf
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -11,6 +10,11 @@ import (
 )
 
 const fakeValue = "bar"
+
+type relExpectedPath struct {
+	subPath string
+	ext     string
+}
 
 func makeTestSubfolder(t *testing.T, temp string, subPath string, perms os.FileMode) {
 	path := filepath.Join(temp, subPath)
@@ -46,7 +50,8 @@ func writeTestFile(t *testing.T, temp string, subPath string, perms os.FileMode)
 	}
 }
 
-func buildTestFolder(t *testing.T, extension string) string {
+func buildTestFolder(t *testing.T) string {
+	extension := ".clconf"
 	temp, err := ioutil.TempDir("", "")
 	if err != nil {
 		t.Fatalf("Error making temp folder %v", err)
@@ -79,123 +84,84 @@ func normalizePaths(paths []pathWithRelative) {
 	})
 }
 
-func TestFindTemplatesWithExtension(t *testing.T) {
-	extension := ".clconf"
-	temp := buildTestFolder(t, extension)
+func testFindTemplates(t *testing.T, message string, extension string, subPath string, expectedFlat bool, expected []string) {
+	temp := buildTestFolder(t)
 	defer os.RemoveAll(temp)
 
-	paths, err := findTemplates(temp, extension)
+	paths, err := findTemplates(filepath.Join(temp, subPath), extension)
 	if err != nil {
-		t.Fatalf("Error running findTemplates: %v", err)
+		t.Fatalf("Error running findTemplates (%s): %v", message, err)
+	}
+
+	if len(expected) == 0 {
+		if len(paths) != 0 {
+			t.Errorf("Paths wasn't empty when it was supposed to be: %v", paths)
+		}
+		return
+	}
+
+	expectedTemplates := []pathWithRelative{}
+	for _, exp := range expected {
+		relPath := exp
+		if expectedFlat {
+			relPath = filepath.Base(relPath)
+		}
+		expectedTemplates = append(expectedTemplates, pathWithRelative{
+			fullPath: filepath.Join(temp, exp),
+			relPath:  relPath,
+		})
 	}
 
 	normalizePaths(paths)
-
-	expected := []pathWithRelative{
-		{fullPath: filepath.Join(temp, "subdir1/subsubdir1/yes_subdir1subsubdir1.sh"+extension), relPath: "subdir1/subsubdir1/yes_subdir1subsubdir1.sh" + extension},
-		{fullPath: filepath.Join(temp, "subdir1/subsubdir2/yes_subdir1subsubdir2.sh"+extension), relPath: "subdir1/subsubdir2/yes_subdir1subsubdir2.sh" + extension},
-		{fullPath: filepath.Join(temp, "subdir1/yes_subdir1.sh"+extension), relPath: "subdir1/yes_subdir1.sh" + extension},
-		{fullPath: filepath.Join(temp, "subdir2/yes_subdir2.sh"+extension), relPath: "subdir2/yes_subdir2.sh" + extension},
-		{fullPath: filepath.Join(temp, "yes_basedir.html"+extension), relPath: "yes_basedir.html" + extension},
-		{fullPath: filepath.Join(temp, "yes_basedir1.html"+extension), relPath: "yes_basedir1.html" + extension},
-		{fullPath: filepath.Join(temp, "yes_basedir2.html"+extension), relPath: "yes_basedir2.html" + extension},
+	if !reflect.DeepEqual(paths, expectedTemplates) {
+		t.Errorf("TestFindTemplates %s [%v] != [%v]", message, paths, expectedTemplates)
 	}
+}
 
-	if !reflect.DeepEqual(paths, expected) {
-		t.Errorf("Path didn't match expected [%v] != [%v]", paths, expected)
-	}
+func TestFindTemplatesWithExtension(t *testing.T) {
+	testFindTemplates(t, "With Extension", ".clconf", "", false, []string{
+		"subdir1/subsubdir1/yes_subdir1subsubdir1.sh.clconf",
+		"subdir1/subsubdir2/yes_subdir1subsubdir2.sh.clconf",
+		"subdir1/yes_subdir1.sh.clconf",
+		"subdir2/yes_subdir2.sh.clconf",
+		"yes_basedir.html.clconf",
+		"yes_basedir1.html.clconf",
+		"yes_basedir2.html.clconf",
+	})
 }
 
 func TestFindTemplatesWithoutExtension(t *testing.T) {
-	extension := ""
-	temp := buildTestFolder(t, extension)
-	defer os.RemoveAll(temp)
-
-	paths, err := findTemplates(temp, extension)
-	if err != nil {
-		t.Fatalf("Error running findTemplates: %v", err)
-	}
-
-	normalizePaths(paths)
-
-	expected := []pathWithRelative{
-		{fullPath: filepath.Join(temp, "no_basedir.html"), relPath: "no_basedir.html"},
-		{fullPath: filepath.Join(temp, "no_basedir1.html"), relPath: "no_basedir1.html"},
-		{fullPath: filepath.Join(temp, "subdir1/no_subdir1.sh"), relPath: "subdir1/no_subdir1.sh"},
-		{fullPath: filepath.Join(temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh"), relPath: "subdir1/subsubdir1/no_subdir1subsubdir1.sh"},
-		{fullPath: filepath.Join(temp, "subdir1/subsubdir1/yes_subdir1subsubdir1.sh"+extension), relPath: "subdir1/subsubdir1/yes_subdir1subsubdir1.sh" + extension},
-		{fullPath: filepath.Join(temp, "subdir1/subsubdir2/no_subdir1subsubdir2.sh"), relPath: "subdir1/subsubdir2/no_subdir1subsubdir2.sh"},
-		{fullPath: filepath.Join(temp, "subdir1/subsubdir2/yes_subdir1subsubdir2.sh"+extension), relPath: "subdir1/subsubdir2/yes_subdir1subsubdir2.sh" + extension},
-		{fullPath: filepath.Join(temp, "subdir1/yes_subdir1.sh"+extension), relPath: "subdir1/yes_subdir1.sh" + extension},
-		{fullPath: filepath.Join(temp, "subdir2/no_subdir2.sh"), relPath: "subdir2/no_subdir2.sh"},
-		{fullPath: filepath.Join(temp, "subdir2/yes_subdir2.sh"+extension), relPath: "subdir2/yes_subdir2.sh" + extension},
-		{fullPath: filepath.Join(temp, "yes_basedir.html"+extension), relPath: "yes_basedir.html" + extension},
-		{fullPath: filepath.Join(temp, "yes_basedir1.html"+extension), relPath: "yes_basedir1.html" + extension},
-		{fullPath: filepath.Join(temp, "yes_basedir2.html"+extension), relPath: "yes_basedir2.html" + extension},
-	}
-
-	if !reflect.DeepEqual(paths, expected) {
-		t.Errorf("Path didn't match expected [%v] != [%v]", paths, expected)
-	}
+	testFindTemplates(t, "Without Extension", "", "", false, []string{
+		"no_basedir.html",
+		"no_basedir1.html",
+		"subdir1/no_subdir1.sh",
+		"subdir1/subsubdir1/no_subdir1subsubdir1.sh",
+		"subdir1/subsubdir1/yes_subdir1subsubdir1.sh.clconf",
+		"subdir1/subsubdir2/no_subdir1subsubdir2.sh",
+		"subdir1/subsubdir2/yes_subdir1subsubdir2.sh.clconf",
+		"subdir1/yes_subdir1.sh.clconf",
+		"subdir2/no_subdir2.sh",
+		"subdir2/yes_subdir2.sh.clconf",
+		"yes_basedir.html.clconf",
+		"yes_basedir1.html.clconf",
+		"yes_basedir2.html.clconf",
+	})
 }
 
 func TestFindTemplatesSingleFileMatchingExtension(t *testing.T) {
-	extension := ".clconf"
-	temp := buildTestFolder(t, extension)
-	defer os.RemoveAll(temp)
-
-	paths, err := findTemplates(filepath.Join(temp, "subdir1/subsubdir1/yes_subdir1subsubdir1.sh"+extension), extension)
-	if err != nil {
-		t.Fatalf("Error running findTemplates: %v", err)
-	}
-
-	normalizePaths(paths)
-
-	expected := []pathWithRelative{
-		{fullPath: filepath.Join(temp, "subdir1/subsubdir1/yes_subdir1subsubdir1.sh"+extension), relPath: "yes_subdir1subsubdir1.sh" + extension},
-	}
-
-	if !reflect.DeepEqual(paths, expected) {
-		t.Errorf("Path didn't match expected [%v] != [%v]", paths, expected)
-	}
+	testFindTemplates(t, "Single File Matching Extension", ".clconf", "subdir1/subsubdir1/yes_subdir1subsubdir1.sh.clconf", true, []string{
+		"subdir1/subsubdir1/yes_subdir1subsubdir1.sh.clconf",
+	})
 }
 
 func TestFindTemplatesSingleFileNotMatchingExtension(t *testing.T) {
-	extension := ".clconf"
-	temp := buildTestFolder(t, extension)
-	defer os.RemoveAll(temp)
-
-	paths, err := findTemplates(filepath.Join(temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh"), extension)
-	if err != nil {
-		t.Fatalf("Error running findTemplates: %v", err)
-	}
-
-	normalizePaths(paths)
-
-	expected := []pathWithRelative{
-		{fullPath: filepath.Join(temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh"), relPath: "no_subdir1subsubdir1.sh"},
-	}
-
-	if !reflect.DeepEqual(paths, expected) {
-		t.Errorf("Path didn't match expected [%v] != [%v]", paths, expected)
-	}
+	testFindTemplates(t, "Single File Not Matching Extension", ".clconf", "subdir1/subsubdir1/no_subdir1subsubdir1.sh", true, []string{
+		"subdir1/subsubdir1/no_subdir1subsubdir1.sh",
+	})
 }
 
 func TestFindTemplatesSingleEmptyFolder(t *testing.T) {
-	extension := ".clconf"
-	temp := buildTestFolder(t, extension)
-	defer os.RemoveAll(temp)
-
-	paths, err := findTemplates(filepath.Join(temp, "emptydir"), extension)
-	if err != nil {
-		t.Fatalf("Error running findTemplates: %v", err)
-	}
-
-	normalizePaths(paths)
-
-	if len(paths) != 0 {
-		t.Errorf("Paths wasn't empty when it was supposed to be: %v", paths)
-	}
+	testFindTemplates(t, "Empty Folder", ".clconf", "emptydir", true, []string{})
 }
 
 func defaultContext() (*TemplateSettings, *SecretAgent) {
@@ -216,26 +182,25 @@ func exists(path string) bool {
 	return true
 }
 
-func checkFile(t *testing.T, path string, expectedPerms os.FileMode) error {
+func checkFile(t *testing.T, path string, expectedPerms os.FileMode) {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("Error reading %q: %v", path, err)
+		t.Fatalf("Error reading %q: %v", path, err)
 	}
 
 	stat, _ := os.Stat(path)
 	if stat.Mode() != expectedPerms {
-		return fmt.Errorf("File %q has mode %o that does not match expected value %o", path, stat.Mode(), expectedPerms)
+		t.Fatalf("File %q has mode %o that does not match expected value %o", path, stat.Mode(), expectedPerms)
 	}
 
 	if string(content) != fakeValue {
-		return fmt.Errorf("File %q content %q does not match expected %q", path, content, fakeValue)
+		t.Fatalf("File %q content %q does not match expected %q", path, content, fakeValue)
 	}
-	return nil
 }
 
 func TestProcessTemplateInPlace(t *testing.T) {
 	extension := ".clconf"
-	temp := buildTestFolder(t, extension)
+	temp := buildTestFolder(t)
 	defer os.RemoveAll(temp)
 
 	context, secretAgent := defaultContext()
@@ -243,7 +208,7 @@ func TestProcessTemplateInPlace(t *testing.T) {
 	value := map[interface{}]interface{}{"foo": fakeValue}
 
 	template := filepath.Join(temp, "yes_basedir.html"+extension)
-	err := context.processTemplate(pathWithRelative{
+	_, err := context.processTemplate(pathWithRelative{
 		fullPath: template,
 		relPath:  filepath.Base(template),
 	}, "", value, secretAgent)
@@ -251,17 +216,14 @@ func TestProcessTemplateInPlace(t *testing.T) {
 		t.Fatalf("processTemplate reported error: %v", err)
 	}
 
-	err = checkFile(t, filepath.Join(temp, "yes_basedir.html"), 0646)
-	if err != nil {
-		t.Errorf("yes_basdir.html isn't proper: %v", err)
-	}
+	checkFile(t, filepath.Join(temp, "yes_basedir.html"), 0646)
 
 	if !exists(template) {
 		t.Errorf("Template went missing when it wasn't supposed to!")
 	}
 
 	context.FileMode = "610"
-	err = context.processTemplate(pathWithRelative{
+	_, err = context.processTemplate(pathWithRelative{
 		fullPath: template,
 		relPath:  filepath.Base(template),
 	}, "", value, secretAgent)
@@ -269,15 +231,12 @@ func TestProcessTemplateInPlace(t *testing.T) {
 		t.Fatalf("processTemplate reported error: %v", err)
 	}
 
-	err = checkFile(t, filepath.Join(temp, "yes_basedir.html"), 0610)
-	if err != nil {
-		t.Errorf("yes_basdir.html isn't proper: %v", err)
-	}
+	checkFile(t, filepath.Join(temp, "yes_basedir.html"), 0610)
 
 	context.Rm = true
 	context.FileMode = "601"
 	context.KeepExistingPerms = true
-	err = context.processTemplate(pathWithRelative{
+	_, err = context.processTemplate(pathWithRelative{
 		fullPath: template,
 		relPath:  filepath.Base(template),
 	}, "", value, secretAgent)
@@ -285,16 +244,13 @@ func TestProcessTemplateInPlace(t *testing.T) {
 		t.Fatalf("processTemplate reported error: %v", err)
 	}
 
-	err = checkFile(t, filepath.Join(temp, "yes_basedir.html"), 0610)
-	if err != nil {
-		t.Errorf("yes_basdir.html isn't proper: %v", err)
-	}
+	checkFile(t, filepath.Join(temp, "yes_basedir.html"), 0610)
 	if exists(template) {
 		t.Errorf("Template went missing when it wasn't supposed to!")
 	}
 
 	template = filepath.Join(temp, "subdir1/subsubdir2/no_subdir1subsubdir2.sh")
-	err = context.processTemplate(pathWithRelative{
+	_, err = context.processTemplate(pathWithRelative{
 		fullPath: template,
 		relPath:  filepath.Base(template),
 	}, "", value, secretAgent)
@@ -302,15 +258,12 @@ func TestProcessTemplateInPlace(t *testing.T) {
 		t.Fatalf("processTemplate reported error: %v", err)
 	}
 
-	err = checkFile(t, filepath.Join(temp, "subdir1/subsubdir2/no_subdir1subsubdir2.sh"), 0777)
-	if err != nil {
-		t.Errorf("no_subdir1subsubdir2.sh isn't proper: %v", err)
-	}
+	checkFile(t, filepath.Join(temp, "subdir1/subsubdir2/no_subdir1subsubdir2.sh"), 0777)
 }
 
 func TestProcessTemplateFolder(t *testing.T) {
 	extension := ".clconf"
-	temp := buildTestFolder(t, extension)
+	temp := buildTestFolder(t)
 	defer os.RemoveAll(temp)
 
 	dest := filepath.Join(temp, "dest")
@@ -321,7 +274,7 @@ func TestProcessTemplateFolder(t *testing.T) {
 	value := map[interface{}]interface{}{"foo": fakeValue}
 
 	template := filepath.Join(temp, "yes_basedir.html"+extension)
-	err := context.processTemplate(pathWithRelative{
+	_, err := context.processTemplate(pathWithRelative{
 		fullPath: template,
 		relPath:  filepath.Base(template),
 	}, dest, value, secretAgent)
@@ -329,10 +282,7 @@ func TestProcessTemplateFolder(t *testing.T) {
 		t.Fatalf("processTemplate reported error: %v", err)
 	}
 
-	err = checkFile(t, filepath.Join(dest, "yes_basedir.html"), 0646)
-	if err != nil {
-		t.Errorf("yes_basdir.html isn't proper: %v", err)
-	}
+	checkFile(t, filepath.Join(dest, "yes_basedir.html"), 0646)
 
 	if !exists(template) {
 		t.Errorf("Template went missing when it wasn't supposed to!")
@@ -340,7 +290,7 @@ func TestProcessTemplateFolder(t *testing.T) {
 
 	context.Rm = true
 	template = filepath.Join(temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh")
-	err = context.processTemplate(pathWithRelative{
+	_, err = context.processTemplate(pathWithRelative{
 		fullPath: template,
 		relPath:  "subdir1/subsubdir1/no_subdir1subsubdir1.sh",
 	}, dest, value, secretAgent)
@@ -348,10 +298,7 @@ func TestProcessTemplateFolder(t *testing.T) {
 		t.Fatalf("processTemplate reported error: %v", err)
 	}
 
-	err = checkFile(t, filepath.Join(dest, "subdir1/subsubdir1/no_subdir1subsubdir1.sh"), 0775)
-	if err != nil {
-		t.Errorf("yes_basdir.html isn't proper: %v", err)
-	}
+	checkFile(t, filepath.Join(dest, "subdir1/subsubdir1/no_subdir1subsubdir1.sh"), 0775)
 
 	if exists(template) {
 		t.Errorf("Template still exists when it wasn't supposed to!")
@@ -360,8 +307,7 @@ func TestProcessTemplateFolder(t *testing.T) {
 }
 
 func TestProcessTemplateFolderFlatten(t *testing.T) {
-	extension := ".clconf"
-	temp := buildTestFolder(t, extension)
+	temp := buildTestFolder(t)
 	defer os.RemoveAll(temp)
 
 	dest := filepath.Join(temp, "dest")
@@ -373,7 +319,7 @@ func TestProcessTemplateFolderFlatten(t *testing.T) {
 
 	context.Flatten = true
 	template := filepath.Join(temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh")
-	err := context.processTemplate(pathWithRelative{
+	_, err := context.processTemplate(pathWithRelative{
 		fullPath: template,
 		relPath:  "subdir1/subsubdir1/no_subdir1subsubdir1.sh",
 	}, dest, value, secretAgent)
@@ -381,15 +327,11 @@ func TestProcessTemplateFolderFlatten(t *testing.T) {
 		t.Fatalf("processTemplate reported error: %v", err)
 	}
 
-	err = checkFile(t, filepath.Join(dest, "no_subdir1subsubdir1.sh"), 0775)
-	if err != nil {
-		t.Errorf("yes_basdir.html isn't proper: %v", err)
-	}
+	checkFile(t, filepath.Join(dest, "no_subdir1subsubdir1.sh"), 0775)
 }
 
-func TestProcessTemplatesNoExtension(t *testing.T) {
-	extension := ".clconf"
-	temp := buildTestFolder(t, extension)
+func TestProcessTemplatesWithExtension(t *testing.T) {
+	temp := buildTestFolder(t)
 	defer os.RemoveAll(temp)
 
 	dest := filepath.Join(temp, "dest")
@@ -399,38 +341,18 @@ func TestProcessTemplatesNoExtension(t *testing.T) {
 
 	value := map[interface{}]interface{}{"foo": fakeValue}
 
-	err := context.ProcessTemplates([]string{temp}, dest, value, secretAgent)
+	_, err := context.ProcessTemplates([]string{temp}, dest, value, secretAgent)
 	if err != nil {
 		t.Errorf("Error processing templates: %v", err)
 	}
-	err = checkFile(t, filepath.Join(dest, "yes_basedir.html"), 0646)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-	err = checkFile(t, filepath.Join(dest, "yes_basedir1.html"), 0640)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-	err = checkFile(t, filepath.Join(dest, "yes_basedir2.html"), 0640)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-	err = checkFile(t, filepath.Join(dest, "subdir1/yes_subdir1.sh"), 0770)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-	err = checkFile(t, filepath.Join(dest, "subdir1/subsubdir1/yes_subdir1subsubdir1.sh"), 0775)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-	err = checkFile(t, filepath.Join(dest, "subdir1/subsubdir2/yes_subdir1subsubdir2.sh"), 0777)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-	err = checkFile(t, filepath.Join(dest, "subdir2/yes_subdir2.sh"), 0777)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
+	checkFile(t, filepath.Join(dest, "yes_basedir.html"), 0646)
+	checkFile(t, filepath.Join(dest, "yes_basedir1.html"), 0640)
+	checkFile(t, filepath.Join(dest, "yes_basedir2.html"), 0640)
+	checkFile(t, filepath.Join(dest, "subdir1/yes_subdir1.sh"), 0770)
+	checkFile(t, filepath.Join(dest, "subdir1/subsubdir1/yes_subdir1subsubdir1.sh"), 0775)
+	checkFile(t, filepath.Join(dest, "subdir1/subsubdir2/yes_subdir1subsubdir2.sh"), 0777)
+	checkFile(t, filepath.Join(dest, "subdir2/yes_subdir2.sh"), 0777)
+
 	if exists(filepath.Join(dest, "no_basedir.html")) {
 		t.Errorf("File exists when it shouldn't")
 	}
