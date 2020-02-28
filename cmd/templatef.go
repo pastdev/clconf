@@ -38,7 +38,7 @@ type pathWithRelative struct {
 }
 
 var templatefCmd = &cobra.Command{
-	Use:   "templatef [options] <src1> [src2...] [destination folder]",
+	Use:   "templatef <src1> [src2...] [destination folder]",
 	Short: "Interpret a set of pre-existing templates",
 	Long: `This will take an arbitrary number of source templates (or folders full
 		of templates and process them either in place (see --in-place) or into the
@@ -48,24 +48,26 @@ var templatefCmd = &cobra.Command{
 		matches it will still be removed).`,
 	RunE: templatef,
 	Example: `
-		# Apply all templates with the .clconf extension to their relative folders in /dest
-		templatef /tmp/srcFolder1 /tmp/srcFolder2 /dest
+	# Apply all templates with the .clconf extension to their relative folders in /dest
+	templatef /tmp/srcFolder1 /tmp/srcFolder2 /dest
 
-		# Apply all templates in both folders with the .clconf extension to the root of /dest
-		templatef /tmp/srcFolder1 /tmp/srcFolder2 /dest --flatten
+	# Apply all templates in both folders with the .clconf extension to the root of /dest
+	templatef /tmp/srcFolder1 /tmp/srcFolder2 /dest --flatten
 
-		# Interpret /tmp/srcFile.sh where it is (result is /tmp/srcFile.sh)
-		templatef /tmp/srcFile.sh --in-place
+	# Interpret /tmp/srcFile.sh where it is (result is /tmp/srcFile.sh)
+	templatef /tmp/srcFile.sh --in-place
 
-		# Interpret /tmp/srcFile.sh.clconf where it is (result is /tmp/srcFile.sh)
-		templatef /tmp/srcFile.sh.clconf --in-place
+	# Interpret /tmp/srcFile.sh.clconf where it is (result is /tmp/srcFile.sh)
+	templatef /tmp/srcFile.sh.clconf --in-place
 
-		# Interpret /tmp/srcFile.sh.clconf where it is (result is /tmp/srcFile.sh.clconf)
-		templatef /tmp/srcFile.sh.clconf --in-place --template-extension ""
-		`
+	# Interpret /tmp/srcFile.sh.clconf where it is (result is /tmp/srcFile.sh.clconf)
+	templatef /tmp/srcFile.sh.clconf --in-place --template-extension ""
+	`,
 }
 
 func init() {
+	rootCmd.AddCommand(templatefCmd)
+
 	templatefCmd.Flags().StringVar(&templatefCmdContext.extension, "template-extension", ".clconf",
 		"Template file extension (will be removed during templating).")
 	templatefCmd.Flags().StringVar(&templatefCmdContext.fileMode, "file-mode", "",
@@ -85,6 +87,9 @@ func init() {
 func templatef(cmd *cobra.Command, args []string) error {
 	var dest string
 	if !templatefCmdContext.inPlace {
+		if len(args) < 2 {
+			return fmt.Errorf("Need at least two arguments when not using --in-place")
+		}
 		dest = args[len(args)-1]
 		args = args[:len(args)-1]
 		perm, err := unixModeToFileMode(templatefCmdContext.dirMode)
@@ -96,6 +101,10 @@ func templatef(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if len(args) < 1 {
+		return fmt.Errorf("No sources to process")
 	}
 
 	secretAgent, _ := templatefCmdContext.newSecretAgent()
@@ -176,6 +185,7 @@ func (c *templatefContext) processTemplate(paths pathWithRelative, dest string, 
 		return fmt.Errorf("Error processing template: %v", err)
 	}
 
+	fmt.Fprintf(os.Stderr, "Templating: %q => %q", paths.fullPath, target)
 	err = ioutil.WriteFile(target, []byte(content), mode)
 	if err != nil {
 		return err
