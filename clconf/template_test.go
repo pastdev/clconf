@@ -80,7 +80,7 @@ func buildTestFolder(t *testing.T) string {
 
 func normalizePaths(paths []pathWithRelative) {
 	sort.SliceStable(paths, func(i, j int) bool {
-		return paths[i].fullPath < paths[j].fullPath || paths[i].relPath < paths[j].relPath
+		return paths[i].full < paths[j].full || paths[i].rel < paths[j].rel
 	})
 }
 
@@ -107,8 +107,8 @@ func testFindTemplates(t *testing.T, message string, extension string, subPath s
 			relPath = filepath.Base(relPath)
 		}
 		expectedTemplates = append(expectedTemplates, pathWithRelative{
-			fullPath: filepath.Join(temp, exp),
-			relPath:  relPath,
+			full: filepath.Join(temp, exp),
+			rel:  relPath,
 		})
 	}
 
@@ -209,8 +209,8 @@ func TestProcessTemplateInPlace(t *testing.T) {
 
 	template := filepath.Join(temp, "yes_basedir.html"+extension)
 	_, err := context.processTemplate(pathWithRelative{
-		fullPath: template,
-		relPath:  filepath.Base(template),
+		full: template,
+		rel:  filepath.Base(template),
 	}, "", value, secretAgent)
 	if err != nil {
 		t.Fatalf("processTemplate reported error: %v", err)
@@ -224,8 +224,8 @@ func TestProcessTemplateInPlace(t *testing.T) {
 
 	context.FileMode = "610"
 	_, err = context.processTemplate(pathWithRelative{
-		fullPath: template,
-		relPath:  filepath.Base(template),
+		full: template,
+		rel:  filepath.Base(template),
 	}, "", value, secretAgent)
 	if err != nil {
 		t.Fatalf("processTemplate reported error: %v", err)
@@ -237,8 +237,8 @@ func TestProcessTemplateInPlace(t *testing.T) {
 	context.FileMode = "601"
 	context.KeepExistingPerms = true
 	_, err = context.processTemplate(pathWithRelative{
-		fullPath: template,
-		relPath:  filepath.Base(template),
+		full: template,
+		rel:  filepath.Base(template),
 	}, "", value, secretAgent)
 	if err != nil {
 		t.Fatalf("processTemplate reported error: %v", err)
@@ -251,8 +251,8 @@ func TestProcessTemplateInPlace(t *testing.T) {
 
 	template = filepath.Join(temp, "subdir1/subsubdir2/no_subdir1subsubdir2.sh")
 	_, err = context.processTemplate(pathWithRelative{
-		fullPath: template,
-		relPath:  filepath.Base(template),
+		full: template,
+		rel:  filepath.Base(template),
 	}, "", value, secretAgent)
 	if err != nil {
 		t.Fatalf("processTemplate reported error: %v", err)
@@ -275,8 +275,8 @@ func TestProcessTemplateFolder(t *testing.T) {
 
 	template := filepath.Join(temp, "yes_basedir.html"+extension)
 	_, err := context.processTemplate(pathWithRelative{
-		fullPath: template,
-		relPath:  filepath.Base(template),
+		full: template,
+		rel:  filepath.Base(template),
 	}, dest, value, secretAgent)
 	if err != nil {
 		t.Fatalf("processTemplate reported error: %v", err)
@@ -291,8 +291,8 @@ func TestProcessTemplateFolder(t *testing.T) {
 	context.Rm = true
 	template = filepath.Join(temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh")
 	_, err = context.processTemplate(pathWithRelative{
-		fullPath: template,
-		relPath:  "subdir1/subsubdir1/no_subdir1subsubdir1.sh",
+		full: template,
+		rel:  "subdir1/subsubdir1/no_subdir1subsubdir1.sh",
 	}, dest, value, secretAgent)
 	if err != nil {
 		t.Fatalf("processTemplate reported error: %v", err)
@@ -320,8 +320,8 @@ func TestProcessTemplateFolderFlatten(t *testing.T) {
 	context.Flatten = true
 	template := filepath.Join(temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh")
 	_, err := context.processTemplate(pathWithRelative{
-		fullPath: template,
-		relPath:  "subdir1/subsubdir1/no_subdir1subsubdir1.sh",
+		full: template,
+		rel:  "subdir1/subsubdir1/no_subdir1subsubdir1.sh",
 	}, dest, value, secretAgent)
 	if err != nil {
 		t.Fatalf("processTemplate reported error: %v", err)

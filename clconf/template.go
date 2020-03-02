@@ -35,8 +35,8 @@ type TemplateSettings struct {
 }
 
 type pathWithRelative struct {
-	fullPath string
-	relPath  string
+	full string
+	rel  string
 }
 
 // TemplateResult stores the result of a single template processing.
@@ -60,23 +60,21 @@ func (c *TemplateSettings) ProcessTemplates(srcs []string, dest string, value in
 		}
 	}
 
-	var templates []pathWithRelative
-	for _, templateSrc := range srcs {
-		srcTemplates, err := findTemplates(templateSrc, c.Extension)
-		if err != nil {
-			return nil, err
-		}
-		templates = append(templates, srcTemplates...)
-	}
-
 	results := []TemplateResult{}
 
-	for _, template := range templates {
-		result, err := c.processTemplate(template, dest, value, secretAgent)
+	for _, templateSrc := range srcs {
+		templates, err := findTemplates(templateSrc, c.Extension)
 		if err != nil {
 			return nil, err
 		}
-		results = append(results, result)
+
+		for _, template := range templates {
+			result, err := c.processTemplate(template, dest, value, secretAgent)
+			if err != nil {
+				return nil, err
+			}
+			results = append(results, result)
+		}
 	}
 	return results, nil
 }
@@ -93,19 +91,19 @@ func (c *TemplateSettings) processTemplate(paths pathWithRelative, dest string, 
 			return result, err
 		}
 	} else {
-		stat, err := os.Stat(paths.fullPath)
+		stat, err := os.Stat(paths.full)
 		if err != nil {
 			return result, err
 		}
 		mode = stat.Mode()
 	}
 
-	var target = paths.fullPath
+	var target = paths.full
 	if dest != "" {
 		if c.Flatten {
 			target = path.Join(dest, path.Base(target))
 		} else {
-			target = path.Join(dest, paths.relPath)
+			target = path.Join(dest, paths.rel)
 		}
 	}
 
@@ -121,7 +119,7 @@ func (c *TemplateSettings) processTemplate(paths pathWithRelative, dest string, 
 		return result, fmt.Errorf("Error making target dir %q: %v", targetDir, err)
 	}
 
-	template, err := NewTemplateFromFile("cli", paths.fullPath,
+	template, err := NewTemplateFromFile(paths.rel, paths.full,
 		&TemplateConfig{
 			SecretAgent: secretAgent,
 		})
@@ -146,15 +144,15 @@ func (c *TemplateSettings) processTemplate(paths pathWithRelative, dest string, 
 		}
 	}
 
-	if c.Rm && paths.fullPath != target {
-		err = os.Remove(paths.fullPath)
+	if c.Rm && paths.full != target {
+		err = os.Remove(paths.full)
 		if err != nil {
 			return result, err
 		}
 	}
 
 	result.Dest = target
-	result.Src = paths.fullPath
+	result.Src = paths.full
 
 	return result, nil
 }
@@ -180,14 +178,14 @@ func findTemplates(startPath string, extension string) ([]pathWithRelative, erro
 			if relPath == "." {
 				relPath = filepath.Base(path)
 			}
-			result = append(result, pathWithRelative{relPath: relPath, fullPath: path})
+			result = append(result, pathWithRelative{rel: relPath, full: path})
 		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result, nil
+	return result, err
 }
 
 // MkdirAllNoUmask is os.MkdirAll that ignores the current unix umask.
