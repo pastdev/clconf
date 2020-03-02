@@ -196,7 +196,8 @@ func MkdirAllNoUmask(path string, perms os.FileMode) error {
 }
 
 // UnixModeToFileMode converts a unix file mode including special bits to a golang os.FileMode.
-// The bits don't line up natively.
+// The special bits (sticky, setuid, setgid) don't line up exactly between the two.
+// Example: 02777 would set the setuid bit on unix but would end up 0777 if used as an os.FileMode
 func UnixModeToFileMode(unixMode string) (os.FileMode, error) {
 	intVal, err := strconv.ParseInt(unixMode, 8, 32)
 	if err != nil {
