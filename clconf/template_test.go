@@ -95,7 +95,7 @@ func testFindTemplates(t *testing.T, message string, extension string, subPath s
 
 	if len(expected) == 0 {
 		if len(paths) != 0 {
-			t.Errorf("Paths wasn't empty when it was supposed to be: %v", paths)
+			t.Errorf("Paths wasn't empty when it was supposed to be (%s): %v", message, paths)
 		}
 		return
 	}
