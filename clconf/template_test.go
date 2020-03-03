@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"testing"
 )
@@ -26,7 +27,7 @@ func makeTestSubfolder(t *testing.T, temp string, subPath string, perms os.FileM
 	if err != nil {
 		t.Fatalf("Error stating folder %q after creation: %v", path, err)
 	}
-	if stat.Mode()&0777 != perms {
+	if runtime.GOOS != "windows" && stat.Mode()&0777 != perms {
 		t.Fatalf("Created folder %q does not have proper permissions after creation [%o != %o]",
 			path, stat.Mode()&0777, perms)
 	}
@@ -44,7 +45,7 @@ func writeTestFile(t *testing.T, temp string, subPath string, perms os.FileMode)
 	if err != nil {
 		t.Fatalf("Error stating file %q after creation: %v", path, err)
 	}
-	if stat.Mode() != perms {
+	if runtime.GOOS != "windows" && stat.Mode() != perms {
 		t.Fatalf("Created file %q does not have proper permissions after creation [%o != %o]",
 			path, stat.Mode(), perms)
 	}
@@ -120,43 +121,43 @@ func testFindTemplates(t *testing.T, message string, extension string, subPath s
 
 func TestFindTemplatesWithExtension(t *testing.T) {
 	testFindTemplates(t, "With Extension", ".clconf", "", false, []string{
-		"subdir1/subsubdir1/yes_subdir1subsubdir1.sh.clconf",
-		"subdir1/subsubdir2/yes_subdir1subsubdir2.sh.clconf",
-		"subdir1/yes_subdir1.sh.clconf",
-		"subdir2/yes_subdir2.sh.clconf",
-		"yes_basedir.html.clconf",
-		"yes_basedir1.html.clconf",
-		"yes_basedir2.html.clconf",
+		filepath.Join("subdir1", "subsubdir1", "yes_subdir1subsubdir1.sh.clconf"),
+		filepath.Join("subdir1", "subsubdir2", "yes_subdir1subsubdir2.sh.clconf"),
+		filepath.Join("subdir1", "yes_subdir1.sh.clconf"),
+		filepath.Join("subdir2", "yes_subdir2.sh.clconf"),
+		filepath.Join("yes_basedir.html.clconf"),
+		filepath.Join("yes_basedir1.html.clconf"),
+		filepath.Join("yes_basedir2.html.clconf"),
 	})
 }
 
 func TestFindTemplatesWithoutExtension(t *testing.T) {
 	testFindTemplates(t, "Without Extension", "", "", false, []string{
-		"no_basedir.html",
-		"no_basedir1.html",
-		"subdir1/no_subdir1.sh",
-		"subdir1/subsubdir1/no_subdir1subsubdir1.sh",
-		"subdir1/subsubdir1/yes_subdir1subsubdir1.sh.clconf",
-		"subdir1/subsubdir2/no_subdir1subsubdir2.sh",
-		"subdir1/subsubdir2/yes_subdir1subsubdir2.sh.clconf",
-		"subdir1/yes_subdir1.sh.clconf",
-		"subdir2/no_subdir2.sh",
-		"subdir2/yes_subdir2.sh.clconf",
-		"yes_basedir.html.clconf",
-		"yes_basedir1.html.clconf",
-		"yes_basedir2.html.clconf",
+		filepath.Join("no_basedir.html"),
+		filepath.Join("no_basedir1.html"),
+		filepath.Join("subdir1", "no_subdir1.sh"),
+		filepath.Join("subdir1", "subsubdir1", "no_subdir1subsubdir1.sh"),
+		filepath.Join("subdir1", "subsubdir1", "yes_subdir1subsubdir1.sh.clconf"),
+		filepath.Join("subdir1", "subsubdir2", "no_subdir1subsubdir2.sh"),
+		filepath.Join("subdir1", "subsubdir2", "yes_subdir1subsubdir2.sh.clconf"),
+		filepath.Join("subdir1", "yes_subdir1.sh.clconf"),
+		filepath.Join("subdir2", "no_subdir2.sh"),
+		filepath.Join("subdir2", "yes_subdir2.sh.clconf"),
+		filepath.Join("yes_basedir.html.clconf"),
+		filepath.Join("yes_basedir1.html.clconf"),
+		filepath.Join("yes_basedir2.html.clconf"),
 	})
 }
 
 func TestFindTemplatesSingleFileMatchingExtension(t *testing.T) {
 	testFindTemplates(t, "Single File Matching Extension", ".clconf", "subdir1/subsubdir1/yes_subdir1subsubdir1.sh.clconf", true, []string{
-		"subdir1/subsubdir1/yes_subdir1subsubdir1.sh.clconf",
+		filepath.Join("subdir1", "subsubdir1", "yes_subdir1subsubdir1.sh.clconf"),
 	})
 }
 
 func TestFindTemplatesSingleFileNotMatchingExtension(t *testing.T) {
 	testFindTemplates(t, "Single File Not Matching Extension", ".clconf", "subdir1/subsubdir1/no_subdir1subsubdir1.sh", true, []string{
-		"subdir1/subsubdir1/no_subdir1subsubdir1.sh",
+		filepath.Join("subdir1", "subsubdir1", "no_subdir1subsubdir1.sh"),
 	})
 }
 
@@ -190,7 +191,7 @@ func checkFile(t *testing.T, path string, expectedPerms os.FileMode) {
 	}
 
 	stat, _ := os.Stat(path)
-	if stat.Mode() != expectedPerms {
+	if runtime.GOOS != "windows" && stat.Mode() != expectedPerms {
 		t.Fatalf("File %q has mode %o that does not match expected value %o", path, stat.Mode(), expectedPerms)
 	}
 
@@ -258,7 +259,7 @@ func TestProcessTemplateInPlace(t *testing.T) {
 	})
 
 	t.Run("In place, Single noext file, options with ext", func(t *testing.T) {
-		template = filepath.Join(temp, "subdir1/subsubdir2/no_subdir1subsubdir2.sh")
+		template = filepath.Join(temp, "subdir1", "subsubdir2", "no_subdir1subsubdir2.sh")
 		_, err := processTemplate(pathWithRelative{
 			full: template,
 			rel:  filepath.Base(template),
@@ -267,7 +268,7 @@ func TestProcessTemplateInPlace(t *testing.T) {
 			t.Fatalf("processTemplate reported error: %v", err)
 		}
 
-		checkFile(t, filepath.Join(temp, "subdir1/subsubdir2/no_subdir1subsubdir2.sh"), 0777)
+		checkFile(t, filepath.Join(temp, "subdir1", "subsubdir2", "no_subdir1subsubdir2.sh"), 0777)
 	})
 }
 
@@ -302,16 +303,16 @@ func TestProcessTemplateFolder(t *testing.T) {
 
 	t.Run("With dest, rm enabled", func(t *testing.T) {
 		options.Rm = true
-		template := filepath.Join(temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh")
+		template := filepath.Join(temp, "subdir1", "subsubdir1", "no_subdir1subsubdir1.sh")
 		_, err := processTemplate(pathWithRelative{
 			full: template,
-			rel:  "subdir1/subsubdir1/no_subdir1subsubdir1.sh",
+			rel:  filepath.Join("subdir1", "subsubdir1", "no_subdir1subsubdir1.sh"),
 		}, dest, value, secretAgent, options)
 		if err != nil {
 			t.Fatalf("processTemplate reported error: %v", err)
 		}
 
-		checkFile(t, filepath.Join(dest, "subdir1/subsubdir1/no_subdir1subsubdir1.sh"), 0775)
+		checkFile(t, filepath.Join(dest, "subdir1", "subsubdir1", "no_subdir1subsubdir1.sh"), 0775)
 
 		if exists(template) {
 			t.Errorf("Template still exists when it wasn't supposed to!")
@@ -324,7 +325,6 @@ func TestProcessTemplateFolderFlatten(t *testing.T) {
 	defer os.RemoveAll(temp)
 
 	dest := filepath.Join(temp, "dest")
-	os.Mkdir(dest, 0755)
 
 	options, secretAgent := defaultContext()
 
@@ -332,10 +332,10 @@ func TestProcessTemplateFolderFlatten(t *testing.T) {
 
 	t.Run("With dest, flatten", func(t *testing.T) {
 		options.Flatten = true
-		template := filepath.Join(temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh")
+		template := filepath.Join(temp, "subdir1", "subsubdir1", "no_subdir1subsubdir1.sh")
 		_, err := processTemplate(pathWithRelative{
 			full: template,
-			rel:  "subdir1/subsubdir1/no_subdir1subsubdir1.sh",
+			rel:  filepath.Join("subdir1", "subsubdir1", "no_subdir1subsubdir1.sh"),
 		}, dest, value, secretAgent, options)
 		if err != nil {
 			t.Fatalf("processTemplate reported error: %v", err)
@@ -363,10 +363,10 @@ func TestProcessTemplatesWithExtension(t *testing.T) {
 	checkFile(t, filepath.Join(dest, "yes_basedir.html"), 0646)
 	checkFile(t, filepath.Join(dest, "yes_basedir1.html"), 0640)
 	checkFile(t, filepath.Join(dest, "yes_basedir2.html"), 0640)
-	checkFile(t, filepath.Join(dest, "subdir1/yes_subdir1.sh"), 0770)
-	checkFile(t, filepath.Join(dest, "subdir1/subsubdir1/yes_subdir1subsubdir1.sh"), 0775)
-	checkFile(t, filepath.Join(dest, "subdir1/subsubdir2/yes_subdir1subsubdir2.sh"), 0777)
-	checkFile(t, filepath.Join(dest, "subdir2/yes_subdir2.sh"), 0777)
+	checkFile(t, filepath.Join(dest, "subdir1", "yes_subdir1.sh"), 0770)
+	checkFile(t, filepath.Join(dest, "subdir1", "subsubdir1", "yes_subdir1subsubdir1.sh"), 0775)
+	checkFile(t, filepath.Join(dest, "subdir1", "subsubdir2", "yes_subdir1subsubdir2.sh"), 0777)
+	checkFile(t, filepath.Join(dest, "subdir2", "yes_subdir2.sh"), 0777)
 
 	if exists(filepath.Join(dest, "no_basedir.html")) {
 		t.Errorf("File exists when it shouldn't")
@@ -374,16 +374,16 @@ func TestProcessTemplatesWithExtension(t *testing.T) {
 	if exists(filepath.Join(dest, "no_basedir1.html")) {
 		t.Errorf("File exists when it shouldn't")
 	}
-	if exists(filepath.Join(dest, "subdir1/no_subdir1.sh")) {
+	if exists(filepath.Join(dest, "subdir1", "no_subdir1.sh")) {
 		t.Errorf("File exists when it shouldn't")
 	}
-	if exists(filepath.Join(dest, "subdir1/subsubdir1/no_subdir1subsubdir1.sh")) {
+	if exists(filepath.Join(dest, "subdir1", "subsubdir1", "no_subdir1subsubdir1.sh")) {
 		t.Errorf("File exists when it shouldn't")
 	}
-	if exists(filepath.Join(dest, "subdir1/subsubdir2/no_subdir1subsubdir2.sh")) {
+	if exists(filepath.Join(dest, "subdir1", "subsubdir2", "no_subdir1subsubdir2.sh")) {
 		t.Errorf("File exists when it shouldn't")
 	}
-	if exists(filepath.Join(dest, "subdir2/no_subdir2.sh")) {
+	if exists(filepath.Join(dest, "subdir2", "no_subdir2.sh")) {
 		t.Errorf("File exists when it shouldn't")
 	}
 

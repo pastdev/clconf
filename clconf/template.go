@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 )
 
 const setuid = 4
@@ -100,9 +98,9 @@ func processTemplate(paths pathWithRelative, dest string, value interface{},
 	var target = paths.full
 	if dest != "" {
 		if options.Flatten {
-			target = path.Join(dest, path.Base(target))
+			target = filepath.Join(dest, filepath.Base(target))
 		} else {
-			target = path.Join(dest, paths.rel)
+			target = filepath.Join(dest, paths.rel)
 		}
 	}
 
@@ -183,13 +181,6 @@ func findTemplates(startPath string, extension string) ([]pathWithRelative, erro
 		return nil, err
 	}
 	return result, err
-}
-
-// MkdirAllNoUmask is os.MkdirAll that ignores the current unix umask.
-func MkdirAllNoUmask(path string, perms os.FileMode) error {
-	existing := syscall.Umask(0)
-	defer syscall.Umask(existing)
-	return os.MkdirAll(path, perms)
 }
 
 // UnixModeToFileMode converts a unix file mode including special bits to a golang os.FileMode.
