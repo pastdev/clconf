@@ -10,13 +10,15 @@ import (
 
 type templateContext struct {
 	*rootContext
-	templateSettings clconf.TemplateSettings
-	inPlace          bool
+	templateOptions clconf.TemplateOptions
+	inPlace         bool
+	unixDirMode     string
+	unixFileMode    string
 }
 
 var templateCmdContext = &templateContext{
-	templateSettings: clconf.TemplateSettings{},
-	rootContext:      rootCmdContext,
+	templateOptions: clconf.TemplateOptions{},
+	rootContext:     rootCmdContext,
 }
 
 var templateCmd = &cobra.Command{
@@ -50,19 +52,19 @@ var templateCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(templateCmd)
 
-	templateCmd.Flags().StringVar(&templateCmdContext.templateSettings.Extension, "template-extension", ".clconf",
+	templateCmd.Flags().StringVar(&templateCmdContext.templateOptions.Extension, "template-extension", ".clconf",
 		"Template file extension (will be removed during templating).")
-	templateCmd.Flags().StringVar(&templateCmdContext.templateSettings.FileMode, "file-mode", "",
+	templateCmd.Flags().StringVar(&templateCmdContext.unixFileMode, "file-mode", "",
 		"Chmod mode (e.g. 644) to apply to files when templating (new and existing) (defaults to copy from source template).")
-	templateCmd.Flags().BoolVar(&templateCmdContext.templateSettings.KeepExistingPerms, "keep-existing-permissions", false,
+	templateCmd.Flags().BoolVar(&templateCmdContext.templateOptions.KeepExistingPerms, "keep-existing-permissions", false,
 		"Only apply --file-mode to new files, leave existing files as-is.")
-	templateCmd.Flags().StringVar(&templateCmdContext.templateSettings.DirMode, "dir-mode", "775",
+	templateCmd.Flags().StringVar(&templateCmdContext.unixDirMode, "dir-mode", "775",
 		"Chmod mode (e.g. 755) to apply to newly created directories.")
 	templateCmd.Flags().BoolVar(&templateCmdContext.inPlace, "in-place", false,
 		"Template the files in the folder they're found (implies no destination)")
-	templateCmd.Flags().BoolVar(&templateCmdContext.templateSettings.Rm, "rm", false,
+	templateCmd.Flags().BoolVar(&templateCmdContext.templateOptions.Rm, "rm", false,
 		"Remove template files after processing.")
-	templateCmd.Flags().BoolVar(&templateCmdContext.templateSettings.Flatten, "flatten", false,
+	templateCmd.Flags().BoolVar(&templateCmdContext.templateOptions.Flatten, "flatten", false,
 		"Don't preserve relative folders when processing a source folder.")
 }
 
@@ -76,6 +78,25 @@ func template(cmd *cobra.Command, args []string) error {
 		args = args[:len(args)-1]
 	}
 
+	mode, err := clconf.UnixModeToFileMode(templateCmdContext.unixDirMode)
+	if err != nil {
+		return fmt.Errorf("Error parsing dir-mode: %v", err)
+	}
+
+	templateCmdContext.templateOptions.DirMode = mode
+
+	if templateCmdContext.unixFileMode == "" {
+		templateCmdContext.templateOptions.CopyTemplatePerms = true
+	} else {
+		mode, err := clconf.UnixModeToFileMode(templateCmdContext.unixFileMode)
+		if err != nil {
+			return fmt.Errorf("Error parsing file-mode: %v", err)
+		}
+
+		templateCmdContext.templateOptions.CopyTemplatePerms = false
+		templateCmdContext.templateOptions.FileMode = mode
+	}
+
 	if len(args) < 1 {
 		return fmt.Errorf("No sources to process")
 	}
@@ -86,13 +107,14 @@ func template(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	results, err := templateCmdContext.templateSettings.ProcessTemplates(args, dest, value, secretAgent)
+	results, err := clconf.ProcessTemplates(args, dest, value, *secretAgent,
+		templateCmdContext.templateOptions)
 	if err != nil {
 		return err
 	}
 
 	for _, result := range results {
-		fmt.Fprintf(os.Stderr, "Templating: %q => %q\n", result.Src, result.Dest)
+		fmt.Fprintf(os.Stderr, "Templated: %q => %q\n", result.Src, result.Dest)
 	}
 	return nil
 }

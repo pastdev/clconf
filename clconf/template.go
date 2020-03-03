@@ -15,20 +15,22 @@ const setuid = 4
 const setgid = 2
 const sticky = 1
 
-// TemplateSettings are settings for ProcessTemplates.
-type TemplateSettings struct {
-	// Flatten determines if directory structure is preserved when scanning folders
-	// for templates.
+// TemplateOptions are settings for ProcessTemplates.
+type TemplateOptions struct {
+	// CopyTemplatePerms uses the existing template permissions instead of FileMode for template
+	// permissions
+	CopyTemplatePerms bool
+	// Flatten flattens the templates into the root of the dest instead of the preserving
+	// the relative path under the source.
 	Flatten bool
 	// KeepExistingPerms determines whether to use existing permissions on template files that are overwritten.
 	KeepExistingPerms bool
 	// Rm determines whether template files distinct from their target are deleted after processing.
 	Rm bool
-	// FileMode is a string of unix file permissions (e.g. 2755) that apply to templates. An empty string
-	// will copy permissions from the template itself.
-	FileMode string
+	// FileMode is the permissions to apply to template files when writing.
+	FileMode os.FileMode
 	// DirMode is the permission similar to FileMode but for new folders.
-	DirMode string
+	DirMode os.FileMode
 	// Extension is the extension to use when searching folders. If missing all files will be used.
 	// The extension is stripped from the file name when templating.
 	Extension string
@@ -45,16 +47,14 @@ type TemplateResult struct {
 	Dest string
 }
 
-// ProcessTemplates processes templates. If dest is populated src files/folders are searched for
-// templates and placed into dest. Otherwise files are replaced in the folders they are found.
-func (c *TemplateSettings) ProcessTemplates(srcs []string, dest string, value interface{}, secretAgent *SecretAgent) ([]TemplateResult, error) {
+// ProcessTemplates processes templates. If dest is non empty it must be a folder into which
+// templates will be placed after processing (the folder will be created if necessary). If empty
+// templates are processed into the folders in which they are found.
+func ProcessTemplates(srcs []string, dest string, value interface{}, secretAgent SecretAgent,
+	options TemplateOptions,
+) ([]TemplateResult, error) {
 	if dest != "" {
-		perm, err := UnixModeToFileMode(c.DirMode)
-		if err != nil {
-			return nil, err
-		}
-
-		err = MkdirAllNoUmask(dest, perm)
+		err := MkdirAllNoUmask(dest, options.DirMode)
 		if err != nil {
 			return nil, err
 		}
@@ -63,13 +63,13 @@ func (c *TemplateSettings) ProcessTemplates(srcs []string, dest string, value in
 	results := []TemplateResult{}
 
 	for _, templateSrc := range srcs {
-		templates, err := findTemplates(templateSrc, c.Extension)
+		templates, err := findTemplates(templateSrc, options.Extension)
 		if err != nil {
 			return nil, err
 		}
 
 		for _, template := range templates {
-			result, err := c.processTemplate(template, dest, value, secretAgent)
+			result, err := processTemplate(template, dest, value, secretAgent, options)
 			if err != nil {
 				return nil, err
 			}
@@ -79,49 +79,44 @@ func (c *TemplateSettings) ProcessTemplates(srcs []string, dest string, value in
 	return results, nil
 }
 
-func (c *TemplateSettings) processTemplate(paths pathWithRelative, dest string, value interface{}, secretAgent *SecretAgent) (TemplateResult, error) {
+func processTemplate(paths pathWithRelative, dest string, value interface{},
+	secretAgent SecretAgent, options TemplateOptions,
+) (TemplateResult, error) {
 	var mode os.FileMode
 	var err error
 
 	result := TemplateResult{}
 
-	if c.FileMode != "" {
-		mode, err = UnixModeToFileMode(c.FileMode)
-		if err != nil {
-			return result, err
-		}
-	} else {
+	if options.CopyTemplatePerms {
 		stat, err := os.Stat(paths.full)
 		if err != nil {
 			return result, err
 		}
 		mode = stat.Mode()
+	} else {
+		mode = options.FileMode
 	}
 
 	var target = paths.full
 	if dest != "" {
-		if c.Flatten {
+		if options.Flatten {
 			target = path.Join(dest, path.Base(target))
 		} else {
 			target = path.Join(dest, paths.rel)
 		}
 	}
 
-	target = strings.TrimSuffix(target, c.Extension)
+	target = strings.TrimSuffix(target, options.Extension)
 
 	targetDir := filepath.Dir(target)
-	dirPerm, err := UnixModeToFileMode(c.DirMode)
-	if err != nil {
-		return result, err
-	}
-	err = MkdirAllNoUmask(targetDir, dirPerm)
+	err = MkdirAllNoUmask(targetDir, options.DirMode)
 	if err != nil {
 		return result, fmt.Errorf("Error making target dir %q: %v", targetDir, err)
 	}
 
 	template, err := NewTemplateFromFile(paths.rel, paths.full,
 		&TemplateConfig{
-			SecretAgent: secretAgent,
+			SecretAgent: &secretAgent,
 		})
 	if err != nil {
 		return result, err
@@ -137,14 +132,15 @@ func (c *TemplateSettings) processTemplate(paths pathWithRelative, dest string, 
 		return result, err
 	}
 
-	if !c.KeepExistingPerms {
+	if !options.KeepExistingPerms {
+		// WriteFile only uses the mode if the file is created during write
 		err = os.Chmod(target, mode)
 		if err != nil {
 			return result, err
 		}
 	}
 
-	if c.Rm && paths.full != target {
+	if options.Rm && paths.full != target {
 		err = os.Remove(paths.full)
 		if err != nil {
 			return result, err
@@ -173,7 +169,8 @@ func findTemplates(startPath string, extension string) ([]pathWithRelative, erro
 				return err
 			}
 			if strings.HasPrefix(relPath, "..") {
-				return fmt.Errorf("path %q somehow ended up outside starting path %q (relpath: %q)", path, startPath, relPath)
+				return fmt.Errorf("path %q somehow ended up outside starting path %q (relpath: %q)",
+					path, startPath, relPath)
 			}
 			if relPath == "." {
 				relPath = filepath.Base(path)

@@ -164,14 +164,15 @@ func TestFindTemplatesSingleEmptyFolder(t *testing.T) {
 	testFindTemplates(t, "Empty Folder", ".clconf", "emptydir", true, []string{})
 }
 
-func defaultContext() (*TemplateSettings, *SecretAgent) {
-	return &TemplateSettings{
+func defaultContext() (TemplateOptions, SecretAgent) {
+	return TemplateOptions{
+		CopyTemplatePerms: true,
 		Flatten:           false,
 		KeepExistingPerms: false,
 		Rm:                false,
-		DirMode:           "753", //We use a wonky value to look for it later
+		DirMode:           os.FileMode(0753), //We use a wonky value to look for it later
 		Extension:         ".clconf",
-	}, NewSecretAgent([]byte(""))
+	}, *NewSecretAgent([]byte(""))
 }
 
 func exists(path string) bool {
@@ -203,62 +204,71 @@ func TestProcessTemplateInPlace(t *testing.T) {
 	temp := buildTestFolder(t)
 	defer os.RemoveAll(temp)
 
-	context, secretAgent := defaultContext()
+	options, secretAgent := defaultContext()
 
 	value := map[interface{}]interface{}{"foo": fakeValue}
 
 	template := filepath.Join(temp, "yes_basedir.html"+extension)
-	_, err := context.processTemplate(pathWithRelative{
-		full: template,
-		rel:  filepath.Base(template),
-	}, "", value, secretAgent)
-	if err != nil {
-		t.Fatalf("processTemplate reported error: %v", err)
-	}
+	t.Run("In place, Default options", func(t *testing.T) {
+		_, err := processTemplate(pathWithRelative{
+			full: template,
+			rel:  filepath.Base(template),
+		}, "", value, secretAgent, options)
+		if err != nil {
+			t.Fatalf("processTemplate reported error: %v", err)
+		}
 
-	checkFile(t, filepath.Join(temp, "yes_basedir.html"), 0646)
+		checkFile(t, filepath.Join(temp, "yes_basedir.html"), 0646)
 
-	if !exists(template) {
-		t.Errorf("Template went missing when it wasn't supposed to!")
-	}
+		if !exists(template) {
+			t.Errorf("Template went missing when it wasn't supposed to!")
+		}
+	})
 
-	context.FileMode = "610"
-	_, err = context.processTemplate(pathWithRelative{
-		full: template,
-		rel:  filepath.Base(template),
-	}, "", value, secretAgent)
-	if err != nil {
-		t.Fatalf("processTemplate reported error: %v", err)
-	}
+	t.Run("In place, Fixed file mode", func(t *testing.T) {
+		options.CopyTemplatePerms = false
+		options.FileMode = 0610
+		_, err := processTemplate(pathWithRelative{
+			full: template,
+			rel:  filepath.Base(template),
+		}, "", value, secretAgent, options)
+		if err != nil {
+			t.Fatalf("processTemplate reported error: %v", err)
+		}
 
-	checkFile(t, filepath.Join(temp, "yes_basedir.html"), 0610)
+		checkFile(t, filepath.Join(temp, "yes_basedir.html"), 0610)
+	})
 
-	context.Rm = true
-	context.FileMode = "601"
-	context.KeepExistingPerms = true
-	_, err = context.processTemplate(pathWithRelative{
-		full: template,
-		rel:  filepath.Base(template),
-	}, "", value, secretAgent)
-	if err != nil {
-		t.Fatalf("processTemplate reported error: %v", err)
-	}
+	t.Run("In place, Keep existing perms, rm template", func(t *testing.T) {
+		options.Rm = true
+		options.FileMode = 0601
+		options.KeepExistingPerms = true
+		_, err := processTemplate(pathWithRelative{
+			full: template,
+			rel:  filepath.Base(template),
+		}, "", value, secretAgent, options)
+		if err != nil {
+			t.Fatalf("processTemplate reported error: %v", err)
+		}
 
-	checkFile(t, filepath.Join(temp, "yes_basedir.html"), 0610)
-	if exists(template) {
-		t.Errorf("Template went missing when it wasn't supposed to!")
-	}
+		checkFile(t, filepath.Join(temp, "yes_basedir.html"), 0610)
+		if exists(template) {
+			t.Errorf("Template went missing when it wasn't supposed to!")
+		}
+	})
 
-	template = filepath.Join(temp, "subdir1/subsubdir2/no_subdir1subsubdir2.sh")
-	_, err = context.processTemplate(pathWithRelative{
-		full: template,
-		rel:  filepath.Base(template),
-	}, "", value, secretAgent)
-	if err != nil {
-		t.Fatalf("processTemplate reported error: %v", err)
-	}
+	t.Run("In place, Single noext file, options with ext", func(t *testing.T) {
+		template = filepath.Join(temp, "subdir1/subsubdir2/no_subdir1subsubdir2.sh")
+		_, err := processTemplate(pathWithRelative{
+			full: template,
+			rel:  filepath.Base(template),
+		}, "", value, secretAgent, options)
+		if err != nil {
+			t.Fatalf("processTemplate reported error: %v", err)
+		}
 
-	checkFile(t, filepath.Join(temp, "subdir1/subsubdir2/no_subdir1subsubdir2.sh"), 0777)
+		checkFile(t, filepath.Join(temp, "subdir1/subsubdir2/no_subdir1subsubdir2.sh"), 0777)
+	})
 }
 
 func TestProcessTemplateFolder(t *testing.T) {
@@ -269,41 +279,44 @@ func TestProcessTemplateFolder(t *testing.T) {
 	dest := filepath.Join(temp, "dest")
 	os.Mkdir(dest, 0755)
 
-	context, secretAgent := defaultContext()
+	options, secretAgent := defaultContext()
 
 	value := map[interface{}]interface{}{"foo": fakeValue}
 
-	template := filepath.Join(temp, "yes_basedir.html"+extension)
-	_, err := context.processTemplate(pathWithRelative{
-		full: template,
-		rel:  filepath.Base(template),
-	}, dest, value, secretAgent)
-	if err != nil {
-		t.Fatalf("processTemplate reported error: %v", err)
-	}
+	t.Run("With dest, default options", func(t *testing.T) {
+		template := filepath.Join(temp, "yes_basedir.html"+extension)
+		_, err := processTemplate(pathWithRelative{
+			full: template,
+			rel:  filepath.Base(template),
+		}, dest, value, secretAgent, options)
+		if err != nil {
+			t.Fatalf("processTemplate reported error: %v", err)
+		}
 
-	checkFile(t, filepath.Join(dest, "yes_basedir.html"), 0646)
+		checkFile(t, filepath.Join(dest, "yes_basedir.html"), 0646)
 
-	if !exists(template) {
-		t.Errorf("Template went missing when it wasn't supposed to!")
-	}
+		if !exists(template) {
+			t.Errorf("Template went missing when it wasn't supposed to!")
+		}
+	})
 
-	context.Rm = true
-	template = filepath.Join(temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh")
-	_, err = context.processTemplate(pathWithRelative{
-		full: template,
-		rel:  "subdir1/subsubdir1/no_subdir1subsubdir1.sh",
-	}, dest, value, secretAgent)
-	if err != nil {
-		t.Fatalf("processTemplate reported error: %v", err)
-	}
+	t.Run("With dest, rm enabled", func(t *testing.T) {
+		options.Rm = true
+		template := filepath.Join(temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh")
+		_, err := processTemplate(pathWithRelative{
+			full: template,
+			rel:  "subdir1/subsubdir1/no_subdir1subsubdir1.sh",
+		}, dest, value, secretAgent, options)
+		if err != nil {
+			t.Fatalf("processTemplate reported error: %v", err)
+		}
 
-	checkFile(t, filepath.Join(dest, "subdir1/subsubdir1/no_subdir1subsubdir1.sh"), 0775)
+		checkFile(t, filepath.Join(dest, "subdir1/subsubdir1/no_subdir1subsubdir1.sh"), 0775)
 
-	if exists(template) {
-		t.Errorf("Template still exists when it wasn't supposed to!")
-	}
-
+		if exists(template) {
+			t.Errorf("Template still exists when it wasn't supposed to!")
+		}
+	})
 }
 
 func TestProcessTemplateFolderFlatten(t *testing.T) {
@@ -313,21 +326,23 @@ func TestProcessTemplateFolderFlatten(t *testing.T) {
 	dest := filepath.Join(temp, "dest")
 	os.Mkdir(dest, 0755)
 
-	context, secretAgent := defaultContext()
+	options, secretAgent := defaultContext()
 
 	value := map[interface{}]interface{}{"foo": fakeValue}
 
-	context.Flatten = true
-	template := filepath.Join(temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh")
-	_, err := context.processTemplate(pathWithRelative{
-		full: template,
-		rel:  "subdir1/subsubdir1/no_subdir1subsubdir1.sh",
-	}, dest, value, secretAgent)
-	if err != nil {
-		t.Fatalf("processTemplate reported error: %v", err)
-	}
+	t.Run("With dest, flatten", func(t *testing.T) {
+		options.Flatten = true
+		template := filepath.Join(temp, "subdir1/subsubdir1/no_subdir1subsubdir1.sh")
+		_, err := processTemplate(pathWithRelative{
+			full: template,
+			rel:  "subdir1/subsubdir1/no_subdir1subsubdir1.sh",
+		}, dest, value, secretAgent, options)
+		if err != nil {
+			t.Fatalf("processTemplate reported error: %v", err)
+		}
 
-	checkFile(t, filepath.Join(dest, "no_subdir1subsubdir1.sh"), 0775)
+		checkFile(t, filepath.Join(dest, "no_subdir1subsubdir1.sh"), 0775)
+	})
 }
 
 func TestProcessTemplatesWithExtension(t *testing.T) {
@@ -337,13 +352,13 @@ func TestProcessTemplatesWithExtension(t *testing.T) {
 	dest := filepath.Join(temp, "dest")
 	os.Mkdir(dest, 0755)
 
-	context, secretAgent := defaultContext()
+	options, secretAgent := defaultContext()
 
 	value := map[interface{}]interface{}{"foo": fakeValue}
 
-	_, err := context.ProcessTemplates([]string{temp}, dest, value, secretAgent)
+	_, err := ProcessTemplates([]string{temp}, dest, value, secretAgent, options)
 	if err != nil {
-		t.Errorf("Error processing templates: %v", err)
+		t.Errorf("TestProcessTemplatesWithExtension: Error processing templates: %v", err)
 	}
 	checkFile(t, filepath.Join(dest, "yes_basedir.html"), 0646)
 	checkFile(t, filepath.Join(dest, "yes_basedir1.html"), 0640)
