@@ -111,20 +111,7 @@ func getv(cmd *cobra.Command, args []string) error {
 }
 
 func (c *getvContext) getValue(path string) (interface{}, error) {
-	path = c.getPath(path)
-
-	var config map[interface{}]interface{}
-	var err error
-	if c.ignoreEnv {
-		config, err = clconf.LoadConf(c.yaml, c.yamlBase64)
-	} else {
-		config, err = clconf.LoadConfFromEnvironment(c.yaml, c.yamlBase64)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	value, err := clconf.GetValue(config, path)
+	value, err := c.rootContext.getValue(path)
 	if err != nil {
 		if c.defaultValue.set {
 			value = c.defaultValue.value

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/pastdev/clconf/v2/clconf"
 	"github.com/spf13/cobra"
 )
 
@@ -35,6 +36,23 @@ func (c *rootContext) getPath(valuePath string) string {
 		return "/"
 	}
 	return valuePath
+}
+
+func (c *rootContext) getValue(path string) (interface{}, error) {
+	path = c.getPath(path)
+
+	var config map[interface{}]interface{}
+	var err error
+	if c.ignoreEnv {
+		config, err = clconf.LoadConf(c.yaml, c.yamlBase64)
+	} else {
+		config, err = clconf.LoadConfFromEnvironment(c.yaml, c.yamlBase64)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return clconf.GetValue(config, path)
 }
 
 func init() {
