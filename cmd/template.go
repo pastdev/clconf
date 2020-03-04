@@ -110,7 +110,7 @@ func template(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	results, err := clconf.ProcessTemplates(args, dest, value, *secretAgent,
+	results, err := clconf.ProcessTemplates(args, dest, value, secretAgent,
 		templateCmdContext.templateOptions)
 	if err != nil {
 		return err

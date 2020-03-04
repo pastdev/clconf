@@ -50,7 +50,7 @@ type TemplateResult struct {
 // ProcessTemplates processes templates. If dest is non empty it must be a folder into which
 // templates will be placed after processing (the folder will be created if necessary). If empty
 // templates are processed into the folders in which they are found.
-func ProcessTemplates(srcs []string, dest string, value interface{}, secretAgent SecretAgent,
+func ProcessTemplates(srcs []string, dest string, value interface{}, secretAgent *SecretAgent,
 	options TemplateOptions,
 ) ([]TemplateResult, error) {
 	if dest != "" {
@@ -80,7 +80,7 @@ func ProcessTemplates(srcs []string, dest string, value interface{}, secretAgent
 }
 
 func processTemplate(paths pathWithRelative, dest string, value interface{},
-	secretAgent SecretAgent, options TemplateOptions,
+	secretAgent *SecretAgent, options TemplateOptions,
 ) (TemplateResult, error) {
 	var mode os.FileMode
 	var err error
@@ -116,7 +116,7 @@ func processTemplate(paths pathWithRelative, dest string, value interface{},
 
 	template, err := NewTemplateFromFile(paths.rel, paths.full,
 		&TemplateConfig{
-			SecretAgent: &secretAgent,
+			SecretAgent: secretAgent,
 		})
 	if err != nil {
 		return result, err

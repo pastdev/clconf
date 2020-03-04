@@ -165,7 +165,7 @@ func TestFindTemplatesSingleEmptyFolder(t *testing.T) {
 	testFindTemplates(t, "Empty Folder", ".clconf", "emptydir", true, []string{})
 }
 
-func defaultContext() (TemplateOptions, SecretAgent) {
+func defaultContext() (TemplateOptions, *SecretAgent) {
 	return TemplateOptions{
 		CopyTemplatePerms: true,
 		Flatten:           false,
@@ -173,7 +173,7 @@ func defaultContext() (TemplateOptions, SecretAgent) {
 		Rm:                false,
 		DirMode:           os.FileMode(0753), //We use a wonky value to look for it later
 		Extension:         ".clconf",
-	}, *NewSecretAgent([]byte(""))
+	}, NewSecretAgent([]byte(""))
 }
 
 func exists(path string) bool {
