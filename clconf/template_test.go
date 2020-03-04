@@ -320,6 +320,122 @@ func TestProcessTemplateFolder(t *testing.T) {
 	})
 }
 
+func TestProcessTemplateKeepEmpty(t *testing.T) {
+	temp := buildTestFolder(t)
+	defer os.RemoveAll(temp)
+
+	dest := filepath.Join(temp, "dest")
+	os.Mkdir(dest, 0755)
+
+	options, secretAgent := defaultContext()
+
+	value := map[interface{}]interface{}{"foo": ""}
+
+	t.Run("Keep Empty True Rm False With Dest", func(t *testing.T) {
+		subPath := filepath.Join("subdir1", "subsubdir1", "no_subdir1subsubdir1.sh")
+		template := filepath.Join(temp, subPath)
+		options.KeepEmpty = true
+		options.Rm = false
+		_, err := processTemplate(pathWithRelative{
+			full: template,
+			rel:  subPath,
+		}, dest, value, secretAgent, options)
+		if err != nil {
+			t.Fatalf("processTemplate reported error: %v", err)
+		}
+
+		if !exists(filepath.Join(dest, subPath)) {
+			t.Errorf("Result is missing, should be present!")
+		}
+		stat, _ := os.Stat(filepath.Join(dest, subPath))
+		if stat.Size() != 0 {
+			t.Errorf("Result does not have zero size!")
+		}
+	})
+
+	t.Run("Keep Empty False Rm False With Dest", func(t *testing.T) {
+		subPath := filepath.Join("subdir1", "subsubdir1", "no_subdir1subsubdir1.sh")
+		template := filepath.Join(temp, subPath)
+		options.KeepEmpty = false
+		options.Rm = false
+		_, err := processTemplate(pathWithRelative{
+			full: template,
+			rel:  subPath,
+		}, dest, value, secretAgent, options)
+		if err != nil {
+			t.Fatalf("processTemplate reported error: %v", err)
+		}
+
+		if exists(filepath.Join(dest, subPath)) {
+			t.Errorf("Result is present, should be missing!")
+		}
+	})
+
+	t.Run("Keep Empty False Rm True With Dest", func(t *testing.T) {
+		subPath := filepath.Join("subdir1", "subsubdir1", "no_subdir1subsubdir1.sh")
+		template := filepath.Join(temp, subPath)
+		options.KeepEmpty = false
+		options.Rm = true
+		_, err := processTemplate(pathWithRelative{
+			full: template,
+			rel:  subPath,
+		}, dest, value, secretAgent, options)
+		if err != nil {
+			t.Fatalf("processTemplate reported error: %v", err)
+		}
+
+		if exists(filepath.Join(dest, subPath)) {
+			t.Errorf("Result is present, should be missing!")
+		}
+		if exists(template) {
+			t.Errorf("Template still exists when it wasn't supposed to!")
+		}
+	})
+
+	t.Run("Keep Empty False Rm False InPlace", func(t *testing.T) {
+		subPath := "no_basedir.html"
+		template := filepath.Join(temp, subPath)
+		options.KeepEmpty = false
+		options.Rm = false // The template should still go away because we're doing it in place
+		_, err := processTemplate(pathWithRelative{
+			full: template,
+			rel:  subPath,
+		}, "", value, secretAgent, options)
+		if err != nil {
+			t.Fatalf("processTemplate reported error: %v", err)
+		}
+
+		if exists(filepath.Join(dest, subPath)) {
+			t.Errorf("Result is present, should be missing!")
+		}
+		if exists(template) {
+			t.Errorf("Template still exists when it wasn't supposed to!")
+		}
+	})
+
+	t.Run("Keep Empty False Rm True InPlace", func(t *testing.T) {
+		subPath := "no_basedir1.html"
+		template := filepath.Join(temp, subPath)
+		options.KeepEmpty = false
+		options.Rm = true
+		_, err := processTemplate(pathWithRelative{
+			full: template,
+			rel:  subPath,
+		}, "", value, secretAgent, options)
+		if err != nil {
+			t.Fatalf("processTemplate reported error: %v", err)
+		}
+
+		if exists(filepath.Join(dest, subPath)) {
+			t.Errorf("Result is present, should be missing!")
+		}
+		if exists(template) {
+			t.Errorf("Template still exists when it wasn't supposed to!")
+		}
+	})
+
+}
+
 func TestProcessTemplateFolderFlatten(t *testing.T) {
 	temp := buildTestFolder(t)
 	defer os.RemoveAll(temp)

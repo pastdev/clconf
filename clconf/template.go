@@ -21,6 +21,8 @@ type TemplateOptions struct {
 	// Flatten flattens the templates into the root of the dest instead of the preserving
 	// the relative path under the source.
 	Flatten bool
+	// KeepEmpty forces empty result files to be written (usually not written or removed if already existing)
+	KeepEmpty bool
 	// KeepExistingPerms determines whether to use existing permissions on template files that are overwritten.
 	KeepExistingPerms bool
 	// Rm determines whether template files distinct from their target are deleted after processing.
@@ -125,16 +127,26 @@ func processTemplate(paths pathWithRelative, dest string, value interface{},
 		return result, fmt.Errorf("Error processing template: %v", err)
 	}
 
-	err = ioutil.WriteFile(target, []byte(content), mode)
-	if err != nil {
-		return result, err
-	}
-
-	if !options.KeepExistingPerms {
-		// WriteFile only uses the mode if the file is created during write
-		err = os.Chmod(target, mode)
+	if options.KeepEmpty || content != "" {
+		// This won't change the mode if it already exists
+		err = ioutil.WriteFile(target, []byte(content), mode)
 		if err != nil {
 			return result, err
+		}
+
+		if !options.KeepExistingPerms {
+			// WriteFile only uses the mode if the file is created during write
+			// and even then filters on the umask so we os.Chmod to get the
+			// requested perms.
+			err = os.Chmod(target, mode)
+			if err != nil {
+				return result, err
+			}
+		}
+	} else { //Don't keep the empty result
+		_, err = os.Stat(target)
+		if err == nil {
+			os.Remove(target)
 		}
 	}
 
