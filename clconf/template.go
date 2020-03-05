@@ -148,7 +148,7 @@ func processTemplate(paths pathWithRelative, dest string, value interface{},
 			err = os.Remove(target)
 		}
 		if err != nil && !os.IsNotExist(err) {
-			return err
+			return result, err
 		}
 	}
 
