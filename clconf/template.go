@@ -128,7 +128,6 @@ func processTemplate(paths pathWithRelative, dest string, value interface{},
 	}
 
 	if options.KeepEmpty || content != "" {
-		// This won't change the mode if it already exists
 		err = ioutil.WriteFile(target, []byte(content), mode)
 		if err != nil {
 			return result, err
@@ -146,7 +145,10 @@ func processTemplate(paths pathWithRelative, dest string, value interface{},
 	} else { //Don't keep the empty result
 		_, err = os.Stat(target)
 		if err == nil {
-			os.Remove(target)
+			err = os.Remove(target)
+		}
+		if err != nil && !os.IsNotExist(err) {
+			return err
 		}
 	}
 

@@ -330,8 +330,6 @@ a step further by templating many files in a single run. The `template`
 function's `--help` provides examples:
 
 ```bash
-$ go run . template --help
-
         This will take an arbitrary number of source templates (or folders full
         of templates) and process them either in place (see --in-place) or into the
         folder specified as the last argument. It will make any folders required
