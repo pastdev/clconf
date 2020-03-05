@@ -330,31 +330,33 @@ a step further by templating many files in a single run. The `template`
 function's `--help` provides examples:
 
 ```bash
-This will take an arbitrary number of source templates (or folders full
-of templates) and process them either in place (see --in-place) or into the
-folder specified as the last argument. It will make any folders required
-along the way. If a source is an existing file (not a folder) it will be
-treated as a template regardless of the extension (though if the extension
-matches it will still be removed).
+        This will take an arbitrary number of source templates (or folders full
+        of templates) and process them either in place (see --in-place) or into the
+        folder specified as the last argument. It will make any folders required
+        along the way. If a source is an existing file (not a folder) it will be
+        treated as a template regardless of the extension (though if the extension
+        matches it will still be removed).
 
 Usage:
   clconf template <src1> [src2...] [destination folder] [flags]
 
 Examples:
-  # Apply all templates with the .clconf extension to their relative folders in /dest
-  template /tmp/srcFolder1 /tmp/srcFolder2 /dest
 
-  # Apply all templates in both folders with the .clconf extension to the root of /dest
-  template /tmp/srcFolder1 /tmp/srcFolder2 /dest --flatten
+        # Apply all templates with the .clconf extension to their relative folders in /dest
+        template /tmp/srcFolder1 /tmp/srcFolder2 /dest
 
-  # Interpret /tmp/srcFile.sh where it is (result is /tmp/srcFile.sh)
-  template /tmp/srcFile.sh --in-place
+        # Apply all templates in both folders with the .clconf extension to the root of /dest
+        template /tmp/srcFolder1 /tmp/srcFolder2 /dest --flatten
 
-  # Interpret /tmp/srcFile.sh.clconf where it is (result is /tmp/srcFile.sh)
-  template /tmp/srcFile.sh.clconf --in-place
+        # Interpret /tmp/srcFile.sh where it is (result is /tmp/srcFile.sh)
+        template /tmp/srcFile.sh --in-place
 
-  # Interpret /tmp/srcFile.sh.clconf where it is (result is /tmp/srcFile.sh.clconf)
-  template /tmp/srcFile.sh.clconf --in-place --template-extension ""
+        # Interpret /tmp/srcFile.sh.clconf where it is (result is /tmp/srcFile.sh)
+        template /tmp/srcFile.sh.clconf --in-place
+
+        # Interpret /tmp/srcFile.sh.clconf where it is (result is /tmp/srcFile.sh.clconf)
+        template /tmp/srcFile.sh.clconf --in-place --template-extension ""
+
 
 Flags:
       --dir-mode string             Chmod mode (e.g. 755) to apply to newly created directories. (default "775")
@@ -362,6 +364,7 @@ Flags:
       --flatten                     Don't preserve relative folders when processing a source folder.
   -h, --help                        help for template
       --in-place                    Template the files in the folder they're found (implies no destination)
+      --keep-empty                  Keep empty (zero byte) result files (the default is to remove them)
       --keep-existing-permissions   Only apply --file-mode to new files, leave existing files as-is.
       --rm                          Remove template files after processing.
       --template-extension string   Template file extension (will be removed during templating). (default ".clconf")

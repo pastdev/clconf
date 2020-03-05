@@ -24,12 +24,13 @@ var templateCmdContext = &templateContext{
 var templateCmd = &cobra.Command{
 	Use:   "template <src1> [src2...] [destination folder]",
 	Short: "Interpret a set of pre-existing templates",
-	Long: `This will take an arbitrary number of source templates (or folders full
-		of templates) and process them either in place (see --in-place) or into the
-		folder specified as the last argument. It will make any folders required
-		along the way. If a source is an existing file (not a folder) it will be
-		treated as a template regardless of the extension (though if the extension
-		matches it will still be removed).`,
+	Long: `
+	This will take an arbitrary number of source templates (or folders full
+	of templates) and process them either in place (see --in-place) or into the
+	folder specified as the last argument. It will make any folders required
+	along the way. If a source is an existing file (not a folder) it will be
+	treated as a template regardless of the extension (though if the extension
+	matches it will still be removed).`,
 	RunE: template,
 	Example: `
 	# Apply all templates with the .clconf extension to their relative folders in /dest
@@ -56,6 +57,8 @@ func init() {
 		"Template file extension (will be removed during templating).")
 	templateCmd.Flags().StringVar(&templateCmdContext.unixFileMode, "file-mode", "",
 		"Chmod mode (e.g. 644) to apply to files when templating (new and existing) (defaults to copy from source template).")
+	templateCmd.Flags().BoolVar(&templateCmdContext.templateOptions.KeepEmpty, "keep-empty", false,
+		"Keep empty (zero byte) result files (the default is to remove them)")
 	templateCmd.Flags().BoolVar(&templateCmdContext.templateOptions.KeepExistingPerms, "keep-existing-permissions", false,
 		"Only apply --file-mode to new files, leave existing files as-is.")
 	templateCmd.Flags().StringVar(&templateCmdContext.unixDirMode, "dir-mode", "775",
@@ -107,7 +110,7 @@ func template(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	results, err := clconf.ProcessTemplates(args, dest, value, *secretAgent,
+	results, err := clconf.ProcessTemplates(args, dest, value, secretAgent,
 		templateCmdContext.templateOptions)
 	if err != nil {
 		return err

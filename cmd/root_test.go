@@ -7,7 +7,7 @@ import (
 
 func Example_noArg() {
 	reinit()
-	os.Args = []string{"clconf"}
+	setArgs()
 	Execute()
 	// Output:
 	// {}
@@ -15,10 +15,9 @@ func Example_noArg() {
 
 func Example_testConfig() {
 	reinit()
-	os.Args = []string{
-		"clconf",
+	setArgs(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
-	}
+	)
 	Execute()
 	// Output:
 	// app:
@@ -37,11 +36,10 @@ func Example_testConfig() {
 
 func Example_testConfigGetv() {
 	reinit()
-	os.Args = []string{
-		"clconf",
+	setArgs(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"getv",
-	}
+	)
 	Execute()
 	// Output:
 	// app:
@@ -60,14 +58,13 @@ func Example_testConfigGetv() {
 
 func Example_testConfigGetvDecrypt() {
 	reinit()
-	os.Args = []string{
-		"clconf",
+	setArgs(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"getv",
 		"--decrypt", "/app/db/username",
 		"--decrypt", "/app/db/password",
-	}
+	)
 	Execute()
 	// Output:
 	// app:
@@ -86,15 +83,14 @@ func Example_testConfigGetvDecrypt() {
 
 func Example_testConfigGetvDecryptWithPath() {
 	reinit()
-	os.Args = []string{
-		"clconf",
+	setArgs(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"getv",
 		"/app/db",
 		"--decrypt", "/username",
 		"--decrypt", "/password",
-	}
+	)
 	Execute()
 	// Output:
 	// hostname: db.pastdev.com
@@ -108,14 +104,13 @@ func Example_testConfigGetvDecryptWithPath() {
 
 func Example_testConfigGetvDecryptWithPathAndTemplate() {
 	reinit()
-	os.Args = []string{
-		"clconf",
+	setArgs(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"getv",
 		"/app/db",
 		"--template-string", "{{ cgetv \"/username\" }}:{{ cgetv \"/password\" }}",
-	}
+	)
 	Execute()
 	// Output:
 	// SECRET_USER:SECRET_PASS
@@ -123,15 +118,14 @@ func Example_testConfigGetvDecryptWithPathAndTemplate() {
 
 func Example_testConfigGetvDecryptWithPrefixAndPathAndTemplate() {
 	reinit()
-	os.Args = []string{
-		"clconf",
+	setArgs(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"--prefix", "/app/db",
 		"getv",
 		"/",
 		"--template-string", "{{ cgetv \"/username\" }}:{{ cgetv \"/password\" }}",
-	}
+	)
 	Execute()
 	// Output:
 	// SECRET_USER:SECRET_PASS
@@ -139,13 +133,12 @@ func Example_testConfigGetvDecryptWithPrefixAndPathAndTemplate() {
 
 func Example_testConfigGetvAppAliases() {
 	reinit()
-	os.Args = []string{
-		"clconf",
+	setArgs(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"getv",
 		"/app/aliases",
-	}
+	)
 	Execute()
 	// Output:
 	// - foo
@@ -154,12 +147,11 @@ func Example_testConfigGetvAppAliases() {
 
 func Example_testConfigGetvAppDbPort() {
 	reinit()
-	os.Args = []string{
-		"clconf",
+	setArgs(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"getv",
 		"/app/db/port",
-	}
+	)
 	Execute()
 	// Output:
 	// 3306
@@ -167,12 +159,11 @@ func Example_testConfigGetvAppDbPort() {
 
 func Example_testConfigGetvAppDbHostname() {
 	reinit()
-	os.Args = []string{
-		"clconf",
+	setArgs(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"getv",
 		"/app/db/hostname",
-	}
+	)
 	Execute()
 	// Output:
 	// db.pastdev.com
@@ -180,13 +171,12 @@ func Example_testConfigGetvAppDbHostname() {
 
 func Example_testConfigGetvInvalidWithDefault() {
 	reinit()
-	os.Args = []string{
-		"clconf",
+	setArgs(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"getv",
 		"/INVALID_PATH",
 		"--default", "foo",
-	}
+	)
 	Execute()
 	// Output:
 	// foo
@@ -194,14 +184,13 @@ func Example_testConfigGetvInvalidWithDefault() {
 
 func Example_testConfigGetvAppDbHostnameWithDefault() {
 	reinit()
-	os.Args = []string{
-		"clconf",
+	setArgs(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"getv",
 		"/app/db/hostname",
 		"--default", "INVALID_HOSTNAME",
-	}
+	)
 	Execute()
 	// Output:
 	// db.pastdev.com
@@ -209,13 +198,12 @@ func Example_testConfigGetvAppDbHostnameWithDefault() {
 
 func Example_testConfigCgetvAppDbUsername() {
 	reinit()
-	os.Args = []string{
-		"clconf",
+	setArgs(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"cgetv",
 		"/app/db/username",
-	}
+	)
 	Execute()
 	// Output:
 	// SECRET_USER
@@ -223,7 +211,7 @@ func Example_testConfigCgetvAppDbUsername() {
 
 func Example_withEnvNoArg() {
 	reinit()
-	os.Args = []string{"clconf"}
+	setArgs()
 	WithEnv(Execute)
 	// Output:
 	// app:
@@ -242,7 +230,7 @@ func Example_withEnvNoArg() {
 
 func Example_withEnvCgetvAppDbPassword() {
 	reinit()
-	os.Args = []string{"clconf", "cgetv", "/app/db/password"}
+	setArgs("cgetv", "/app/db/password")
 	WithEnv(Execute)
 	// Output:
 	// SECRET_PASS
@@ -262,6 +250,10 @@ func reinit() {
 	getvCmdContext.templateBase64 = *newOptionalString("", false)
 	getvCmdContext.templateString = *newOptionalString("", false)
 	setvCmdContext.encrypt = false
+}
+
+func setArgs(args ...string) {
+	rootCmd.SetArgs(args)
 }
 
 func WithEnv(do func()) {

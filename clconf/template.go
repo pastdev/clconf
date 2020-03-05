@@ -21,6 +21,8 @@ type TemplateOptions struct {
 	// Flatten flattens the templates into the root of the dest instead of the preserving
 	// the relative path under the source.
 	Flatten bool
+	// KeepEmpty forces empty result files to be written (usually not written or removed if already existing)
+	KeepEmpty bool
 	// KeepExistingPerms determines whether to use existing permissions on template files that are overwritten.
 	KeepExistingPerms bool
 	// Rm determines whether template files distinct from their target are deleted after processing.
@@ -48,7 +50,7 @@ type TemplateResult struct {
 // ProcessTemplates processes templates. If dest is non empty it must be a folder into which
 // templates will be placed after processing (the folder will be created if necessary). If empty
 // templates are processed into the folders in which they are found.
-func ProcessTemplates(srcs []string, dest string, value interface{}, secretAgent SecretAgent,
+func ProcessTemplates(srcs []string, dest string, value interface{}, secretAgent *SecretAgent,
 	options TemplateOptions,
 ) ([]TemplateResult, error) {
 	if dest != "" {
@@ -78,7 +80,7 @@ func ProcessTemplates(srcs []string, dest string, value interface{}, secretAgent
 }
 
 func processTemplate(paths pathWithRelative, dest string, value interface{},
-	secretAgent SecretAgent, options TemplateOptions,
+	secretAgent *SecretAgent, options TemplateOptions,
 ) (TemplateResult, error) {
 	var mode os.FileMode
 	var err error
@@ -114,7 +116,7 @@ func processTemplate(paths pathWithRelative, dest string, value interface{},
 
 	template, err := NewTemplateFromFile(paths.rel, paths.full,
 		&TemplateConfig{
-			SecretAgent: &secretAgent,
+			SecretAgent: secretAgent,
 		})
 	if err != nil {
 		return result, err
@@ -125,16 +127,28 @@ func processTemplate(paths pathWithRelative, dest string, value interface{},
 		return result, fmt.Errorf("Error processing template: %v", err)
 	}
 
-	err = ioutil.WriteFile(target, []byte(content), mode)
-	if err != nil {
-		return result, err
-	}
-
-	if !options.KeepExistingPerms {
-		// WriteFile only uses the mode if the file is created during write
-		err = os.Chmod(target, mode)
+	if options.KeepEmpty || content != "" {
+		err = ioutil.WriteFile(target, []byte(content), mode)
 		if err != nil {
 			return result, err
+		}
+
+		if !options.KeepExistingPerms {
+			// WriteFile only uses the mode if the file is created during write
+			// and even then filters on the umask so we os.Chmod to get the
+			// requested perms.
+			err = os.Chmod(target, mode)
+			if err != nil {
+				return result, err
+			}
+		}
+	} else { //Don't keep the empty result
+		_, err = os.Stat(target)
+		if err == nil {
+			err = os.Remove(target)
+		}
+		if err != nil && !os.IsNotExist(err) {
+			return err
 		}
 	}
 
