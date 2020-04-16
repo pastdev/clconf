@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -41,6 +42,7 @@ func newFuncMap() map[string]interface{} {
 	m["base64Encode"] = Base64Encode
 	m["base64Decode"] = Base64Decode
 	m["parseBool"] = strconv.ParseBool
+	m["regexReplace"] = RegexReplace
 	m["reverse"] = Reverse
 	m["sortByLength"] = SortByLength
 	m["sortKVByLength"] = SortKVByLength
@@ -269,4 +271,13 @@ func isFileExist(fpath string) bool {
 		return false
 	}
 	return true
+}
+
+// RegexReplace maps to regexp.ReplaceAllString
+func RegexReplace(regex, src, repl string) (string, error) {
+	re, err := regexp.Compile(regex)
+	if err != nil {
+		return "", err
+	}
+	return re.ReplaceAllString(src, repl), nil
 }
