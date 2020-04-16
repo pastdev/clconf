@@ -11,7 +11,15 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "clconf [global options] command [command options] [args...]",
 	Short: `A utility for merging multiple config files and extracting values using a path string`,
-	RunE:  getv,
+	Long: `A utility for merging multiple config files and extracting values using a path string
+			the order of precedence from least to greatest is
+				--yaml
+				YAML_FILES
+				--yaml-base64
+				YAML_VARS
+				Standard Input
+				`,
+	RunE: getv,
 }
 
 var rootCmdContext = &rootContext{}
@@ -21,6 +29,7 @@ type rootContext struct {
 	prefix              optionalString
 	secretKeyring       optionalString
 	secretKeyringBase64 optionalString
+	stdin               bool
 	yaml                []string
 	yamlBase64          []string
 }
@@ -43,10 +52,14 @@ func (c *rootContext) getValue(path string) (interface{}, error) {
 
 	var config map[interface{}]interface{}
 	var err error
+	var stream *os.File
+	if c.stdin {
+		stream = os.Stdin
+	}
 	if c.ignoreEnv {
-		config, err = clconf.LoadConf(c.yaml, c.yamlBase64)
+		config, err = clconf.LoadConf(c.yaml, c.yamlBase64, stream)
 	} else {
-		config, err = clconf.LoadConfFromEnvironment(c.yaml, c.yamlBase64)
+		config, err = clconf.LoadConfFromEnvironment(c.yaml, c.yamlBase64, stream)
 	}
 	if err != nil {
 		return nil, err
@@ -64,6 +77,8 @@ func init() {
 		"Path to a gpg secring file (env: SECRET_KEYRING)")
 	rootCmd.PersistentFlags().VarP(&rootCmdContext.secretKeyringBase64, "secret-keyring-base64", "",
 		"Base64 encoded gpg secring (env: SECRET_KEYRING_BASE64)")
+	rootCmd.PersistentFlags().BoolVar(&rootCmdContext.stdin, "stdin", false,
+		"Read one or more yaml documents from stdin. Last document takes precedence when merged.")
 	rootCmd.PersistentFlags().StringArrayVarP(&rootCmdContext.yaml, "yaml", "", nil,
 		"A `list` of yaml files containing config (env: YAML_FILES).  If specified, YAML_FILES will be split on ',' and appended to this option.  Last defined value takes precedence when merged.")
 	rootCmd.PersistentFlags().StringArrayVarP(&rootCmdContext.yamlBase64, "yaml-base64", "", nil,

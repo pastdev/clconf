@@ -96,7 +96,7 @@ func (c *setvContext) setValue(key, value string) error {
 		if err != nil {
 			return fmt.Errorf("Failed to unmarshal %s: %v", value, err)
 		}
-		valueObject = newValue
+		valueObject = newValue[0]
 	}
 
 	if c.merge {
