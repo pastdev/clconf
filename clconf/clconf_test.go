@@ -351,13 +351,13 @@ func TestLoadConf(t *testing.T) {
 	b64Arg := base64.StdEncoding.EncodeToString([]byte("a: b64Arg\nb64Arg: 1"))
 	b64Env := base64.StdEncoding.EncodeToString([]byte("a: b64Env\nb64Env: 1"))
 
-	actual, err := clconf.LoadConf([]string{}, []string{}, nil)
+	actual, err := clconf.LoadConf([]string{}, []string{})
 	if err != nil || len(actual) > 0 {
 		t.Errorf("LoadConf no config failed")
 	}
 
 	expected, _ := clconf.UnmarshalYaml("a: b64Arg\nb64Arg: 1")
-	actual, err = clconf.LoadConfFromEnvironment([]string{}, []string{b64Arg}, nil)
+	actual, err = clconf.LoadConfFromEnvironment([]string{}, []string{b64Arg})
 	if err != nil || !reflect.DeepEqual(expected, actual) {
 		t.Errorf("LoadConf b64Arg failed: [%v] != [%v] (err: %v)", expected, actual, err)
 	}
@@ -365,22 +365,32 @@ func TestLoadConf(t *testing.T) {
 	os.Setenv("YAML_VAR", b64Env)
 	os.Setenv("YAML_VARS", "YAML_VAR")
 	expected, _ = clconf.UnmarshalYaml("a: b64Env\nb64Arg: 1\nb64Env: 1")
-	actual, err = clconf.LoadConfFromEnvironment([]string{}, []string{b64Arg}, nil)
+	actual, err = clconf.LoadConfFromEnvironment([]string{}, []string{b64Arg})
 	if err != nil || !reflect.DeepEqual(expected, actual) {
 		t.Errorf("LoadConf b64Arg, b64Env failed: [%v] != [%v] (err: %v)", expected, actual, err)
 	}
 	os.Unsetenv("YAML_VARS")
 	os.Unsetenv("YAML_VAR")
 
+	os.Setenv("YAML_VAR", b64Env)
+	os.Setenv("YAML_VARS", "YAML_VAR")
+	expected, _ = clconf.UnmarshalYaml("a: b64Arg\nb64Arg: 1")
+	actual, err = clconf.LoadConf([]string{}, []string{b64Arg})
+	if err != nil || !reflect.DeepEqual(expected, actual) {
+		t.Errorf("LoadConf b64Arg, b64Env (but disabled) failed: [%v] != [%v] (err: %v)", expected, actual, err)
+	}
+	os.Unsetenv("YAML_VARS")
+	os.Unsetenv("YAML_VAR")
+
 	expected, _ = clconf.UnmarshalYaml("a: fileArg\nfileArg: 1")
-	actual, err = clconf.LoadConfFromEnvironment([]string{fileArg}, []string{}, nil)
+	actual, err = clconf.LoadConfFromEnvironment([]string{fileArg}, []string{})
 	if err != nil || !reflect.DeepEqual(expected, actual) {
 		t.Errorf("LoadConf fileArg failed: [%v] != [%v] (err: %v)", expected, actual, err)
 	}
 
 	os.Setenv("YAML_FILES", fileEnv)
 	expected, _ = clconf.UnmarshalYaml("a: fileEnv\nfileArg: 1\nfileEnv: 1")
-	actual, err = clconf.LoadConfFromEnvironment([]string{fileArg}, []string{}, nil)
+	actual, err = clconf.LoadConfFromEnvironment([]string{fileArg}, []string{})
 	if err != nil || !reflect.DeepEqual(expected, actual) {
 		t.Errorf("LoadConf fileArg, fileEnv failed: [%v] != [%v] (err: %v)", expected, actual, err)
 	}
@@ -390,7 +400,7 @@ func TestLoadConf(t *testing.T) {
 	os.Setenv("YAML_VARS", "YAML_VAR")
 	os.Setenv("YAML_FILES", fileEnv)
 	expected, _ = clconf.UnmarshalYaml("a: b64Env\nfileArg: 1\nfileEnv: 1\nb64Arg: 1\nb64Env: 1")
-	actual, err = clconf.LoadConfFromEnvironment([]string{fileArg}, []string{b64Arg}, nil)
+	actual, err = clconf.LoadConfFromEnvironment([]string{fileArg}, []string{b64Arg})
 	if err != nil || !reflect.DeepEqual(expected, actual) {
 		t.Errorf("LoadConf fileArg, fileEnv, b64Arg, b64Env failed: [%v] != [%v] (err: %v)", expected, actual, err)
 	}
@@ -407,7 +417,11 @@ func TestLoadConf(t *testing.T) {
 	os.Setenv("YAML_VARS", "YAML_VAR")
 	os.Setenv("YAML_FILES", fileEnv)
 	expected, _ = clconf.UnmarshalYaml("a: stdin\nfileArg: 1\nfileEnv: 1\nb64Arg: 1\nb64Env: 1\nstdin: 1")
-	actual, err = clconf.LoadConfFromEnvironment([]string{fileArg}, []string{b64Arg}, stdin)
+	actual, err = clconf.ConfSources{
+		Files:       []string{fileArg},
+		Overrides:   []string{b64Arg},
+		Environment: true,
+		Stream:      stdin}.Load()
 	if err != nil || !reflect.DeepEqual(expected, actual) {
 		t.Errorf("LoadConf all failed: [%v] != [%v] (err: %v)", expected, actual, err)
 	}
@@ -800,7 +814,7 @@ func TestUnmarshallSingleYaml(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to unmarshal; %v", err)
 		}
-		if actual, ok := yamlObj[0].(interface{}); !ok {
+		if actual, ok := yamlObj.(interface{}); !ok {
 			t.Errorf("%v not a scalar", yamlObj)
 		} else {
 			expected := "foo"
@@ -814,7 +828,7 @@ func TestUnmarshallSingleYaml(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to unmarshal; %v", err)
 		}
-		if actual, ok := yamlObj[0].(interface{}); !ok {
+		if actual, ok := yamlObj.(interface{}); !ok {
 			t.Errorf("%v not a scalar", yamlObj)
 		} else {
 			expected := 10
@@ -828,7 +842,7 @@ func TestUnmarshallSingleYaml(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to unmarshal; %v", err)
 		}
-		if actual, ok := yamlObj[0].([]interface{}); !ok {
+		if actual, ok := yamlObj.([]interface{}); !ok {
 			t.Errorf("%v not an slice", yamlObj)
 		} else {
 			expected := []interface{}{"bar", "baz"}

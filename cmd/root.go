@@ -13,12 +13,12 @@ var rootCmd = &cobra.Command{
 	Short: `A utility for merging multiple config files and extracting values using a path string`,
 	Long: `A utility for merging multiple config files and extracting values using a path string
 			the order of precedence from least to greatest is
-				--yaml
-				YAML_FILES
-				--yaml-base64
-				YAML_VARS
-				Standard Input
-				`,
+			--yaml
+			YAML_FILES
+			--yaml-base64
+			YAML_VARS
+			--stdin
+			`,
 	RunE: getv,
 }
 
@@ -50,17 +50,16 @@ func (c *rootContext) getPath(valuePath string) string {
 func (c *rootContext) getValue(path string) (interface{}, error) {
 	path = c.getPath(path)
 
-	var config map[interface{}]interface{}
-	var err error
-	var stream *os.File
+	confSources := clconf.ConfSources{
+		Files:       c.yaml,
+		Overrides:   c.yamlBase64,
+		Environment: !c.ignoreEnv,
+	}
 	if c.stdin {
-		stream = os.Stdin
+		confSources.Stream = os.Stdin
 	}
-	if c.ignoreEnv {
-		config, err = clconf.LoadConf(c.yaml, c.yamlBase64, stream)
-	} else {
-		config, err = clconf.LoadConfFromEnvironment(c.yaml, c.yamlBase64, stream)
-	}
+
+	config, err := confSources.Load()
 	if err != nil {
 		return nil, err
 	}

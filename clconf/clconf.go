@@ -23,6 +23,60 @@ import (
 // Splitter is the regex used to split YAML_FILES and YAML_VARS
 var Splitter = regexp.MustCompile(`,`)
 
+// ConfSources contains sources of yaml for loading. See Load() for more info
+type ConfSources struct {
+	Environment bool     // Environment loads config from environment vars
+	Files       []string // Filenames to read
+	Overrides   []string // Base64 encoded strings of yaml
+	Stream      io.Reader
+}
+
+// Load will load the config determined by settings in the struct. In order
+// of precedence (highest last), files, YAML_FILES env var, overrides,
+// YAML_VARS env var, stream.
+func (s ConfSources) Load() (map[interface{}]interface{}, error) {
+	files := s.Files
+	overrides := s.Overrides
+
+	if s.Environment {
+		if yamlFiles, ok := os.LookupEnv("YAML_FILES"); ok {
+			files = append(files, Splitter.Split(yamlFiles, -1)...)
+		}
+		if yamlVars, ok := os.LookupEnv("YAML_VARS"); ok {
+			envVars, err := ReadEnvVars(Splitter.Split(yamlVars, -1)...)
+			if err != nil {
+				return nil, err
+			}
+			overrides = append(overrides, envVars...)
+		}
+	}
+
+	yamls := []string{}
+	if len(files) > 0 {
+		moreYamls, err := ReadFiles(files...)
+		if err != nil {
+			return nil, err
+		}
+		yamls = append(yamls, moreYamls...)
+	}
+	if len(overrides) > 0 {
+		moreYamls, err := DecodeBase64Strings(overrides...)
+		if err != nil {
+			return nil, err
+		}
+		yamls = append(yamls, moreYamls...)
+	}
+	if s.Stream != nil {
+		streamYaml, err := ioutil.ReadAll(s.Stream)
+		if err != nil {
+			return nil, fmt.Errorf("Error reading stdin: %v", err)
+		}
+		yamls = append(yamls, string(streamYaml))
+	}
+
+	return UnmarshalYaml(yamls...)
+}
+
 // DecodeBase64Strings will decode all the base64 strings supplied
 func DecodeBase64Strings(values ...string) ([]string, error) {
 	var contents []string
@@ -111,49 +165,17 @@ func GetValue(conf interface{}, keyPath string) (interface{}, error) {
 }
 
 // LoadConf will load all configurations provided.  In order of precedence
-// (highest last), files, overrides, stream.
-func LoadConf(files []string, overrides []string, stream *os.File) (map[interface{}]interface{}, error) {
-	yamls := []string{}
-	if len(files) > 0 {
-		moreYamls, err := ReadFiles(files...)
-		if err != nil {
-			return nil, err
-		}
-		yamls = append(yamls, moreYamls...)
-	}
-	if len(overrides) > 0 {
-		moreYamls, err := DecodeBase64Strings(overrides...)
-		if err != nil {
-			return nil, err
-		}
-		yamls = append(yamls, moreYamls...)
-	}
-	if stream != nil {
-		streamYaml, err := ioutil.ReadAll(stream)
-		if err != nil {
-			return nil, fmt.Errorf("Error reading stdin: %v", err)
-		}
-		yamls = append(yamls, string(streamYaml))
-	}
+// (highest last), files, overrides.
+func LoadConf(files []string, overrides []string) (map[interface{}]interface{}, error) {
+	return ConfSources{Files: files, Overrides: overrides}.Load()
 
-	return UnmarshalYaml(yamls...)
 }
 
 // LoadConfFromEnvironment will load all configurations present.  In order
 // of precedence (highest last), files, YAML_FILES env var, overrides,
-// YAML_VARS env var, stream.
-func LoadConfFromEnvironment(files []string, overrides []string, stream *os.File) (map[interface{}]interface{}, error) {
-	if yamlFiles, ok := os.LookupEnv("YAML_FILES"); ok {
-		files = append(files, Splitter.Split(yamlFiles, -1)...)
-	}
-	if yamlVars, ok := os.LookupEnv("YAML_VARS"); ok {
-		envVars, err := ReadEnvVars(Splitter.Split(yamlVars, -1)...)
-		if err != nil {
-			return nil, err
-		}
-		overrides = append(overrides, envVars...)
-	}
-	return LoadConf(files, overrides, stream)
+// YAML_VARS env var.
+func LoadConfFromEnvironment(files []string, overrides []string) (map[interface{}]interface{}, error) {
+	return ConfSources{Files: files, Overrides: overrides, Environment: true}.Load()
 }
 
 // LoadSettableConfFromEnvironment loads configuration for setting.  Only one
@@ -174,7 +196,7 @@ func LoadSettableConfFromEnvironment(files []string) (string, map[interface{}]in
 		return files[0], map[interface{}]interface{}{}, nil
 	}
 
-	config, err := LoadConf(files, []string{}, nil)
+	config, err := LoadConf(files, []string{})
 	return files[0], config, err
 }
 
@@ -342,9 +364,16 @@ func ToKvMap(conf interface{}) map[string]string {
 	return kvMap
 }
 
-// UnmarshalSingleYaml will unmarshal a single yaml/json string without merging.
-// This form works for any yaml data, not just objects.
-func UnmarshalSingleYaml(yamlString string) ([]interface{}, error) {
+// UnmarshalSingleYaml will unmarshal the first yaml doc in a single yaml/json
+// string without merging. This form works for any yaml data, not just objects.
+func UnmarshalSingleYaml(yamlString string) (interface{}, error) {
+	results, err := UnmarshalAllYaml(yamlString)
+	return results[0], err
+}
+
+// UnmarshalAllYaml will unmarshal all yaml docs in a single yaml/json
+// string without merging. This form works for any yaml data, not just objects.
+func UnmarshalAllYaml(yamlString string) ([]interface{}, error) {
 	var results []interface{}
 	var err error
 	decoder := yaml.NewDecoder(strings.NewReader(yamlString))
@@ -368,7 +397,7 @@ func UnmarshalSingleYaml(yamlString string) ([]interface{}, error) {
 func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
 	var allYamls []interface{}
 	for _, yamlString := range yamlStrings {
-		yamls, err := UnmarshalSingleYaml(yamlString)
+		yamls, err := UnmarshalAllYaml(yamlString)
 		if err != nil {
 			return nil, err
 		}
