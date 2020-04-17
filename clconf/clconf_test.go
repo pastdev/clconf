@@ -332,59 +332,102 @@ func TestLoadConf(t *testing.T) {
 		}
 		os.Unsetenv("YAML_FILES")
 		os.Unsetenv("YAML_VARS")
+		os.Unsetenv("YAML_VAR")
 	}()
 
-	envValues := []string{base64.StdEncoding.EncodeToString([]byte("a: env"))}
+	envValues := []string{base64.StdEncoding.EncodeToString([]byte("a: env\nenv: env"))}
 	for index, name := range envVars {
 		os.Setenv(name, envValues[index])
 	}
 
-	fileVars := []string{path.Join(tempDir, "a")}
-	fileValues := []string{"a: file"}
-	for index, name := range fileVars {
-		ioutil.WriteFile(name, []byte(fileValues[index]), 0700)
-	}
+	stdinFile := path.Join(tempDir, "stdin")
+	ioutil.WriteFile(stdinFile, []byte("a: stdin\nstdin: 1"), 0700)
 
-	overrides := []string{base64.StdEncoding.EncodeToString([]byte("a: override"))}
+	fileArg := path.Join(tempDir, "fileArg")
+	ioutil.WriteFile(fileArg, []byte("a: fileArg\nfileArg: 1"), 0700)
+	fileEnv := path.Join(tempDir, "fileEnv")
+	ioutil.WriteFile(fileEnv, []byte("a: fileEnv\nfileEnv: 1"), 0700)
+
+	b64Arg := base64.StdEncoding.EncodeToString([]byte("a: b64Arg\nb64Arg: 1"))
+	b64Env := base64.StdEncoding.EncodeToString([]byte("a: b64Env\nb64Env: 1"))
 
 	actual, err := clconf.LoadConf([]string{}, []string{})
 	if err != nil || len(actual) > 0 {
 		t.Errorf("LoadConf no config failed")
 	}
 
-	expected, _ := clconf.UnmarshalYaml("a: override")
-	actual, err = clconf.LoadConf([]string{}, overrides)
+	expected, _ := clconf.UnmarshalYaml("a: b64Arg\nb64Arg: 1")
+	actual, err = clconf.LoadConfFromEnvironment([]string{}, []string{b64Arg})
 	if err != nil || !reflect.DeepEqual(expected, actual) {
-		t.Errorf("LoadConf overrides only failed: [%v] != [%v]", expected, actual)
+		t.Errorf("LoadConf b64Arg failed: [%v] != [%v] (err: %v)", expected, actual, err)
 	}
 
-	os.Setenv("YAML_FILES", fileVars[0])
-	expected, _ = clconf.UnmarshalYaml(fileValues[0])
-	actual, err = clconf.LoadConfFromEnvironment([]string{}, []string{})
+	os.Setenv("YAML_VAR", b64Env)
+	os.Setenv("YAML_VARS", "YAML_VAR")
+	expected, _ = clconf.UnmarshalYaml("a: b64Env\nb64Arg: 1\nb64Env: 1")
+	actual, err = clconf.LoadConfFromEnvironment([]string{}, []string{b64Arg})
 	if err != nil || !reflect.DeepEqual(expected, actual) {
-		t.Errorf("LoadConf files only failed: [%v] != [%v]", expected, actual)
+		t.Errorf("LoadConf b64Arg, b64Env failed: [%v] != [%v] (err: %v)", expected, actual, err)
+	}
+	os.Unsetenv("YAML_VARS")
+	os.Unsetenv("YAML_VAR")
+
+	os.Setenv("YAML_VAR", b64Env)
+	os.Setenv("YAML_VARS", "YAML_VAR")
+	expected, _ = clconf.UnmarshalYaml("a: b64Arg\nb64Arg: 1")
+	actual, err = clconf.LoadConf([]string{}, []string{b64Arg})
+	if err != nil || !reflect.DeepEqual(expected, actual) {
+		t.Errorf("LoadConf b64Arg, b64Env (but disabled) failed: [%v] != [%v] (err: %v)", expected, actual, err)
+	}
+	os.Unsetenv("YAML_VARS")
+	os.Unsetenv("YAML_VAR")
+
+	expected, _ = clconf.UnmarshalYaml("a: fileArg\nfileArg: 1")
+	actual, err = clconf.LoadConfFromEnvironment([]string{fileArg}, []string{})
+	if err != nil || !reflect.DeepEqual(expected, actual) {
+		t.Errorf("LoadConf fileArg failed: [%v] != [%v] (err: %v)", expected, actual, err)
+	}
+
+	os.Setenv("YAML_FILES", fileEnv)
+	expected, _ = clconf.UnmarshalYaml("a: fileEnv\nfileArg: 1\nfileEnv: 1")
+	actual, err = clconf.LoadConfFromEnvironment([]string{fileArg}, []string{})
+	if err != nil || !reflect.DeepEqual(expected, actual) {
+		t.Errorf("LoadConf fileArg, fileEnv failed: [%v] != [%v] (err: %v)", expected, actual, err)
 	}
 	os.Unsetenv("YAML_FILES")
 
-	os.Setenv("YAML_VARS", envVars[0])
-	base64Values, err := clconf.DecodeBase64Strings(envValues[0])
+	os.Setenv("YAML_VAR", b64Env)
+	os.Setenv("YAML_VARS", "YAML_VAR")
+	os.Setenv("YAML_FILES", fileEnv)
+	expected, _ = clconf.UnmarshalYaml("a: b64Env\nfileArg: 1\nfileEnv: 1\nb64Arg: 1\nb64Env: 1")
+	actual, err = clconf.LoadConfFromEnvironment([]string{fileArg}, []string{b64Arg})
 	if err != nil || !reflect.DeepEqual(expected, actual) {
-		t.Errorf("LoadConf env only failed decode: [%v]", err)
+		t.Errorf("LoadConf fileArg, fileEnv, b64Arg, b64Env failed: [%v] != [%v] (err: %v)", expected, actual, err)
 	}
-	expected, _ = clconf.UnmarshalYaml(base64Values...)
-	actual, err = clconf.LoadConfFromEnvironment([]string{}, []string{})
-	if err != nil || !reflect.DeepEqual(expected, actual) {
-		t.Errorf("LoadConf env only failed: [%v] != [%v]", expected, actual)
-	}
+	os.Unsetenv("YAML_FILES")
 	os.Unsetenv("YAML_VARS")
+	os.Unsetenv("YAML_VAR")
 
-	os.Setenv("YAML_FILES", fileVars[0])
-	os.Setenv("YAML_VARS", envVars[0])
-	expected, _ = clconf.UnmarshalYaml("a: override")
-	actual, err = clconf.LoadConf([]string{}, overrides)
-	if err != nil || !reflect.DeepEqual(expected, actual) {
-		t.Errorf("LoadConf all failed: [%v] != [%v]", expected, actual)
+	stdin, err := os.Open(stdinFile)
+	if err != nil {
+		t.Errorf("Error opening stdin file for reading")
 	}
+	defer stdin.Close()
+	os.Setenv("YAML_VAR", b64Env)
+	os.Setenv("YAML_VARS", "YAML_VAR")
+	os.Setenv("YAML_FILES", fileEnv)
+	expected, _ = clconf.UnmarshalYaml("a: stdin\nfileArg: 1\nfileEnv: 1\nb64Arg: 1\nb64Env: 1\nstdin: 1")
+	actual, err = clconf.ConfSources{
+		Files:       []string{fileArg},
+		Overrides:   []string{b64Arg},
+		Environment: true,
+		Stream:      stdin}.Load()
+	if err != nil || !reflect.DeepEqual(expected, actual) {
+		t.Errorf("LoadConf all failed: [%v] != [%v] (err: %v)", expected, actual, err)
+	}
+	os.Unsetenv("YAML_FILES")
+	os.Unsetenv("YAML_VARS")
+	os.Unsetenv("YAML_VAR")
 }
 
 func TestMarshalYaml(t *testing.T) {
@@ -815,6 +858,42 @@ func TestUnmarshalYaml(t *testing.T) {
 	merged, err := clconf.UnmarshalYaml(configMap, secrets)
 	if err != nil || !reflect.DeepEqual(merged, expected) {
 		t.Errorf("ConfigMap and Secrets failed: [%v] != [%v]", expected, merged)
+	}
+}
+
+func TestUnmarshalYamlMultipleDocs(t *testing.T) {
+	expected := map[interface{}]interface{}{
+		"a": "foo",
+		"b": "bar",
+		"c": "stuff",
+	}
+
+	merged, err := clconf.UnmarshalYaml("---\na: bar\n---\nb: bar", "---\na: foo\n---\nc: stuff")
+	if err != nil || !reflect.DeepEqual(merged, expected) {
+		t.Errorf("Multiple docs failed: [%v] != [%v]", expected, merged)
+	}
+}
+
+func TestUnmarshalYamlJson(t *testing.T) {
+	expected := map[interface{}]interface{}{
+		"a": "bar",
+	}
+
+	merged, err := clconf.UnmarshalYaml(`{"a": "bar",}`)
+	if err != nil || !reflect.DeepEqual(merged, expected) {
+		t.Errorf("Json failed: [%v] != [%v]: %v", expected, merged, err)
+	}
+}
+
+func TestUnmarshalYamlMultipleJsons(t *testing.T) {
+	expected := map[interface{}]interface{}{
+		"a": "bar",
+		"b": "foo",
+	}
+
+	merged, err := clconf.UnmarshalYaml("{\"a\": \"bar\",}\n---\n{\"b\": \"foo\"}")
+	if err != nil || !reflect.DeepEqual(merged, expected) {
+		t.Errorf("Multiple json failed: [%v] != [%v]: %v", expected, merged, err)
 	}
 }
 

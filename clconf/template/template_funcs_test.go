@@ -42,3 +42,18 @@ func TestFqdn(t *testing.T) {
 		}
 	}
 }
+
+func TestRegexReplace(t *testing.T) {
+	tests := [][]string{
+		[]string{".", "abc", "Z", "ZZZ"},
+		[]string{"a(.)c", "abc", "A${1}C", "AbC"},
+		[]string{"^a", "abca", "", "bca"},
+		[]string{"^abc$", "abc", "def", "def"},
+		[]string{"c", "ab\ncd", "C", "ab\nCd"},
+	}
+	for idx, test := range tests {
+		if actual, _ := template.RegexReplace(test[0], test[1], test[2]); actual != test[3] {
+			t.Errorf("RegexReplace %d failed: [%s] != [%s]", idx, actual, test[3])
+		}
+	}
+}

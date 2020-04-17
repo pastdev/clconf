@@ -10,7 +10,7 @@ func NewTestConfig() (interface{}, error) {
 	if err != nil {
 		return "", err
 	}
-	return unmarshalYaml(config)
+	return UnmarshalYaml(string(config))
 }
 
 func NewTestConfigContent() ([]byte, error) {

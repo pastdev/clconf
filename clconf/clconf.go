@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -21,6 +22,69 @@ import (
 
 // Splitter is the regex used to split YAML_FILES and YAML_VARS
 var Splitter = regexp.MustCompile(`,`)
+
+// ConfSources contains sources of yaml for loading. See Load() for precedence
+type ConfSources struct {
+	// Environment loads config from environment vars when true. The vars loaded
+	// are:
+	// YAML_FILES: comma separated values will be appended to Files
+	// YAML_VARS: comma separated values of other environment variables to read
+	// and whose base64 strings will be appended to Overrides
+	Environment bool
+	// Files is a list of filenames to read
+	Files []string
+	// Overrides are Base64 encoded strings of yaml
+	Overrides []string
+	// An optional (can be nil) stream to read raw yaml (potentially multiple
+	// inline documents)
+	Stream io.Reader
+}
+
+// Load will load the config determined by settings in the struct. In order
+// of precedence (highest last), Files, YAML_FILES env var, Overrides,
+// YAML_VARS env var, Stream.
+func (s ConfSources) Load() (map[interface{}]interface{}, error) {
+	files := s.Files
+	overrides := s.Overrides
+
+	if s.Environment {
+		if yamlFiles, ok := os.LookupEnv("YAML_FILES"); ok {
+			files = append(files, Splitter.Split(yamlFiles, -1)...)
+		}
+		if yamlVars, ok := os.LookupEnv("YAML_VARS"); ok {
+			envVars, err := ReadEnvVars(Splitter.Split(yamlVars, -1)...)
+			if err != nil {
+				return nil, err
+			}
+			overrides = append(overrides, envVars...)
+		}
+	}
+
+	yamls := []string{}
+	if len(files) > 0 {
+		moreYamls, err := ReadFiles(files...)
+		if err != nil {
+			return nil, err
+		}
+		yamls = append(yamls, moreYamls...)
+	}
+	if len(overrides) > 0 {
+		moreYamls, err := DecodeBase64Strings(overrides...)
+		if err != nil {
+			return nil, err
+		}
+		yamls = append(yamls, moreYamls...)
+	}
+	if s.Stream != nil {
+		streamYaml, err := ioutil.ReadAll(s.Stream)
+		if err != nil {
+			return nil, fmt.Errorf("Error reading stdin: %v", err)
+		}
+		yamls = append(yamls, string(streamYaml))
+	}
+
+	return UnmarshalYaml(yamls...)
+}
 
 // DecodeBase64Strings will decode all the base64 strings supplied
 func DecodeBase64Strings(values ...string) ([]string, error) {
@@ -112,40 +176,15 @@ func GetValue(conf interface{}, keyPath string) (interface{}, error) {
 // LoadConf will load all configurations provided.  In order of precedence
 // (highest last), files, overrides.
 func LoadConf(files []string, overrides []string) (map[interface{}]interface{}, error) {
-	yamls := []string{}
-	if len(files) > 0 {
-		moreYamls, err := ReadFiles(files...)
-		if err != nil {
-			return nil, err
-		}
-		yamls = append(yamls, moreYamls...)
-	}
-	if len(overrides) > 0 {
-		moreYamls, err := DecodeBase64Strings(overrides...)
-		if err != nil {
-			return nil, err
-		}
-		yamls = append(yamls, moreYamls...)
-	}
+	return ConfSources{Files: files, Overrides: overrides}.Load()
 
-	return UnmarshalYaml(yamls...)
 }
 
 // LoadConfFromEnvironment will load all configurations present.  In order
 // of precedence (highest last), files, YAML_FILES env var, overrides,
 // YAML_VARS env var.
 func LoadConfFromEnvironment(files []string, overrides []string) (map[interface{}]interface{}, error) {
-	if yamlFiles, ok := os.LookupEnv("YAML_FILES"); ok {
-		files = append(files, Splitter.Split(yamlFiles, -1)...)
-	}
-	if yamlVars, ok := os.LookupEnv("YAML_VARS"); ok {
-		envVars, err := ReadEnvVars(Splitter.Split(yamlVars, -1)...)
-		if err != nil {
-			return nil, err
-		}
-		overrides = append(overrides, envVars...)
-	}
-	return LoadConf(files, overrides)
+	return ConfSources{Files: files, Overrides: overrides, Environment: true}.Load()
 }
 
 // LoadSettableConfFromEnvironment loads configuration for setting.  Only one
@@ -334,40 +373,55 @@ func ToKvMap(conf interface{}) map[string]string {
 	return kvMap
 }
 
-// UnmarshalSingleYaml will unmarshal a single yaml/json string without merging.
-// This form works for any yaml data, not just objects.
+// UnmarshalSingleYaml will unmarshal the first yaml doc in a single yaml/json
+// string without merging. This form works for any yaml data, not just objects.
 func UnmarshalSingleYaml(yamlString string) (interface{}, error) {
-	var value interface{}
-	err := yaml.Unmarshal([]byte(yamlString), &value)
-	return value, err
+	results, err := UnmarshalAllYaml(yamlString)
+	return results[0], err
 }
 
-func unmarshalYaml(yamlBytes ...[]byte) (map[interface{}]interface{}, error) {
-	result := make(map[interface{}]interface{})
-	for index := len(yamlBytes) - 1; index >= 0; index-- {
-		yamlMap := make(map[interface{}]interface{})
-
-		err := yaml.Unmarshal(yamlBytes[index], &yamlMap)
-		if err != nil {
-			return nil, err
-		}
-
-		if err := mergo.Merge(&result, yamlMap); err != nil {
-			return nil, err
+// UnmarshalAllYaml will unmarshal all yaml docs in a single yaml/json
+// string without merging. This form works for any yaml data, not just objects.
+func UnmarshalAllYaml(yamlString string) ([]interface{}, error) {
+	var results []interface{}
+	var err error
+	decoder := yaml.NewDecoder(strings.NewReader(yamlString))
+	for err == nil {
+		var result interface{}
+		err = decoder.Decode(&result)
+		if err == nil {
+			results = append(results, result)
 		}
 	}
-	return result, nil
+
+	if err == io.EOF {
+		return results, nil
+	}
+	return results, err
 }
 
 // UnmarshalYaml will parse all the supplied yaml strings, merge the resulting
 // objects, and return the resulting map.  This only works for objects because
 // the merge requires objects.
 func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
-	yamlBytes := make([][]byte, len(yamlStrings))
-	for _, yaml := range yamlStrings {
-		yamlBytes = append(yamlBytes, []byte(yaml))
+	var allYamls []interface{}
+	for _, yamlString := range yamlStrings {
+		yamls, err := UnmarshalAllYaml(yamlString)
+		if err != nil {
+			return nil, err
+		}
+		if len(yamls) > 0 {
+			allYamls = append(allYamls, yamls...)
+		}
 	}
-	return unmarshalYaml(yamlBytes...)
+
+	result := make(map[interface{}]interface{})
+	for index := len(allYamls) - 1; index >= 0; index-- {
+		if err := mergo.Merge(&result, allYamls[index]); err != nil {
+			return nil, err
+		}
+	}
+	return result, nil
 }
 
 // Walk will recursively iterate over all the nodes of conf calling callback
