@@ -25,10 +25,13 @@ var Splitter = regexp.MustCompile(`,`)
 
 // ConfSources contains sources of yaml for loading. See Load() for more info
 type ConfSources struct {
-	Environment bool     // Environment loads config from environment vars
-	Files       []string // Filenames to read
-	Overrides   []string // Base64 encoded strings of yaml
-	Stream      io.Reader
+	// Environment loads config from environment vars
+	Environment bool
+	// Files to read
+	Files []string
+	// Overrides are Base64 encoded strings of yaml
+	Overrides []string
+	Stream    io.Reader
 }
 
 // Load will load the config determined by settings in the struct. In order
