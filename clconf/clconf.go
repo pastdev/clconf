@@ -23,20 +23,26 @@ import (
 // Splitter is the regex used to split YAML_FILES and YAML_VARS
 var Splitter = regexp.MustCompile(`,`)
 
-// ConfSources contains sources of yaml for loading. See Load() for more info
+// ConfSources contains sources of yaml for loading. See Load() for precedence
 type ConfSources struct {
-	// Environment loads config from environment vars
+	// Environment loads config from environment vars when true. The vars loaded
+	// are:
+	// YAML_FILES: comma separated values will be appended to Files
+	// YAML_VARS: comma separated values of other environment variables to read
+	// and whose base64 strings will be appended to Overrides
 	Environment bool
-	// Files to read
+	// Files is a list of filenames to read
 	Files []string
 	// Overrides are Base64 encoded strings of yaml
 	Overrides []string
-	Stream    io.Reader
+	// An optional (can be nil) stream to read raw yaml (potentially multiple
+	// inline documents)
+	Stream io.Reader
 }
 
 // Load will load the config determined by settings in the struct. In order
-// of precedence (highest last), files, YAML_FILES env var, overrides,
-// YAML_VARS env var, stream.
+// of precedence (highest last), Files, YAML_FILES env var, Overrides,
+// YAML_VARS env var, Stream.
 func (s ConfSources) Load() (map[interface{}]interface{}, error) {
 	files := s.Files
 	overrides := s.Overrides
