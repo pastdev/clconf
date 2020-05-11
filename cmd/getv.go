@@ -15,6 +15,7 @@ var getvCmdContext = &getvContext{
 type getvContext struct {
 	*rootContext
 	asJSON         bool
+	asKvJSON       bool
 	decrypt        []string
 	defaultValue   optionalString
 	template       optionalString
@@ -149,6 +150,8 @@ func init() {
 
 	getvCmd.Flags().BoolVar(&getvCmdContext.asJSON, "as-json", false,
 		"Prints value as json")
+	getvCmd.Flags().BoolVar(&getvCmdContext.asKvJSON, "as-kv-json", false,
+		"Prints value as json formatted key/value pairs")
 	getvCmd.Flags().StringArrayVarP(&getvCmdContext.decrypt, "decrypt", "", nil,
 		"A `list` of paths whose values needs to be decrypted")
 	getvCmd.Flags().VarP(&getvCmdContext.defaultValue, "default", "",
@@ -164,36 +167,37 @@ func init() {
 }
 
 func (c *getvContext) marshal(value interface{}) (string, error) {
-	if template, err := c.getTemplate(); err != nil {
+	template, err := c.getTemplate()
+	if err != nil {
 		return "", err
-	} else if template != nil {
+	}
+
+	if template != nil {
 		return template.Execute(value)
-	} else if stringValue, ok := value.(string); ok {
+	}
+
+	if stringValue, ok := value.(string); ok {
 		return stringValue, nil
-	} else if mapValue, ok := value.(map[interface{}]interface{}); ok {
+	}
+
+	_, mapOk := value.(map[interface{}]interface{})
+	_, arrayOk := value.([]interface{})
+
+	if mapOk || arrayOk {
 		var marshaled []byte
 		var err error
 		if c.asJSON {
-			marshaled, err = json.Marshal(convertMapIToMapS(mapValue))
+			marshaled, err = json.Marshal(convertMapIToMapS(value))
+		} else if c.asKvJSON {
+			marshaled, err = json.Marshal(clconf.ToKvMap(value))
 		} else {
-			marshaled, err = clconf.MarshalYaml(mapValue)
-		}
-		if err != nil {
-			return "", err
-		}
-		return string(marshaled), nil
-	} else if arrayValue, ok := value.([]interface{}); ok {
-		var marshaled []byte
-		var err error
-		if c.asJSON {
-			marshaled, err = json.Marshal(convertMapIToMapS(arrayValue))
-		} else {
-			marshaled, err = clconf.MarshalYaml(arrayValue)
+			marshaled, err = clconf.MarshalYaml(value)
 		}
 		if err != nil {
 			return "", err
 		}
 		return string(marshaled), nil
 	}
+
 	return fmt.Sprintf("%v", value), nil
 }
