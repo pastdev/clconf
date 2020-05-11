@@ -190,7 +190,7 @@ func testMarshal(t *testing.T, message, expected string, data interface{}, conte
 		t.Errorf("testMarshal %s execute failed: %s", message, err)
 	}
 
-	if !context.template.set && !context.templateBase64.set && !context.templateString.set {
+	if !context.pretty && !context.template.set && !context.templateBase64.set && !context.templateString.set {
 		assertYamlEqual(t, fmt.Sprintf("testMarshal (yaml) %s", message), expected, actual)
 	} else {
 		if expected != actual {
@@ -222,6 +222,55 @@ func TestMarshal(t *testing.T) {
 		context)
 }
 
+func TestMarshalJSON(t *testing.T) {
+	context := getvContext{}
+	context.asJSON = true
+
+	testMarshal(t, "scalar", "foo", "foo", context)
+	testMarshal(t, "scalar number", "1", 1, context)
+	testMarshal(t, "list",
+		"- bar\n- baz",
+		[]interface{}{"bar", "baz"},
+		context)
+	testMarshal(t, "map",
+		"foo: bar\nhip: hop",
+		map[interface{}]interface{}{"foo": "bar", "hip": "hop"},
+		context)
+	testMarshal(t, "map with list",
+		"foo:\n- bar\n- baz",
+		map[interface{}]interface{}{"foo": []interface{}{"bar", "baz"}},
+		context)
+	testMarshal(t, "map with sub-map",
+		"foo:\n  bar:\n    baz",
+		map[interface{}]interface{}{"foo": map[interface{}]interface{}{"bar": "baz"}},
+		context)
+}
+
+func TestMarshalJSONPretty(t *testing.T) {
+	context := getvContext{}
+	context.asJSON = true
+	context.pretty = true
+
+	testMarshal(t, "scalar", "foo", "foo", context)
+	testMarshal(t, "scalar number", "1", 1, context)
+	testMarshal(t, "list",
+		"[\n  \"bar\",\n  \"baz\"\n]",
+		[]interface{}{"bar", "baz"},
+		context)
+	testMarshal(t, "map",
+		"{\n  \"foo\": \"bar\",\n  \"hip\": \"hop\"\n}",
+		map[interface{}]interface{}{"foo": "bar", "hip": "hop"},
+		context)
+	testMarshal(t, "map with list",
+		"{\n  \"foo\": [\n    \"bar\",\n    \"baz\"\n  ]\n}",
+		map[interface{}]interface{}{"foo": []interface{}{"bar", "baz"}},
+		context)
+	testMarshal(t, "map with sub-map",
+		"{\n  \"foo\": {\n    \"bar\": \"baz\"\n  }\n}",
+		map[interface{}]interface{}{"foo": map[interface{}]interface{}{"bar": "baz"}},
+		context)
+}
+
 func TestMarshalKvJSON(t *testing.T) {
 	context := getvContext{}
 	context.asKvJSON = true
@@ -231,6 +280,20 @@ func TestMarshalKvJSON(t *testing.T) {
 		context)
 	testMarshal(t, "kvjson map with sub-map",
 		"/foo/bar: baz",
+		map[interface{}]interface{}{"foo": map[interface{}]interface{}{"bar": "baz"}},
+		context)
+}
+
+func TestMarshalPrettyKvJSON(t *testing.T) {
+	context := getvContext{}
+	context.pretty = true
+	context.asKvJSON = true
+	testMarshal(t, "kvjson map with list",
+		"{\n\"/foo/0\": \"bar\",\n\"/foo/1\": \"baz\"\n}",
+		map[interface{}]interface{}{"foo": []interface{}{"bar", "baz"}},
+		context)
+	testMarshal(t, "kvjson map with sub-map",
+		"{\n\"/foo/bar\": \"baz\"\n}",
 		map[interface{}]interface{}{"foo": map[interface{}]interface{}{"bar": "baz"}},
 		context)
 }
