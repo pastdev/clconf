@@ -191,7 +191,7 @@ func testMarshal(t *testing.T, message, expected string, data interface{}, conte
 	}
 
 	if !context.template.set && !context.templateBase64.set && !context.templateString.set {
-		assertYamlEqual(t, fmt.Sprintf("testMarshal %s", message), expected, actual)
+		assertYamlEqual(t, fmt.Sprintf("testMarshal (yaml) %s", message), expected, actual)
 	} else {
 		if expected != actual {
 			t.Errorf("testMarshal %s: %s != %s", message, expected, actual)
@@ -218,6 +218,19 @@ func TestMarshal(t *testing.T) {
 		context)
 	testMarshal(t, "map with sub-map",
 		"foo:\n  bar:\n    baz",
+		map[interface{}]interface{}{"foo": map[interface{}]interface{}{"bar": "baz"}},
+		context)
+}
+
+func TestMarshalKvJSON(t *testing.T) {
+	context := getvContext{}
+	context.asKvJSON = true
+	testMarshal(t, "kvjson map with list",
+		"/foo/0: bar\n/foo/1: baz",
+		map[interface{}]interface{}{"foo": []interface{}{"bar", "baz"}},
+		context)
+	testMarshal(t, "kvjson map with sub-map",
+		"/foo/bar: baz",
 		map[interface{}]interface{}{"foo": map[interface{}]interface{}{"bar": "baz"}},
 		context)
 }
