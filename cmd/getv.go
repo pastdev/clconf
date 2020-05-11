@@ -18,6 +18,7 @@ type getvContext struct {
 	asKvJSON       bool
 	decrypt        []string
 	defaultValue   optionalString
+	pretty         bool
 	template       optionalString
 	templateBase64 optionalString
 	templateString optionalString
@@ -156,6 +157,8 @@ func init() {
 		"A `list` of paths whose values needs to be decrypted")
 	getvCmd.Flags().VarP(&getvCmdContext.defaultValue, "default", "",
 		"The value to be returned if the specified path does not exist (otherwise results in an error).")
+	getvCmd.Flags().BoolVar(&getvCmdContext.pretty, "pretty", false,
+		"Pretty prints json output")
 	getvCmd.Flags().VarP(&getvCmdContext.template, "template", "",
 		"A go template file that will be executed against the resulting data.")
 	getvCmd.Flags().VarP(&getvCmdContext.templateBase64, "template-base64", "",
@@ -187,9 +190,17 @@ func (c *getvContext) marshal(value interface{}) (string, error) {
 		var marshaled []byte
 		var err error
 		if c.asJSON {
-			marshaled, err = json.Marshal(convertMapIToMapS(value))
+			if c.pretty {
+				marshaled, err = json.MarshalIndent(convertMapIToMapS(value), "", "  ")
+			} else {
+				marshaled, err = json.Marshal(convertMapIToMapS(value))
+			}
 		} else if c.asKvJSON {
-			marshaled, err = json.Marshal(clconf.ToKvMap(value))
+			if c.pretty {
+				marshaled, err = json.MarshalIndent(clconf.ToKvMap(value), "", "")
+			} else {
+				marshaled, err = json.Marshal(clconf.ToKvMap(value))
+			}
 		} else {
 			marshaled, err = clconf.MarshalYaml(value)
 		}
