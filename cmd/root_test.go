@@ -214,6 +214,24 @@ func Example_var() {
 	// /foo="bar"
 }
 
+func Example_varForceArray() {
+	newCmd("var", "/foo", "bar", "--force-array").Execute()
+	// Output:
+	// /foo=["bar"]
+}
+
+func Example_varValueOnly() {
+	newCmd("var", "/foo", "bar", "--value-only").Execute()
+	// Output:
+	// "bar"
+}
+
+func Example_varForceArrayValueOnly() {
+	newCmd("var", "/foo", "bar", "--force-array", "--value-only").Execute()
+	// Output:
+	// ["bar"]
+}
+
 func Example_varArray() {
 	newCmd("var", "/foo", "bar", "baz").Execute()
 	// Output:
@@ -246,6 +264,30 @@ func Example_getvStringAsJson() {
 	newCmd("getv", "--var", `/foo="bar"`, "/foo", "--as-json").Execute()
 	// Output:
 	// "bar"
+}
+
+func Example_getvScalarAsBashArray() {
+	newCmd("getv", "--var", `/a="bar"`, "/a", "--as-bash-array").Execute()
+	// Output:
+	// ([0]="bar")
+}
+
+func Example_getvArrayAsBashArray() {
+	newCmd("getv", "--var", `/a=["foo","bar"]`, "/a", "--as-bash-array").Execute()
+	// Output:
+	// ([0]="foo" [1]="bar")
+}
+
+func Example_getvMapAsBashArray() {
+	newCmd("getv", "--var", `/a={"foo":"bar","hip":"hop"}`, "/a", "--as-bash-array").Execute()
+	// Output:
+	// ([0]="{\"key\":\"foo\",\"value\":\"bar\"}" [1]="{\"key\":\"hip\",\"value\":\"hop\"}")
+}
+
+func Example_getvArrayOfObjectsAsBashArray() {
+	newCmd("getv", "--var", `/a=[{"foo":"bar"},{"hip":"hop"}]`, "/a", "--as-bash-array").Execute()
+	// Output:
+	// ([0]="{\"foo\":\"bar\"}" [1]="{\"hip\":\"hop\"}")
 }
 
 func newCmd(args ...string) *cobra.Command {

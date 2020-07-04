@@ -53,6 +53,11 @@ func (c *rootContext) getValue(path string) (interface{}, error) {
 
 	for _, v := range c.vars {
 		keyValue := strings.SplitN(v, "=", 2)
+		if len(keyValue) != 2 {
+			return nil, fmt.Errorf(
+				"failed to parse var, expected `/key/path=\"jsonValue\"`, found: %s",
+				v)
+		}
 		key := keyValue[0]
 
 		value, err := clconf.UnmarshalSingleYaml(keyValue[1])

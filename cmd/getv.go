@@ -3,6 +3,8 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/pastdev/clconf/v2/clconf"
 	"github.com/spf13/cobra"
@@ -12,6 +14,7 @@ type getvContext struct {
 	*rootContext
 	asJSON         bool
 	asKvJSON       bool
+	asBashArray    bool
 	decrypt        []string
 	defaultValue   optionalString
 	pretty         bool
@@ -21,6 +24,11 @@ type getvContext struct {
 }
 
 func (c *getvContext) addFlags(cmd *cobra.Command) {
+	cmd.Flags().BoolVar(
+		&c.asBashArray,
+		"as-bash-array",
+		false,
+		"Prints value in format compatable with bash `declare -a`")
 	cmd.Flags().BoolVar(
 		&c.asJSON,
 		"as-json",
@@ -147,6 +155,10 @@ func (c *getvContext) getValue(path string) (interface{}, error) {
 }
 
 func (c *getvContext) marshal(value interface{}) (string, error) {
+	if c.asBashArray {
+		return c.marshalBashArray(value)
+	}
+
 	template, err := c.getTemplate()
 	if err != nil {
 		return "", err
@@ -194,6 +206,56 @@ func (c *getvContext) marshal(value interface{}) (string, error) {
 	return fmt.Sprintf("%v", value), nil
 }
 
+func (c *getvContext) marshalBashArray(value interface{}) (string, error) {
+	copy := *c
+	copy.asJSON = true
+	copy.asBashArray = false
+
+	values := []string{}
+	switch v := value.(type) {
+	case []interface{}:
+		for i, val := range v {
+			val, err := copy.marshal(val)
+			if err != nil {
+				return "", fmt.Errorf("unable to marshal value at %d: %v", i, err)
+			}
+			values = append(values, val)
+		}
+	case map[interface{}]interface{}:
+		keys := []string{}
+		for key, val := range v {
+			keys = append(keys, fmt.Sprintf("%s", key))
+			val, err := copy.marshal(map[interface{}]interface{}{"key": key, "value": val})
+			if err != nil {
+				return "", fmt.Errorf("unable to marshal value at %s: %v", key, err)
+			}
+			values = append(values, val)
+		}
+		sort.Slice(values, func(i, j int) bool { return keys[i] < keys[j] })
+	default:
+		val, err := copy.marshal(value)
+		if err != nil {
+			return "", fmt.Errorf("unable to marshal value: %v", err)
+		}
+		values = append(values, val)
+	}
+
+	first := true
+	var builder strings.Builder
+	builder.WriteString("(")
+	for i, val := range values {
+		if first {
+			first = false
+		} else {
+			builder.WriteString(" ")
+		}
+		builder.WriteString(fmt.Sprintf("[%d]=%s", i, bashEscape(val)))
+	}
+	builder.WriteString(")")
+
+	return builder.String(), nil
+}
+
 func cgetvCmd(rootCmdContext *rootContext) *cobra.Command {
 	var cmdContext = &getvContext{
 		rootContext: rootCmdContext,
@@ -211,6 +273,25 @@ func cgetvCmd(rootCmdContext *rootContext) *cobra.Command {
 	cmdContext.addFlags(cmd)
 
 	return cmd
+}
+
+func bashEscape(s string) string {
+	// if already quoted, nothing to do
+	if s[0] == '"' {
+		return s
+	}
+
+	var builder strings.Builder
+	builder.WriteRune('"')
+	for _, r := range s {
+		if r == '"' {
+			builder.WriteRune('\\')
+		}
+		builder.WriteRune(r)
+	}
+	builder.WriteRune('"')
+
+	return builder.String()
 }
 
 // json serialization requires string keys, but yaml deserialization creates

@@ -96,7 +96,28 @@ To get:
 #### Convert Bash Array to JSON
 
 ```bash
-clconf --var "$(clconf var /foo "$@")" getv /foo --as-json
+arr=(a b)
+
+# always use the `--` to ensure none of the arguments get consumed by clconf
+clconf var -- /foo "${arr[@]}" # /foo=["a","b"]
+
+# note that with --value-only the / is ignored and can be anything
+clconf --value-only -- / "${arr[@]}" # ["a","b"]
+
+# can force single values into array
+clconf --force-array -- /root/arr "foo" # /root/arr=["foo"]
+```
+
+#### Convert JSON Aray to Bash
+
+```bash
+# clconf getv --as-bash array will print out '([0]="foo bar" [1]="hip hop")'
+# which bash's declare -a can turn into an array.  using --var here for
+# simplicity but any yaml/json source will do.
+declare -a arr="$(clconf --var '/a=["foo bar", "hip hop"]' getv /a --as-bash-array)"
+for i in "${arr[@]}"; do
+  printf '<<<%s>>>' "$i"
+done # prints out <<<foo bar>>><<<hip hop>>>
 ```
 
 #### Getv Templates
@@ -224,7 +245,7 @@ the code that uses them.  For example, you could create a new config
 file:
 
 ```yaml
-db: 
+db:
   url: jdbc.mysql:localhost:3306/mydb
 ```
 
