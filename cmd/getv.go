@@ -21,21 +21,43 @@ type getvContext struct {
 }
 
 func (c *getvContext) addFlags(cmd *cobra.Command) {
-	cmd.Flags().BoolVar(&c.asJSON, "as-json", false,
+	cmd.Flags().BoolVar(
+		&c.asJSON,
+		"as-json",
+		false,
 		"Prints value as json")
-	cmd.Flags().BoolVar(&c.asKvJSON, "as-kv-json", false,
+	cmd.Flags().BoolVar(
+		&c.asKvJSON,
+		"as-kv-json",
+		false,
 		"Prints value as json formatted key/value pairs")
-	cmd.Flags().StringArrayVarP(&c.decrypt, "decrypt", "", nil,
+	cmd.Flags().StringArrayVar(
+		&c.decrypt,
+		"decrypt",
+		nil,
 		"A `list` of paths whose values needs to be decrypted")
-	cmd.Flags().VarP(&c.defaultValue, "default", "",
-		"The value to be returned if the specified path does not exist (otherwise results in an error).")
-	cmd.Flags().BoolVar(&c.pretty, "pretty", false,
+	cmd.Flags().Var(
+		&c.defaultValue,
+		"default",
+		`The value to be returned if the specified path does not exist (otherwise results in an
+error).`)
+	cmd.Flags().BoolVar(
+		&c.pretty,
+		"pretty",
+		false,
 		"Pretty prints json output")
-	cmd.Flags().VarP(&c.template, "template", "",
+	cmd.Flags().Var(
+		&c.template,
+		"template",
 		"A go template file that will be executed against the resulting data.")
-	cmd.Flags().VarP(&c.templateBase64, "template-base64", "",
-		"A base64 encoded string containing a go template that will be executed against the resulting data.")
-	cmd.Flags().VarP(&c.templateString, "template-string", "",
+	cmd.Flags().Var(
+		&c.templateBase64,
+		"template-base64",
+		`A base64 encoded string containing a go template that will be executed against the
+resulting data.`)
+	cmd.Flags().Var(
+		&c.templateString,
+		"template-string",
 		"A string containing a go template that will be executed against the resulting data.")
 }
 
