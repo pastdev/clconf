@@ -108,7 +108,9 @@ clconf --value-only -- / "${arr[@]}" # ["a","b"]
 clconf --force-array -- /root/arr "foo" # /root/arr=["foo"]
 ```
 
-#### Convert JSON Aray to Bash
+#### Convert JSON Array to Bash
+
+Allows for iteration:
 
 ```bash
 # clconf getv --as-bash array will print out '([0]="foo bar" [1]="hip hop")'
@@ -118,6 +120,15 @@ declare -a arr="$(clconf --var '/a=["foo bar", "hip hop"]' getv /a --as-bash-arr
 for i in "${arr[@]}"; do
   printf '<<<%s>>>' "$i"
 done # prints out <<<foo bar>>><<<hip hop>>>
+```
+
+Also allows for iteration over maps:
+
+```bash
+declare -a arr="$(clconf --var '/a={"foo": "bar","hip":"hop"}' getv /a --as-bash-array)"
+for i in "${arr[@]}"; do
+  printf '<<<%s>>>' "$i"
+done # <<<{"key":"foo","value":"bar"}>>><<<{"key":"hip","value":"hop"}>>>
 ```
 
 #### Getv Templates
