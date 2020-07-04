@@ -9,10 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var setvCmdContext = &setvContext{
-	rootContext: rootCmdContext,
-}
-
 type setvContext struct {
 	*rootContext
 	base64Value    bool
@@ -22,39 +18,55 @@ type setvContext struct {
 	yamlValue      bool
 }
 
-var csetvCmd = &cobra.Command{
-	Use:   "csetv key value [options]",
-	Short: "Set PATH to the encrypted value of VALUE in the file indicated by the global option --yaml (must be single valued).  Simply an alias to `setv --encrypt`",
-	RunE:  csetv,
+func csetvCmd(rootCmdContext *rootContext) *cobra.Command {
+	var cmdContext = &setvContext{
+		rootContext: rootCmdContext,
+	}
+
+	var cmd = &cobra.Command{
+		Use:   "csetv key value [options]",
+		Short: "Set PATH to the encrypted value of VALUE in the file indicated by the global option --yaml (must be single valued).  Simply an alias to `setv --encrypt`",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmdContext.encrypt = true
+			return cmdContext.setValue(args[0], args[1])
+		},
+	}
+
+	cmdContext.addFlags(cmd)
+
+	return cmd
 }
 
-var setvCmd = &cobra.Command{
-	Use:   "setv key value [options]",
-	Short: "Set PATH to VALUE in the file indicated by the global option --yaml (must be single valued).",
-	Args:  cobra.ExactArgs(2),
-	RunE:  setv,
+func setvCmd(rootCmdContext *rootContext) *cobra.Command {
+	var cmdContext = &setvContext{
+		rootContext: rootCmdContext,
+	}
+
+	var cmd = &cobra.Command{
+		Use:   "setv key value [options]",
+		Short: "Set PATH to VALUE in the file indicated by the global option --yaml (must be single valued).",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmdContext.setValue(args[0], args[1])
+		},
+	}
+
+	cmdContext.addFlags(cmd)
+
+	return cmd
 }
 
-func csetv(cmd *cobra.Command, args []string) error {
-	setvCmdContext.encrypt = true
-	return setv(cmd, args)
-}
-
-func init() {
-	rootCmd.AddCommand(setvCmd, csetvCmd)
-
-	setvCmd.Flags().BoolVarP(&setvCmdContext.encrypt, "encrypt", "", false,
+func (c *setvContext) addFlags(cmd *cobra.Command) {
+	cmd.Flags().BoolVarP(&c.encrypt, "encrypt", "", false,
 		"Encrypt the value")
-	setvCmd.Flags().BoolVarP(&setvCmdContext.base64Value, "base64-value", "", false,
+	cmd.Flags().BoolVarP(&c.base64Value, "base64-value", "", false,
 		"The value is base64 encoded")
-	setvCmd.Flags().BoolVarP(&setvCmdContext.mergeOverwrite, "merge-overwrite", "", false,
+	cmd.Flags().BoolVarP(&c.mergeOverwrite, "merge-overwrite", "", false,
 		"Merged values should overwrite existing values (not used unless --merge)")
-	setvCmd.Flags().BoolVarP(&setvCmdContext.merge, "merge", "", false,
+	cmd.Flags().BoolVarP(&c.merge, "merge", "", false,
 		"Values should be merged rather than overwrite at path")
-	setvCmd.Flags().BoolVarP(&setvCmdContext.yamlValue, "yaml-value", "", false,
+	cmd.Flags().BoolVarP(&c.yamlValue, "yaml-value", "", false,
 		"The value is yaml/json")
-
-	csetvCmd.Flags().AddFlagSet(setvCmd.Flags())
 }
 
 func (c *setvContext) setValue(key, value string) error {
@@ -117,8 +129,4 @@ func (c *setvContext) setValue(key, value string) error {
 	}
 
 	return nil
-}
-
-func setv(cmd *cobra.Command, args []string) error {
-	return setvCmdContext.setValue(args[0], args[1])
 }

@@ -8,14 +8,12 @@ import (
 
 var version = "0.0.0"
 
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Display clconf version",
-	Run: func(command *cobra.Command, args []string) {
-		fmt.Printf("Version: %s\n", version)
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(versionCmd)
+func versionCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "version",
+		Short: "Display clconf version",
+		Run: func(command *cobra.Command, args []string) {
+			fmt.Printf("Version: %s\n", version)
+		},
+	}
 }

@@ -15,11 +15,12 @@ func TestTemplateCmd(t *testing.T) {
 	defer os.RemoveAll(temp)
 
 	testDataPath := filepath.Join("..", "testdata")
-	rootCmd.SetArgs([]string{"template",
+	cmd := rootCmd()
+	cmd.SetArgs([]string{"template",
 		"--yaml", filepath.Join(testDataPath, "testconfig.yml"),
 		testDataPath, temp})
 
-	if err = rootCmd.Execute(); err != nil {
+	if err = cmd.Execute(); err != nil {
 		t.Errorf("Execute failed: %v", err)
 	}
 

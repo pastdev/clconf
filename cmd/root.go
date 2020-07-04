@@ -8,22 +8,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "clconf [global options] command [command options] [args...]",
-	Short: `A utility for merging multiple config files and extracting values using a path string`,
-	Long: `A utility for merging multiple config files and extracting values using a path string
-			the order of precedence from least to greatest is
-			--yaml
-			YAML_FILES
-			--yaml-base64
-			YAML_VARS
-			--stdin
-			`,
-	RunE: getv,
-}
-
-var rootCmdContext = &rootContext{}
-
 type rootContext struct {
 	ignoreEnv           bool
 	prefix              optionalString
@@ -67,26 +51,54 @@ func (c *rootContext) getValue(path string) (interface{}, error) {
 	return clconf.GetValue(config, path)
 }
 
-func init() {
-	rootCmd.PersistentFlags().BoolVar(&rootCmdContext.ignoreEnv, "ignore-env", false,
+func rootCmd() *cobra.Command {
+	var c = &rootContext{}
+
+	var cmd = &cobra.Command{
+		Use:   "clconf [global options] command [command options] [args...]",
+		Short: `A utility for merging multiple config files and extracting values using a path string`,
+		Long: `A utility for merging multiple config files and extracting values using a path string
+				the order of precedence from least to greatest is
+				--yaml
+				YAML_FILES
+				--yaml-base64
+				YAML_VARS
+				--stdin
+				`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return (&getvContext{rootContext: c}).getv(cmd, args)
+		},
+	}
+
+	cmd.PersistentFlags().BoolVar(&c.ignoreEnv, "ignore-env", false,
 		"Tells clconf to use only command options (not environment variable equivalents).")
-	rootCmd.PersistentFlags().VarP(&rootCmdContext.prefix, "prefix", "",
+	cmd.PersistentFlags().VarP(&c.prefix, "prefix", "",
 		"Prepended to all getv/setv paths (env: CONFIG_PREFIX)")
-	rootCmd.PersistentFlags().VarP(&rootCmdContext.secretKeyring, "secret-keyring", "",
+	cmd.PersistentFlags().VarP(&c.secretKeyring, "secret-keyring", "",
 		"Path to a gpg secring file (env: SECRET_KEYRING)")
-	rootCmd.PersistentFlags().VarP(&rootCmdContext.secretKeyringBase64, "secret-keyring-base64", "",
+	cmd.PersistentFlags().VarP(&c.secretKeyringBase64, "secret-keyring-base64", "",
 		"Base64 encoded gpg secring (env: SECRET_KEYRING_BASE64)")
-	rootCmd.PersistentFlags().BoolVar(&rootCmdContext.stdin, "stdin", false,
+	cmd.PersistentFlags().BoolVar(&c.stdin, "stdin", false,
 		"Read one or more yaml documents from stdin. Last document takes precedence when merged.")
-	rootCmd.PersistentFlags().StringArrayVarP(&rootCmdContext.yaml, "yaml", "", nil,
+	cmd.PersistentFlags().StringArrayVarP(&c.yaml, "yaml", "", nil,
 		"A `list` of yaml files containing config (env: YAML_FILES).  If specified, YAML_FILES will be split on ',' and appended to this option.  Last defined value takes precedence when merged.")
-	rootCmd.PersistentFlags().StringArrayVarP(&rootCmdContext.yamlBase64, "yaml-base64", "", nil,
+	cmd.PersistentFlags().StringArrayVarP(&c.yamlBase64, "yaml-base64", "", nil,
 		"A `list` of base 64 encoded yaml strings containing config (env: YAML_VARS).  If specified, YAML_VARS will be split on ',' and each value will be used to load a base64 string from an environtment variable of that name.  The values will be appended to this option.  Last defined value takes precedence when merged")
+
+	cmd.AddCommand(
+		cgetvCmd(c),
+		csetvCmd(c),
+		getvCmd(c),
+		setvCmd(c),
+		templateCmd(c),
+		versionCmd())
+
+	return cmd
 }
 
 // Execute runs the root command
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	if err := rootCmd().Execute(); err != nil {
 		if e, ok := err.(*exitError); ok {
 			os.Exit(e.exitCode)
 		}

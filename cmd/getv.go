@@ -8,10 +8,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var getvCmdContext = &getvContext{
-	rootContext: rootCmdContext,
-}
-
 type getvContext struct {
 	*rootContext
 	asJSON         bool
@@ -24,41 +20,23 @@ type getvContext struct {
 	templateString optionalString
 }
 
-var cgetvCmd = &cobra.Command{
-	Use:   "cgetv [options]",
-	Short: "Get a secret value.  Simply an alias to `getv --decrypt /`",
-	RunE:  cgetv,
-}
-
-var getvCmd = &cobra.Command{
-	Use:   "getv [options]",
-	Short: "Get a value",
-	RunE:  getv,
-}
-
-func cgetv(cmd *cobra.Command, args []string) error {
-	getvCmdContext.decrypt = []string{"/"}
-	return getv(cmd, args)
-}
-
-// json serialization requires string keys, but yaml deserialization creates
-// interface{} keys.  This function converts the keys to strings so json can
-// marshal the value
-//   https://stackoverflow.com/a/40737676/516433
-func convertMapIToMapS(mapI interface{}) interface{} {
-	switch x := mapI.(type) {
-	case map[interface{}]interface{}:
-		m2 := map[string]interface{}{}
-		for k, v := range x {
-			m2[k.(string)] = convertMapIToMapS(v)
-		}
-		return m2
-	case []interface{}:
-		for i, v := range x {
-			x[i] = convertMapIToMapS(v)
-		}
-	}
-	return mapI
+func (c *getvContext) addFlags(cmd *cobra.Command) {
+	cmd.Flags().BoolVar(&c.asJSON, "as-json", false,
+		"Prints value as json")
+	cmd.Flags().BoolVar(&c.asKvJSON, "as-kv-json", false,
+		"Prints value as json formatted key/value pairs")
+	cmd.Flags().StringArrayVarP(&c.decrypt, "decrypt", "", nil,
+		"A `list` of paths whose values needs to be decrypted")
+	cmd.Flags().VarP(&c.defaultValue, "default", "",
+		"The value to be returned if the specified path does not exist (otherwise results in an error).")
+	cmd.Flags().BoolVar(&c.pretty, "pretty", false,
+		"Pretty prints json output")
+	cmd.Flags().VarP(&c.template, "template", "",
+		"A go template file that will be executed against the resulting data.")
+	cmd.Flags().VarP(&c.templateBase64, "template-base64", "",
+		"A base64 encoded string containing a go template that will be executed against the resulting data.")
+	cmd.Flags().VarP(&c.templateString, "template-string", "",
+		"A string containing a go template that will be executed against the resulting data.")
 }
 
 func (c *getvContext) getTemplate() (*clconf.Template, error) {
@@ -92,18 +70,18 @@ func (c *getvContext) getTemplate() (*clconf.Template, error) {
 	return tmpl, err
 }
 
-func getv(cmd *cobra.Command, args []string) error {
+func (c *getvContext) getv(cmd *cobra.Command, args []string) error {
 	var path string
 	if len(args) > 0 {
 		path = args[0]
 	}
 
-	value, err := getvCmdContext.getValue(path)
+	value, err := c.getValue(path)
 	if err != nil {
 		return err
 	}
 
-	value, err = getvCmdContext.marshal(value)
+	value, err = c.marshal(value)
 	if err != nil {
 		return err
 	}
@@ -144,29 +122,6 @@ func (c *getvContext) getValue(path string) (interface{}, error) {
 		}
 	}
 	return value, nil
-}
-
-func init() {
-	rootCmd.AddCommand(getvCmd, cgetvCmd)
-
-	getvCmd.Flags().BoolVar(&getvCmdContext.asJSON, "as-json", false,
-		"Prints value as json")
-	getvCmd.Flags().BoolVar(&getvCmdContext.asKvJSON, "as-kv-json", false,
-		"Prints value as json formatted key/value pairs")
-	getvCmd.Flags().StringArrayVarP(&getvCmdContext.decrypt, "decrypt", "", nil,
-		"A `list` of paths whose values needs to be decrypted")
-	getvCmd.Flags().VarP(&getvCmdContext.defaultValue, "default", "",
-		"The value to be returned if the specified path does not exist (otherwise results in an error).")
-	getvCmd.Flags().BoolVar(&getvCmdContext.pretty, "pretty", false,
-		"Pretty prints json output")
-	getvCmd.Flags().VarP(&getvCmdContext.template, "template", "",
-		"A go template file that will be executed against the resulting data.")
-	getvCmd.Flags().VarP(&getvCmdContext.templateBase64, "template-base64", "",
-		"A base64 encoded string containing a go template that will be executed against the resulting data.")
-	getvCmd.Flags().VarP(&getvCmdContext.templateString, "template-string", "",
-		"A string containing a go template that will be executed against the resulting data.")
-
-	cgetvCmd.Flags().AddFlagSet(getvCmd.Flags())
 }
 
 func (c *getvContext) marshal(value interface{}) (string, error) {
@@ -211,4 +166,61 @@ func (c *getvContext) marshal(value interface{}) (string, error) {
 	}
 
 	return fmt.Sprintf("%v", value), nil
+}
+
+func cgetvCmd(rootCmdContext *rootContext) *cobra.Command {
+	var cmdContext = &getvContext{
+		rootContext: rootCmdContext,
+	}
+
+	var cmd = &cobra.Command{
+		Use:   "cgetv [options]",
+		Short: "Get a secret value.  Simply an alias to `getv --decrypt /`",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmdContext.decrypt = []string{"/"}
+			return cmdContext.getv(cmd, args)
+		},
+	}
+
+	cmdContext.addFlags(cmd)
+
+	return cmd
+}
+
+// json serialization requires string keys, but yaml deserialization creates
+// interface{} keys.  This function converts the keys to strings so json can
+// marshal the value
+//   https://stackoverflow.com/a/40737676/516433
+func convertMapIToMapS(mapI interface{}) interface{} {
+	switch x := mapI.(type) {
+	case map[interface{}]interface{}:
+		m2 := map[string]interface{}{}
+		for k, v := range x {
+			m2[k.(string)] = convertMapIToMapS(v)
+		}
+		return m2
+	case []interface{}:
+		for i, v := range x {
+			x[i] = convertMapIToMapS(v)
+		}
+	}
+	return mapI
+}
+
+func getvCmd(rootCmdContext *rootContext) *cobra.Command {
+	var cmdContext = &getvContext{
+		rootContext: rootCmdContext,
+	}
+
+	var cmd = &cobra.Command{
+		Use:   "getv [options]",
+		Short: "Get a value",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmdContext.getv(cmd, args)
+		},
+	}
+
+	cmdContext.addFlags(cmd)
+
+	return cmd
 }
