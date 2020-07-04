@@ -157,6 +157,10 @@ func (c *getvContext) marshal(value interface{}) (string, error) {
 	}
 
 	if stringValue, ok := value.(string); ok {
+		if c.asJSON {
+			marshaled, _ := json.Marshal(stringValue)
+			return string(marshaled), nil
+		}
 		return stringValue, nil
 	}
 

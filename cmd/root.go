@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/pastdev/clconf/v2/clconf"
 	"github.com/spf13/cobra"
@@ -14,6 +16,7 @@ type rootContext struct {
 	secretKeyring       optionalString
 	secretKeyringBase64 optionalString
 	stdin               bool
+	vars                []string
 	yaml                []string
 	yamlBase64          []string
 }
@@ -46,6 +49,21 @@ func (c *rootContext) getValue(path string) (interface{}, error) {
 	config, err := confSources.Load()
 	if err != nil {
 		return nil, err
+	}
+
+	for _, v := range c.vars {
+		keyValue := strings.SplitN(v, "=", 2)
+		key := keyValue[0]
+
+		value, err := clconf.UnmarshalSingleYaml(keyValue[1])
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal var %s: %v", key, err)
+		}
+
+		err = clconf.SetValue(config, key, value)
+		if err != nil {
+			return nil, fmt.Errorf("failed to set var %s: %v", key, err)
+		}
 	}
 
 	return clconf.GetValue(config, path)
@@ -93,6 +111,13 @@ the order of precedence from least to greatest is:
 		false,
 		"Read one or more yaml documents from stdin. Last document takes precedence when merged.")
 	cmd.PersistentFlags().StringArrayVar(
+		&c.vars,
+		"var",
+		nil,
+		`A list of key=value pairs.  The key is a path into the config, and the value must be
+yaml/json encoded.  Often combined with clconf var which produces well formed,
+properly escaped vars (ie: clconf --var "$(clconf var /foo bar)")`)
+	cmd.PersistentFlags().StringArrayVar(
 		&c.yaml,
 		"yaml",
 		nil,
@@ -113,6 +138,7 @@ takes precedence when merged`)
 		getvCmd(c),
 		setvCmd(c),
 		templateCmd(c),
+		varCmd(),
 		versionCmd())
 
 	return cmd

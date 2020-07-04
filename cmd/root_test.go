@@ -208,6 +208,46 @@ func Example_withEnvCgetvAppDbPassword() {
 	// SECRET_PASS
 }
 
+func Example_var() {
+	newCmd("var", "/foo", "bar").Execute()
+	// Output:
+	// /foo="bar"
+}
+
+func Example_varArray() {
+	newCmd("var", "/foo", "bar", "baz").Execute()
+	// Output:
+	// /foo=["bar","baz"]
+}
+
+func Example_getvVar() {
+	newCmd("getv", "--var", `/foo="bar"`).Execute()
+	// Output:
+	// foo: bar
+}
+
+func Example_getvMultipleVar() {
+	newCmd("getv", "--var", `/foo/baz="bar"`, "--var", `/foo/hip="hop"`).Execute()
+	// Output:
+	// foo:
+	//   baz: bar
+	//   hip: hop
+}
+
+func Example_getvObject() {
+	newCmd("getv", "--var", `/={"foo":{"baz":"bar","hip":"hop"}}`).Execute()
+	// Output:
+	// foo:
+	//   baz: bar
+	//   hip: hop
+}
+
+func Example_getvStringAsJson() {
+	newCmd("getv", "--var", `/foo="bar"`, "/foo", "--as-json").Execute()
+	// Output:
+	// "bar"
+}
+
 func newCmd(args ...string) *cobra.Command {
 	cmd := rootCmd()
 	cmd.SetArgs(args)

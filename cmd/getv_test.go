@@ -251,7 +251,7 @@ func TestMarshalJSONPretty(t *testing.T) {
 	context.asJSON = true
 	context.pretty = true
 
-	testMarshal(t, "scalar", "foo", "foo", context)
+	testMarshal(t, "scalar", `"foo"`, "foo", context)
 	testMarshal(t, "scalar number", "1", 1, context)
 	testMarshal(t, "list",
 		"[\n  \"bar\",\n  \"baz\"\n]",

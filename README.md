@@ -29,6 +29,8 @@ Using `clconf` requires one or more yaml files (or strings) to merge together.  
 1. *`YAML_FILES` environment variable*: A comma separated list of files.
 1. *`--yaml-base64`*: One or more base64 encoded strings containing yaml.
 1. *`YAML_VARS` environment variable*: A comma separated list of environment variable names, each a base64 encoded string containing yaml.
+1. *`--stdin`*: One or more `---` separated yaml files read from `stdin`.
+1. *`--var`*: One or more path overrides of the form `/foo="bar"`.  Key is a path, an value is json/yaml encoded.
 
 All of these categories of input will be appended to each other and the _last defined value of any key will take precedence_.  For example:
 
@@ -45,7 +47,9 @@ clconf \
   --yaml e.yml \
   --yaml f.yml \
   --yaml-base64 "$G_YML_B64" \
-  --yaml-base64 "$H_YML_B64"
+  --yaml-base64 "$H_YML_B64" \
+  --var '/foo="bar"' \
+  <<<"---\nfoo: baz"
 ```
 
 Would be processed in the following order:
@@ -58,10 +62,14 @@ Would be processed in the following order:
 1. `f.yml`
 1. `G_YML_B64`
 1. `H_YML_B64`
+1. `stdin`
+1. `/foo="bar"`
 
 ## Use Cases
 
-### Getv as JSON
+### Helper in Scripts
+
+#### Getv as JSON
 
 When using the `--as-json` option, the value obtained at the indicated path
 will be serialized to json.  For example, if you have `foo.yml`:
@@ -85,10 +93,16 @@ To get:
 ["a","b","c"]
 ```
 
-### Getv Templates (confd compatible)
+#### Convert Bash Array to JSON
+
+```bash
+clconf --var "$(clconf var /foo "$@")" getv /foo --as-json
+```
+
+#### Getv Templates
 
 Note that when used in conjunction with the `--template` options,
-`getv` templates see a one-level key-value map, not the map 
+`getv` templates see a one-level key-value map, not the map
 represented by the yaml.  For example, this yaml (`foo.yml`):
 
 ```yaml
@@ -199,65 +213,8 @@ spec:
       medium: "Memory"
 ```
 
-So that the sensitive information never touches disk and would not be 
-exposed by a `ps` command.
-
-There is also the built-in templating that can be used for more
-complicated situations.  For example, you can create a template file
-for tomcat's `server.xml`:
-
-```xml
-<?xml version='1.0' encoding='utf-8'?>
-<Server port="{{ getv "/shutdown/port" }}" shutdown="{{ getv "/shutdown/password" }}">
-  <Listener className="org.apache.catalina.core.JasperListener" />
-  <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />
-  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
-  <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
-  <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" />
-  
-  <GlobalNamingResources>
-    <Resource name="jdbc/appdb"
-            auth="Container"
-            type="javax.sql.DataSource"
-            username="{{ getv "/db/username" }}"
-            password="{{ getv "/db/password" }}"
-            driverClassName="{{ getv "/db/driver" }}"
-            url="{{ getv "/db/url" }}"
-            maxActive="8"
-            maxIdle="4"/>
-  </GlobalNamingResources>
-  
-  <Service name="Catalina">
-    <Connector port="{{ getv "/port" }}" protocol="HTTP/1.1" />
-  
-    <Engine name="Catalina" defaultHost="localhost">
-      <Host name="localhost"
-          appBase="webapps"
-          unpackWARs="true"
-          autoDeploy="true">
-        <Valve className="org.apache.catalina.valves.AccessLogValve"
-            directory="logs"
-            prefix="localhost_access_log."
-            suffix=".txt"
-            pattern="%h %l %u %t "%r" %s %b" />
-      </Host>
-    </Engine>
-  </Service>
-</Server>
-```
-
-Then use:
-
-```bash
-clconf \
-    --yaml /etc/myapp/config.yml \
-    --yaml /etc/myapp/secrets.yml \
-    getv \
-    --template-file templates/server.xml.tmpl
-    > config/server.xml
-```
-
-prior to starting tomcat.
+So that the sensitive information never touches disk and would not be exposed by
+a `ps` command.
 
 ### Secret Management
 
@@ -330,32 +287,32 @@ a step further by templating many files in a single run. The `template`
 function's `--help` provides examples:
 
 ```bash
-        This will take an arbitrary number of source templates (or folders full
-        of templates) and process them either in place (see --in-place) or into the
-        folder specified as the last argument. It will make any folders required
-        along the way. If a source is an existing file (not a folder) it will be
-        treated as a template regardless of the extension (though if the extension
-        matches it will still be removed).
+This will take an arbitrary number of source templates (or folders full
+of templates) and process them either in place (see --in-place) or into the
+folder specified as the last argument. It will make any folders required
+along the way. If a source is an existing file (not a folder) it will be
+treated as a template regardless of the extension (though if the extension
+matches it will still be removed).
 
 Usage:
   clconf template <src1> [src2...] [destination folder] [flags]
 
 Examples:
 
-        # Apply all templates with the .clconf extension to their relative folders in /dest
-        template /tmp/srcFolder1 /tmp/srcFolder2 /dest
+  # Apply all templates with the .clconf extension to their relative folders in /dest
+  template /tmp/srcFolder1 /tmp/srcFolder2 /dest
 
-        # Apply all templates in both folders with the .clconf extension to the root of /dest
-        template /tmp/srcFolder1 /tmp/srcFolder2 /dest --flatten
+  # Apply all templates in both folders with the .clconf extension to the root of /dest
+  template /tmp/srcFolder1 /tmp/srcFolder2 /dest --flatten
 
-        # Interpret /tmp/srcFile.sh where it is (result is /tmp/srcFile.sh)
-        template /tmp/srcFile.sh --in-place
+  # Interpret /tmp/srcFile.sh where it is (result is /tmp/srcFile.sh)
+  template /tmp/srcFile.sh --in-place
 
-        # Interpret /tmp/srcFile.sh.clconf where it is (result is /tmp/srcFile.sh)
-        template /tmp/srcFile.sh.clconf --in-place
+  # Interpret /tmp/srcFile.sh.clconf where it is (result is /tmp/srcFile.sh)
+  template /tmp/srcFile.sh.clconf --in-place
 
-        # Interpret /tmp/srcFile.sh.clconf where it is (result is /tmp/srcFile.sh.clconf)
-        template /tmp/srcFile.sh.clconf --in-place --template-extension ""
+  # Interpret /tmp/srcFile.sh.clconf where it is (result is /tmp/srcFile.sh.clconf)
+  template /tmp/srcFile.sh.clconf --in-place --template-extension ""
 
 
 Flags:
