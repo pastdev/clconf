@@ -293,7 +293,8 @@ func MergeValue(config interface{}, keyPath string, value interface{}, overwrite
 	return mergo.Merge(
 		&parent,
 		value,
-		func(c *mergo.Config) { c.Overwrite = overwrite })
+		func(c *mergo.Config) { c.Overwrite = overwrite },
+		mergo.WithOverwriteWithEmptyValue)
 }
 
 func getParentAndKey(config interface{}, keyPath string) (map[interface{}]interface{}, string, error) {

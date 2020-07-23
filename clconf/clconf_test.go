@@ -610,6 +610,17 @@ func TestMergeValue(t *testing.T) {
 				value,
 				true)
 		})
+	t.Run("merge bool",
+		func(t *testing.T) {
+			conf := map[interface{}]interface{}{"foo": true}
+			value := map[interface{}]interface{}{"foo": false}
+			assertMergeValue(t,
+				map[interface{}]interface{}{"foo": false},
+				conf,
+				"/",
+				value,
+				true)
+		})
 }
 
 func TestReadEnvVars(t *testing.T) {
