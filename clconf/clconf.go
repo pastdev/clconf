@@ -293,8 +293,7 @@ func MergeValue(config interface{}, keyPath string, value interface{}, overwrite
 	return mergo.Merge(
 		&parent,
 		value,
-		func(c *mergo.Config) { c.Overwrite = overwrite },
-		mergo.WithOverwriteWithEmptyValue)
+		func(c *mergo.Config) { c.Overwrite = overwrite })
 }
 
 func getParentAndKey(config interface{}, keyPath string) (map[interface{}]interface{}, string, error) {
@@ -417,8 +416,8 @@ func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
 	}
 
 	result := make(map[interface{}]interface{})
-	for index := len(allYamls) - 1; index >= 0; index-- {
-		if err := mergo.Merge(&result, allYamls[index]); err != nil {
+	for _, y := range allYamls {
+		if err := mergo.Merge(&result, y, mergo.WithOverride); err != nil {
 			return nil, err
 		}
 	}
