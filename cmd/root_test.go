@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -288,6 +289,32 @@ func Example_getvArrayOfObjectsAsBashArray() {
 	newCmd("getv", "--var", `/a=[{"foo":"bar"},{"hip":"hop"}]`, "/a", "--as-bash-array").Execute()
 	// Output:
 	// ([0]="{\"foo\":\"bar\"}" [1]="{\"hip\":\"hop\"}")
+}
+
+func Example_mergeOverridesBooleanToFalse() {
+	footrue, err := ioutil.TempFile("", "")
+	if err != nil {
+		return
+	}
+	defer os.Remove(footrue.Name())
+
+	if _, err := footrue.Write([]byte("---\nfoo: true")); err != nil {
+		return
+	}
+
+	foofalse, err := ioutil.TempFile("", "")
+	if err != nil {
+		return
+	}
+	defer os.Remove(foofalse.Name())
+
+	if _, err := foofalse.Write([]byte("---\nfoo: false")); err != nil {
+		return
+	}
+
+	newCmd("getv", "--yaml", footrue.Name(), "--yaml", foofalse.Name()).Execute()
+	// Output:
+	// foo: false
 }
 
 func newCmd(args ...string) *cobra.Command {

@@ -307,15 +307,18 @@ func getParentAndKey(config interface{}, keyPath string) (map[interface{}]interf
 	}
 
 	parent := configMap
-	for _, parentPart := range parentParts {
+	for i, parentPart := range parentParts {
 		parentValue, ok := parent[parentPart]
-		if !ok {
+		if !ok || parentValue == nil {
 			parentValue = make(map[interface{}]interface{})
 			parent[parentPart] = parentValue
 		}
 		valueMap, ok := parentValue.(map[interface{}]interface{})
 		if !ok {
-			return nil, "", fmt.Errorf("Parent not a map")
+			return nil, "", fmt.Errorf(
+				"Parent at /%s not a map (type: %T)",
+				strings.Join(parentParts[0:i+1], "/"),
+				parentValue)
 		}
 
 		parent = valueMap
@@ -416,8 +419,8 @@ func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
 	}
 
 	result := make(map[interface{}]interface{})
-	for index := len(allYamls) - 1; index >= 0; index-- {
-		if err := mergo.Merge(&result, allYamls[index]); err != nil {
+	for _, y := range allYamls {
+		if err := mergo.Merge(&result, y, mergo.WithOverride); err != nil {
 			return nil, err
 		}
 	}
