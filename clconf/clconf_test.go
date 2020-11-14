@@ -833,7 +833,16 @@ func TestToKvMap(t *testing.T) {
 		}, "numeric keys")
 }
 
-func TestUnmarshallSingleYaml(t *testing.T) {
+func TestUnmarshalSingleYaml(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		yamlObj, err := clconf.UnmarshalSingleYaml("---")
+		if err != nil {
+			t.Errorf("failed to unmarshal; %v", err)
+		}
+		if yamlObj != nil {
+			t.Errorf("expected <nil> for empty `---`, got %T: %v", yamlObj, yamlObj)
+		}
+	})
 	t.Run("string", func(t *testing.T) {
 		yamlObj, err := clconf.UnmarshalSingleYaml("foo")
 		if err != nil {
@@ -879,11 +888,20 @@ func TestUnmarshallSingleYaml(t *testing.T) {
 }
 
 func TestUnmarshalYaml(t *testing.T) {
-	expected, _ := clconf.UnmarshalYaml(configMapAndSecrets)
-	merged, err := clconf.UnmarshalYaml(configMap, secrets)
-	if err != nil || !reflect.DeepEqual(merged, expected) {
-		t.Errorf("ConfigMap and Secrets failed: [%v] != [%v]", expected, merged)
-	}
+	t.Run("empty", func(t *testing.T) {
+		expected := map[interface{}]interface{}{}
+		actual, err := clconf.UnmarshalYaml("---")
+		if err != nil || !reflect.DeepEqual(actual, expected) {
+			t.Errorf("ConfigMap and Secrets failed: [%v] != [%v]", expected, actual)
+		}
+	})
+	t.Run("configMapAndSecrets", func(t *testing.T) {
+		expected, _ := clconf.UnmarshalYaml(configMapAndSecrets)
+		actual, err := clconf.UnmarshalYaml(configMap, secrets)
+		if err != nil || !reflect.DeepEqual(actual, expected) {
+			t.Errorf("ConfigMap and Secrets failed: [%v] != [%v]", expected, actual)
+		}
+	})
 }
 
 func TestUnmarshalYamlMultipleDocs(t *testing.T) {
