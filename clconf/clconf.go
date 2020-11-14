@@ -420,8 +420,13 @@ func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
 
 	result := make(map[interface{}]interface{})
 	for _, y := range allYamls {
+		if y == nil {
+			// a yaml that is `---` only, is _valid_ (passes yaml lint) but will
+			// be <nil>.  mergo.Merge does not like <nil>
+			continue
+		}
 		if err := mergo.Merge(&result, y, mergo.WithOverride); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("yaml merge failed: %v", err)
 		}
 	}
 	return result, nil
