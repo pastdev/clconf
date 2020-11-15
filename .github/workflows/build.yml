@@ -23,7 +23,7 @@ jobs:
   debug-version:
     needs: test
     outputs:
-      release-version: ${{ steps.set.outputs.version }}
+      release-version: ${{ steps.set.outputs.release-version }}
     runs-on: ubuntu-latest
     steps:
     - id: set
