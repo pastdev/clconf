@@ -40,7 +40,7 @@ jobs:
         fi
 
   release:
-    if: needs.version.outputs.release-version
+    if: startsWith(needs.version.outputs.release-version, 'v')
     needs: version
     runs-on: ubuntu-latest
     steps:
