@@ -25,6 +25,7 @@ jobs:
     needs: test
     outputs:
       release-version: ${{ steps.parse.outputs.version }}
+    runs-on: ubuntu-latest
     steps:
     - id: parse
       env:
