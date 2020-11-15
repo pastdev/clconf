@@ -53,7 +53,9 @@ jobs:
 
   release:
     env:
-      RELEASE_DIR: release
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_DIR: .github-release
+      RELEASE_VERSION: ${{ needs.version.outputs.release-version }}
     if: needs.version.outputs.release-version
     needs: version
     runs-on: ubuntu-latest
@@ -64,9 +66,8 @@ jobs:
       uses: actions/setup-go@v2
       with:
         go-version: '^1.14'
-    - env:
-        RELEASE_VERSION: ${{ needs.version.outputs.release-version }}
-      name: Build release artifacts version ${{ needs.version.outputs.release-version }}
+    - id: build
+      name: Build release artifacts version ${{ env.RELEASE_VERSION }}
       run: |
         mkdir -p "${RELEASE_DIR}"
         for PLATFORM in windows linux darwin; do
@@ -81,5 +82,39 @@ jobs:
           OUT_FILE="${RELEASE_DIR}/clconf-${PLATFORM}${EXTENSION}"
           echo "Creating ${OUT_FILE} (${RELEASE_VERSION})"
           go build -ldflags "-X github.com/pastdev/clconf/v2/cmd.version=$RELEASE_VERSION" -o "${OUT_FILE}"
+
+          echo "::set-output name=${PLATFORM}-artifact::${OUT_FILE}"
         done
         ls -lrt "${RELEASE_DIR}"
+    - id: create-release
+      name: Create release ${{ env.RELEASE_VERSION }}
+      uses: actions/create-release@v1
+      with:
+        tag_name: ${{ env.RELEASE_VERSION }}
+        release_name: ${{ env.RELEASE_VERSION }}
+        draft: false
+        prerelease: false
+    - if: ${{ steps.build.outputs.darwin-artifact }}
+      name: Upload darwin release ${{ env.RELEASE_VERSION }}
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create-release.outputs.upload_url }}
+        asset_path: ${{ steps.build.outputs.darwin-artifact }}
+        asset_name: clconf-darwin
+        asset_content_type: application/octet-stream
+    - if: ${{ steps.build.outputs.linux-artifact }}
+      name: Upload linux release ${{ env.RELEASE_VERSION }}
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create-release.outputs.upload_url }}
+        asset_path: ${{ steps.build.outputs.linux-artifact }}
+        asset_name: clconf-linux
+        asset_content_type: application/octet-stream
+    - if: ${{ steps.build.outputs.windows-artifact }}
+      name: Upload windows release ${{ env.RELEASE_VERSION }}
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create-release.outputs.upload_url }}
+        asset_path: ${{ steps.build.outputs.windows-artifact }}
+        asset_name: clconf-windows.exe
+        asset_content_type: application/octet-stream
