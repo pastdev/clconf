@@ -20,6 +20,27 @@ jobs:
     - run: go version
     - run: go test ./...
 
+  debug-version:
+    needs: test
+    outputs:
+      release-version: ${{ steps.set.outputs.version }}
+    runs-on: ubuntu-latest
+    steps:
+    - id: set
+      name: Set version
+      run: |
+        echo "::set-output name=release-version::v1.0.23"
+
+  debug:
+    needs: debug-version
+    runs-on: ubuntu-latest
+    steps:
+    - env:
+        RELEASE_VERSION: ${{ needs.debug-version.outputs.release-version }}
+      name: Build release artifacts version ${{ needs.debug-version.outputs.release-version }}
+      run: |
+        echo "version is ${RELEASE_VERSION}"
+
   version:
     if: startsWith(github.ref, 'refs/tags/')
     needs: test
