@@ -12,8 +12,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: setup go
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Setup go
       uses: actions/setup-go@v2
       with:
         go-version: '^1.14'
@@ -51,10 +52,16 @@ jobs:
 #        fi
 
   release:
-    if: startsWith(needs.version.outputs.release-version, 'v')
+    if: needs.version.outputs.release-version
     needs: version
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Setup go
+      uses: actions/setup-go@v2
+      with:
+        go-version: '^1.14'
     - env:
         RELEASE_VERSION: ${{ needs.version.outputs.release-version }}
       name: Build release artifacts version ${{ needs.version.outputs.release-version }}
