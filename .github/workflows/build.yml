@@ -52,6 +52,8 @@ jobs:
 #        fi
 
   release:
+    env:
+      RELEASE_DIR: release
     if: needs.version.outputs.release-version
     needs: version
     runs-on: ubuntu-latest
@@ -66,6 +68,7 @@ jobs:
         RELEASE_VERSION: ${{ needs.version.outputs.release-version }}
       name: Build release artifacts version ${{ needs.version.outputs.release-version }}
       run: |
+        mkdir -p "${RELEASE_DIR}"
         for PLATFORM in windows linux darwin; do
           EXTENSION=""
           if [[ "${PLATFORM}" == 'windows' ]]; then
@@ -75,8 +78,8 @@ jobs:
           export GOARCH=amd64
           export CGO_ENABLED=0
 
-          OUT_FILE="${GOPATH}/bin/clconf-${PLATFORM}${EXTENSION}"
+          OUT_FILE="${RELEASE_DIR}/clconf-${PLATFORM}${EXTENSION}"
           echo "Creating ${OUT_FILE} (${RELEASE_VERSION})"
           go build -ldflags "-X github.com/pastdev/clconf/v2/cmd.version=$RELEASE_VERSION" -o "${OUT_FILE}"
         done
-        ls -lrt "${GOPATH}/bin"
+        ls -lrt "${RELEASE_DIR}"
