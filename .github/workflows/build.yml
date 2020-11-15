@@ -1,6 +1,10 @@
 ---
 name: build
 
+defaults:
+  run:
+    shell: bash
+
 on:
   push:
 
@@ -16,24 +20,44 @@ jobs:
     - run: go version
     - run: go test ./...
 
-  release:
-    if: startsWith( github.ref, 'refs/tags/releases/')
+  version:
+    if: startsWith(github.ref, 'refs/tags/')
     needs: test
+    outputs:
+      release-version: ${{ steps.parse.outputs.version }}
+    steps:
+    - id: parse
+      env:
+        GITHUB_REF: ${{ github.ref }}
+      name: Parse version from tag ${{ github.ref }}
+      run: |
+        if [[ "${GITHUB_REF}" =~ ^refs/tags/(v[0-2]\.[0-9]+\.[0-9]+)$ ]]; then
+          echo "yup [${BASH_REMATCH[1]}]"
+          echo "::set-output name=release-version::${BASH_REMATCH[1]}"
+        else
+          echo nope
+        fi
+
+  release:
+    if: ${{ needs.version.outputs.release-version }}
+    needs: version
     runs-on: ubuntu-latest
     steps:
-    - name: Build release artifacts
+    - env:
+        RELEASE_VERSION: ${{ needs.version.outputs.release-version }}
+      name: Build release artifacts version ${{ needs.version.outputs.release-version }}
       run: |
         for PLATFORM in windows linux darwin; do
           EXTENSION=""
-          if [[ $PLATFORM = 'windows' ]]; then
+          if [[ "${PLATFORM}" == 'windows' ]]; then
             EXTENSION=".exe"
           fi
-          export GOOS=$PLATFORM
+          export GOOS="${PLATFORM}"
           export GOARCH=amd64
           export CGO_ENABLED=0
 
-          OUT_FILE="$GOPATH/bin/clconf-$PLATFORM$EXTENSION"
-          echo "Creating $OUT_FILE ($TRAVIS_TAG)"
-          go build -ldflags "-X github.com/pastdev/clconf/v2/cmd.version=$TRAVIS_TAG" -o $OUT_FILE
+          OUT_FILE="${GOPATH}/bin/clconf-${PLATFORM}${EXTENSION}"
+          echo "Creating ${OUT_FILE} (${RELEASE_VERSION})"
+          go build -ldflags "-X github.com/pastdev/clconf/v2/cmd.version=$RELEASE_VERSION" -o "${OUT_FILE}"
         done
-        ls -lrt $GOPATH/bin
+        ls -lrt "${GOPATH}/bin"
