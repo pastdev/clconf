@@ -21,6 +21,7 @@ jobs:
     - run: go test ./...
 
   debug-version:
+    if: false
     needs: test
     outputs:
       release-version: ${{ steps.set.outputs.release-version }}
