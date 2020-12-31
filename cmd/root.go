@@ -91,6 +91,7 @@ the order of precedence from least to greatest is:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return (&getvContext{rootContext: c}).getv(cmd, args)
 		},
+		SilenceUsage: true,
 	}
 
 	cmd.PersistentFlags().BoolVar(
