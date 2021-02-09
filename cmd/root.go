@@ -76,6 +76,7 @@ func (c *rootContext) getValue(path string) (interface{}, error) {
 
 func rootCmd() *cobra.Command {
 	var c = &rootContext{}
+	pipe := false
 
 	var cmd = &cobra.Command{
 		Use: "clconf [global options] command [command options] [args...]",
@@ -88,6 +89,12 @@ the order of precedence from least to greatest is:
   --yaml-base64
   YAML_VARS
   --stdin`,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			if pipe {
+				c.stdin = true
+				c.ignoreEnv = true
+			}
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return (&getvContext{rootContext: c}).getv(cmd, args)
 		},
@@ -111,6 +118,12 @@ the order of precedence from least to greatest is:
 		&c.secretKeyringBase64,
 		"secret-keyring-base64",
 		"Base64 encoded gpg secring (env: SECRET_KEYRING_BASE64)")
+	cmd.PersistentFlags().BoolVarP(
+		&pipe,
+		"pipe",
+		"p",
+		false,
+		"Shortcut for --stdin --ignore-env")
 	cmd.PersistentFlags().BoolVar(
 		&c.stdin,
 		"stdin",

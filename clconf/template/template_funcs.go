@@ -18,7 +18,7 @@ import (
 	"github.com/kelseyhightower/memkv"
 )
 
-func newFuncMap() map[string]interface{} {
+func NewFuncMap(s *memkv.Store) map[string]interface{} {
 	m := make(map[string]interface{})
 	m["base"] = path.Base
 	m["split"] = strings.Split
@@ -55,10 +55,13 @@ func newFuncMap() map[string]interface{} {
 	m["atoi"] = strconv.Atoi
 	m["escapeOsgi"] = EscapeOsgi
 	m["fqdn"] = Fqdn
+	m["sort"] = Sort
+	m["getsvs"] = getsvs(s)
+	m["getksvs"] = getksvs(s)
 	return m
 }
 
-func addFuncs(out, in map[string]interface{}) {
+func AddFuncs(out, in map[string]interface{}) {
 	for name, fn := range in {
 		out[name] = fn
 	}
@@ -280,4 +283,88 @@ func RegexReplace(regex, src, repl string) (string, error) {
 		return "", err
 	}
 	return re.ReplaceAllString(src, repl), nil
+}
+
+func sortType(input []string) (string, error) {
+	r := "string"
+	if len(input) > 0 {
+		r = input[0]
+	}
+	if r != "string" && r != "int" {
+		return "", fmt.Errorf("sort: Type '%s' is not supported (only int, string)", r)
+	}
+	return r, nil
+}
+
+// Sort sorts a copy of the input as specified type (string, int, default: string).
+func Sort(v []string, asType ...string) ([]string, error) {
+	sortType, err := sortType(asType)
+	if err != nil {
+		return nil, err
+	}
+
+	sortStrings := true
+	var ints []int
+	if sortType == "int" {
+		sortStrings = false
+		ints = make([]int, len(v))
+		for i, val := range v {
+			var err error
+			ints[i], err = strconv.Atoi(val)
+			if err != nil {
+				return nil, err
+			}
+		}
+		sort.Ints(ints)
+	}
+
+	r := make([]string, len(v))
+	for i, val := range v {
+		switch sortType {
+		case "int":
+			r[i] = fmt.Sprintf("%d", ints[i])
+		default:
+			r[i] = val
+		}
+	}
+	if sortStrings { // Don't sort if we've already sorted as ints
+		sort.Strings(r)
+	}
+	return r, nil
+}
+
+func getsvs(s *memkv.Store) func(string, ...string) ([]string, error) {
+	return func(pattern string, asType ...string) ([]string, error) {
+		vals, err := s.GetAllValues(pattern)
+		if err != nil {
+			return nil, err
+		}
+		return Sort(vals, asType...)
+	}
+}
+
+func getksvs(s *memkv.Store) func(string, ...string) ([]string, error) {
+	return func(pattern string, asType ...string) ([]string, error) {
+		ks, err := s.GetAll(pattern)
+		if err != nil {
+			return nil, err
+		}
+		kvMap := make(map[string]string)
+		keys := make([]string, len(ks))
+		r := make([]string, len(ks))
+		for i, kv := range ks {
+			key := kv.Key[strings.LastIndex(kv.Key, "/")+1:]
+			kvMap[key] = kv.Value
+			keys[i] = key
+		}
+
+		keys, err = Sort(keys, asType...)
+		if err != nil {
+			return nil, err
+		}
+		for i, key := range keys {
+			r[i] = kvMap[key]
+		}
+		return r, nil
+	}
 }
