@@ -55,7 +55,7 @@ func NewFuncMap(s *memkv.Store) map[string]interface{} {
 	m["atoi"] = strconv.Atoi
 	m["escapeOsgi"] = EscapeOsgi
 	m["fqdn"] = Fqdn
-	m["sort"] = sortCopy
+	m["sort"] = sortAs
 	m["getsvs"] = getsvs(s)
 	m["getksvs"] = getksvs(s)
 	return m
@@ -320,21 +320,19 @@ func (p asInt) Less(i, j int) bool {
 }
 func (p asInt) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
-// sortCopy sorts a copy of the input as specified type (string, int, default: string).
-func sortCopy(v []string, asType ...string) ([]string, error) {
+// sortAs sorts the input in-place as specified type (string, int, default: string) and returns it.
+func sortAs(v []string, asType ...string) ([]string, error) {
 	sortType, err := sortType(asType)
 	if err != nil {
 		return nil, err
 	}
 
-	sorted := make([]string, len(v))
-	copy(sorted, v)
 	if sortType == "int" {
-		sort.Sort(asInt(sorted))
+		sort.Sort(asInt(v))
 	} else {
-		sort.Strings(sorted)
+		sort.Strings(v)
 	}
-	return sorted, nil
+	return v, nil
 }
 
 func getsvs(s *memkv.Store) func(string, ...string) ([]string, error) {
@@ -343,7 +341,7 @@ func getsvs(s *memkv.Store) func(string, ...string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		return sortCopy(vals, asType...)
+		return sortAs(vals, asType...)
 	}
 }
 
@@ -362,7 +360,7 @@ func getksvs(s *memkv.Store) func(string, ...string) ([]string, error) {
 			keys[i] = key
 		}
 
-		keys, err = sortCopy(keys, asType...)
+		keys, err = sortAs(keys, asType...)
 		if err != nil {
 			return nil, err
 		}

@@ -6,9 +6,9 @@ import (
 )
 
 func TestSort(t *testing.T) {
-	test := func(name, sortAs string, src []string, expected []string) {
+	test := func(name, sortType string, src []string, expected []string) {
 		t.Run(name, func(t *testing.T) {
-			actual, err := sortCopy(src, sortAs)
+			actual, err := sortAs(src, sortType)
 			if err != nil {
 				t.Fatalf("Error sorting: %v", err)
 			}
