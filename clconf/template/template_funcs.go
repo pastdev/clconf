@@ -285,6 +285,9 @@ func RegexReplace(regex, src, repl string) (string, error) {
 	return re.ReplaceAllString(src, repl), nil
 }
 
+// sortType accepts an array because the input is an optional name of the type
+// for sorting and the actual implementation methods (getsvs, getksvs) accept 
+// varargs so this utility function allows direct call without unpacking.
 func sortType(input []string) (string, error) {
 	r := "string"
 	if len(input) > 0 {
@@ -312,7 +315,7 @@ func Sort(v []string, asType ...string) ([]string, error) {
 			var err error
 			ints[i], err = strconv.Atoi(val)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("int sort cant parse value at %d (%s) as int: %v", i, val, err)
 			}
 		}
 		sort.Ints(ints)
