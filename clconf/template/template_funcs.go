@@ -286,7 +286,7 @@ func RegexReplace(regex, src, repl string) (string, error) {
 }
 
 // sortType accepts an array because the input is an optional name of the type
-// for sorting and the actual implementation methods (getsvs, getksvs) accept 
+// for sorting and the actual implementation methods (getsvs, getksvs) accept
 // varargs so this utility function allows direct call without unpacking.
 func sortType(input []string) (string, error) {
 	r := "string"
@@ -299,6 +299,27 @@ func sortType(input []string) (string, error) {
 	return r, nil
 }
 
+type asInt []string
+
+func (p asInt) Len() int { return len(p) }
+func (p asInt) Less(i, j int) bool {
+	a, aerr := strconv.Atoi(p[i])
+	b, berr := strconv.Atoi(p[j])
+
+	if aerr == nil {
+		if berr == nil {
+			return a < b
+		}
+		return true // Numbers come first
+	} else {
+		if berr == nil {
+			return false
+		}
+	}
+	return p[i] < p[j]
+}
+func (p asInt) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+
 // Sort sorts a copy of the input as specified type (string, int, default: string).
 func Sort(v []string, asType ...string) ([]string, error) {
 	sortType, err := sortType(asType)
@@ -306,34 +327,14 @@ func Sort(v []string, asType ...string) ([]string, error) {
 		return nil, err
 	}
 
-	sortStrings := true
-	var ints []int
+	sorted := make([]string, len(v))
+	copy(sorted, v)
 	if sortType == "int" {
-		sortStrings = false
-		ints = make([]int, len(v))
-		for i, val := range v {
-			var err error
-			ints[i], err = strconv.Atoi(val)
-			if err != nil {
-				return nil, fmt.Errorf("int sort cant parse value at %d (%s) as int: %v", i, val, err)
-			}
-		}
-		sort.Ints(ints)
+		sort.Sort(asInt(sorted))
+	} else {
+		sort.Strings(sorted)
 	}
-
-	r := make([]string, len(v))
-	for i, val := range v {
-		switch sortType {
-		case "int":
-			r[i] = fmt.Sprintf("%d", ints[i])
-		default:
-			r[i] = val
-		}
-	}
-	if sortStrings { // Don't sort if we've already sorted as ints
-		sort.Strings(r)
-	}
-	return r, nil
+	return sorted, nil
 }
 
 func getsvs(s *memkv.Store) func(string, ...string) ([]string, error) {
