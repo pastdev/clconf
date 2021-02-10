@@ -133,6 +133,8 @@ done # <<<{"key":"foo","value":"bar"}>>><<<{"key":"hip","value":"hop"}>>>
 
 #### Getv Templates
 
+Templates allow you to apply your configuration to golang template plus some additional [custom functions](templates.md)
+
 Note that when used in conjunction with the `--template` options,
 `getv` templates see a one-level key-value map, not the map
 represented by the yaml.  For example, this yaml (`foo.yml`):
@@ -312,6 +314,8 @@ clconf \
 yaml as a value store. It uses command line arguments in place of `confd`'s
 [toml files](https://github.com/kelseyhightower/confd/blob/master/docs/template-resources.md)
 to determine where templates are found and output placed.
+
+`clconf` supports [additional functions](templates.md) above what `confd` provides.
 
 All of the options for `getv` are available for specifying yaml sources,
 and the templates behave as outlined above. The `template` operation takes it
