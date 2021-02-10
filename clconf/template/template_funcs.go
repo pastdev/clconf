@@ -55,7 +55,7 @@ func NewFuncMap(s *memkv.Store) map[string]interface{} {
 	m["atoi"] = strconv.Atoi
 	m["escapeOsgi"] = EscapeOsgi
 	m["fqdn"] = Fqdn
-	m["sort"] = Sort
+	m["sort"] = sortCopy
 	m["getsvs"] = getsvs(s)
 	m["getksvs"] = getksvs(s)
 	return m
@@ -320,8 +320,8 @@ func (p asInt) Less(i, j int) bool {
 }
 func (p asInt) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
-// Sort sorts a copy of the input as specified type (string, int, default: string).
-func Sort(v []string, asType ...string) ([]string, error) {
+// sortCopy sorts a copy of the input as specified type (string, int, default: string).
+func sortCopy(v []string, asType ...string) ([]string, error) {
 	sortType, err := sortType(asType)
 	if err != nil {
 		return nil, err
@@ -343,7 +343,7 @@ func getsvs(s *memkv.Store) func(string, ...string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		return Sort(vals, asType...)
+		return sortCopy(vals, asType...)
 	}
 }
 
@@ -362,7 +362,7 @@ func getksvs(s *memkv.Store) func(string, ...string) ([]string, error) {
 			keys[i] = key
 		}
 
-		keys, err = Sort(keys, asType...)
+		keys, err = sortCopy(keys, asType...)
 		if err != nil {
 			return nil, err
 		}
