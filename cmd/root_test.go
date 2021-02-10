@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/base64"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,42 +16,41 @@ func Example_noArg() {
 }
 
 func Example_testConfig() {
-	newCmd(
-		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
-	).Execute()
+	yaml := `
+app:
+  db:
+    username: someuser
+    password: somepass
+    schema: appdb
+    hostname: db.example.com
+`
+	newCmdWithYaml(yaml).Execute()
 	// Output:
 	// app:
-	//   aliases:
-	//   - foo
-	//   - bar
 	//   db:
-	//     hostname: db.pastdev.com
-	//     password: wcBMA5B5A4w5Zw+rAQgALW6c2D2wwgonToJuQUmDGlnw3LG8L4dOq4qgf27L+s133trGcmBpGdsS3XysbkQ6TaYJ2y7wLpHs/dHSwrD2Z+M6WvLX5mzBhAAY5rIN+KLal7vepU+OumPGbq14kZSAYAhfkVAPxg21P04P1N/S853VPrjpeVlGWBLJMdXsGmdGLgelMAT5koSprnovsBEhm0te33KbEXSkvFVZCMF0rBwK4GV2YfPOhTwFLZCQ451Gl3fLUrdxGS6Bn9pZHl83m3lD8bFdX5kV4ezF48WREE9al3Ik/EEjcKEki2sF65mKK8a5mtEdlw8i2TzRXReUMX+QNFxNbmTyKPGpoQJ4DdLgAeS60Ee2yg9bYuB8LymvpIXe4fcj4E/gxuF9MOBb4j1cxWXg0+OcNwC7jnKTc+A04aAE4OzjvXAkVzP71PTgDuJ5DgRi4JHg3eCK4iRchCPgp+NuvJFazIksrODo5GwKh2URof5RNlbGwzLSmPvio8O96uEXYwA=
-	//     password-plaintext: SECRET_PASS
-	//     port: 3306
-	//     schema: clconfdb
-	//     username: wcBMA5B5A4w5Zw+rAQgAUfuQEe3XCfWey2j51dIl6BiDyMVcGu2nOUV+CS4GLF/AW2KfThIWICxYDEpbJhxFnGqHDkdFI8q5YowS8XDKuezJXwwkvKJkDswMiIJsHVRIoIW2kvXZHS0fJIqPN0mpUl2uPmDd+lELduV21ix4j+yO1frEgbAmKtAHvfvs5QqPOquOZVFWRnHP0SQ1Ev+argq+c1OrbSPXlGplFgfpyJWoq1vt4K2OL//us6fZtAPgNHGTIK+0hFZSTfJ7vBqEygolAO581G9fsUHWJJ+0KBj4xHy7J91mCTCCCl8gbUe6ANtSMHGcl8aNuYL6IRvOEbtZVM8MUE6MWY+k/pPABNLgAeRftcnVfmbiydJ9DXfcFePC4f364H/gcuG3AOA34mINQVng2uOpfWLop/Vv6+CE4fZy4N7jJSWyE0LgXMzgqeLRG2vc4Lvg/uAN4kxVe67gq+PSZuU8WdmEouC15LbaCnISJ/Du6cc34mhqi7DiMWHP6+EPfgA=
-	//     username-plaintext: SECRET_USER
+	//     hostname: db.example.com
+	//     password: somepass
+	//     schema: appdb
+	//     username: someuser
 }
 
 func Example_testConfigGetv() {
-	newCmd(
-		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
-		"getv",
-	).Execute()
+	yaml := `
+app:
+  db:
+    username: someuser
+    password: somepass
+    schema: appdb
+    hostname: db.example.com
+`
+	newCmdWithYaml(yaml, "getv").Execute()
 	// Output:
 	// app:
-	//   aliases:
-	//   - foo
-	//   - bar
 	//   db:
-	//     hostname: db.pastdev.com
-	//     password: wcBMA5B5A4w5Zw+rAQgALW6c2D2wwgonToJuQUmDGlnw3LG8L4dOq4qgf27L+s133trGcmBpGdsS3XysbkQ6TaYJ2y7wLpHs/dHSwrD2Z+M6WvLX5mzBhAAY5rIN+KLal7vepU+OumPGbq14kZSAYAhfkVAPxg21P04P1N/S853VPrjpeVlGWBLJMdXsGmdGLgelMAT5koSprnovsBEhm0te33KbEXSkvFVZCMF0rBwK4GV2YfPOhTwFLZCQ451Gl3fLUrdxGS6Bn9pZHl83m3lD8bFdX5kV4ezF48WREE9al3Ik/EEjcKEki2sF65mKK8a5mtEdlw8i2TzRXReUMX+QNFxNbmTyKPGpoQJ4DdLgAeS60Ee2yg9bYuB8LymvpIXe4fcj4E/gxuF9MOBb4j1cxWXg0+OcNwC7jnKTc+A04aAE4OzjvXAkVzP71PTgDuJ5DgRi4JHg3eCK4iRchCPgp+NuvJFazIksrODo5GwKh2URof5RNlbGwzLSmPvio8O96uEXYwA=
-	//     password-plaintext: SECRET_PASS
-	//     port: 3306
-	//     schema: clconfdb
-	//     username: wcBMA5B5A4w5Zw+rAQgAUfuQEe3XCfWey2j51dIl6BiDyMVcGu2nOUV+CS4GLF/AW2KfThIWICxYDEpbJhxFnGqHDkdFI8q5YowS8XDKuezJXwwkvKJkDswMiIJsHVRIoIW2kvXZHS0fJIqPN0mpUl2uPmDd+lELduV21ix4j+yO1frEgbAmKtAHvfvs5QqPOquOZVFWRnHP0SQ1Ev+argq+c1OrbSPXlGplFgfpyJWoq1vt4K2OL//us6fZtAPgNHGTIK+0hFZSTfJ7vBqEygolAO581G9fsUHWJJ+0KBj4xHy7J91mCTCCCl8gbUe6ANtSMHGcl8aNuYL6IRvOEbtZVM8MUE6MWY+k/pPABNLgAeRftcnVfmbiydJ9DXfcFePC4f364H/gcuG3AOA34mINQVng2uOpfWLop/Vv6+CE4fZy4N7jJSWyE0LgXMzgqeLRG2vc4Lvg/uAN4kxVe67gq+PSZuU8WdmEouC15LbaCnISJ/Du6cc34mhqi7DiMWHP6+EPfgA=
-	//     username-plaintext: SECRET_USER
+	//     hostname: db.example.com
+	//     password: somepass
+	//     schema: appdb
+	//     username: someuser
 }
 
 func Example_testConfigGetvDecrypt() {
@@ -121,58 +121,94 @@ func Example_testConfigGetvDecryptWithPrefixAndPathAndTemplate() {
 }
 
 func Example_testConfigGetvAppAliases() {
-	newCmd(
-		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
-		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
-		"getv",
-		"/app/aliases",
-	).Execute()
+	yaml := `
+app:
+  db:
+    username: someuser
+    password: somepass
+    schema: appdb
+    hostname: db.example.com
+    port: 3306
+  aliases:
+  - foo
+  - bar
+`
+	newCmdWithYaml(yaml, "getv", "/app/aliases").Execute()
 	// Output:
 	// - foo
 	// - bar
 }
 
 func Example_testConfigGetvAppDbPort() {
-	newCmd(
-		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
-		"getv",
-		"/app/db/port",
-	).Execute()
+	yaml := `
+app:
+  db:
+    username: someuser
+    password: somepass
+    schema: appdb
+    hostname: db.example.com
+    port: 3306
+  aliases:
+  - foo
+  - bar
+`
+	newCmdWithYaml(yaml, "getv", "/app/db/port").Execute()
 	// Output:
 	// 3306
 }
 
 func Example_testConfigGetvAppDbHostname() {
-	newCmd(
-		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
-		"getv",
-		"/app/db/hostname",
-	).Execute()
+	yaml := `
+app:
+  db:
+    username: someuser
+    password: somepass
+    schema: appdb
+    hostname: db.example.com
+    port: 3306
+  aliases:
+  - foo
+  - bar
+`
+	newCmdWithYaml(yaml, "getv", "/app/db/hostname").Execute()
 	// Output:
-	// db.pastdev.com
+	// db.example.com
 }
 
 func Example_testConfigGetvInvalidWithDefault() {
-	newCmd(
-		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
-		"getv",
-		"/INVALID_PATH",
-		"--default", "foo",
-	).Execute()
+	yaml := `
+app:
+  db:
+    username: someuser
+    password: somepass
+    schema: appdb
+    hostname: db.example.com
+    port: 3306
+  aliases:
+  - foo
+  - bar
+`
+	newCmdWithYaml(yaml, "getv", "/INVALID_PATH", "--default", "foo").Execute()
 	// Output:
 	// foo
 }
 
 func Example_testConfigGetvAppDbHostnameWithDefault() {
-	newCmd(
-		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
-		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
-		"getv",
-		"/app/db/hostname",
-		"--default", "INVALID_HOSTNAME",
-	).Execute()
+	yaml := `
+app:
+  db:
+    username: someuser
+    password: somepass
+    schema: appdb
+    hostname: db.example.com
+    port: 3306
+  aliases:
+  - foo
+  - bar
+`
+	newCmdWithYaml(yaml, "getv", "/app/db/hostname", "--default", "INVALID_HOSTNAME").Execute()
 	// Output:
-	// db.pastdev.com
+	// db.example.com
 }
 
 func Example_testConfigCgetvAppDbUsername() {
@@ -317,8 +353,50 @@ func Example_mergeOverridesBooleanToFalse() {
 	// foo: false
 }
 
+func Example_preserveListOrderInRange() {
+	yaml := `
+a_list:
+- zebra
+- elephant
+- cat
+- unicorn
+`
+	newCmdWithYaml(yaml, "getv", "/", "--template-string",
+		`{{ range (getksvs "/a_list/*" "int") }}{{.}}{{"\n"}}{{ end }}`).Execute()
+	// Output:
+	// zebra
+	// elephant
+	// cat
+	// unicorn
+}
+
+func Example_sortListInRange() {
+	yaml := `
+a_list:
+- zebra
+- elephant
+- cat
+- unicorn
+`
+	newCmdWithYaml(yaml, "getv", "/", "--template-string",
+		`{{ range getsvs "/a_list/*" }}{{.}}{{"\n"}}{{ end }}`).Execute()
+	// Output:
+	// cat
+	// elephant
+	// unicorn
+	// zebra
+}
+
 func newCmd(args ...string) *cobra.Command {
 	cmd := rootCmd()
+	cmd.SetArgs(args)
+	return cmd
+}
+
+func newCmdWithYaml(yaml string, args ...string) *cobra.Command {
+	b64yml := base64.StdEncoding.EncodeToString([]byte(yaml))
+	cmd := rootCmd()
+	args = append([]string{"--yaml-base64", b64yml}, args...)
 	cmd.SetArgs(args)
 	return cmd
 }

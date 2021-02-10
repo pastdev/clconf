@@ -85,7 +85,7 @@ func NewTemplate(name, text string, config *TemplateConfig) (*Template, error) {
 
 	store := memkv.New()
 
-	funcMap := clconftemplate.NewFuncMap()
+	funcMap := clconftemplate.NewFuncMap(&store)
 	clconftemplate.AddFuncs(funcMap, store.FuncMap)
 	if config.SecretAgent != nil {
 		addCryptFuncs(funcMap, config.SecretAgent)
