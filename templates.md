@@ -484,6 +484,14 @@ foo:
 - cat
 EOF
 [bird cat dog]
+
+clconf --pipe getv --template-string '{{ range $i := (sort (ls "/foo") "int")}}{{ getv (printf "/foo/%s" $i) }},{{ end }}' <<EOF
+foo:
+- dog
+- bird
+- cat
+EOF
+dog,bird,cat,
 ```
 
 ## Example Usage
