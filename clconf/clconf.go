@@ -173,11 +173,19 @@ func GetValue(conf interface{}, keyPath string) (interface{}, error) {
 	return value, nil
 }
 
+// ListToMap converts a list to an integer map.
+func ListToMap(l []interface{}) map[interface{}]interface{} {
+	m := make(map[interface{}]interface{})
+	for i, v := range l {
+		m[i] = v
+	}
+	return m
+}
+
 // LoadConf will load all configurations provided.  In order of precedence
 // (highest last), files, overrides.
 func LoadConf(files []string, overrides []string) (map[interface{}]interface{}, error) {
 	return ConfSources{Files: files, Overrides: overrides}.Load()
-
 }
 
 // LoadConfFromEnvironment will load all configurations present.  In order
@@ -404,8 +412,8 @@ func UnmarshalAllYaml(yamlString string) ([]interface{}, error) {
 }
 
 // UnmarshalYaml will parse all the supplied yaml strings, merge the resulting
-// objects, and return the resulting map.  This only works for objects because
-// the merge requires objects.
+// objects, and return the resulting map. If a root node is a list it will be
+// converted to an int map prior to merging.
 func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
 	var allYamls []interface{}
 	for _, yamlString := range yamlStrings {
@@ -424,6 +432,9 @@ func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
 			// a yaml that is `---` only, is _valid_ (passes yaml lint) but will
 			// be <nil>.  mergo.Merge does not like <nil>
 			continue
+		}
+		if l, ok := y.([]interface{}); ok {
+			y = ListToMap(l)
 		}
 		if err := mergo.Merge(&result, y, mergo.WithOverride); err != nil {
 			return nil, fmt.Errorf("yaml merge failed: %v", err)

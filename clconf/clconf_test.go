@@ -909,9 +909,11 @@ func TestUnmarshalYamlMultipleDocs(t *testing.T) {
 		"a": "foo",
 		"b": "bar",
 		"c": "stuff",
+		0:   "one",
+		1:   "two",
 	}
 
-	merged, err := clconf.UnmarshalYaml("---\na: bar\n---\nb: bar", "---\na: foo\n---\nc: stuff")
+	merged, err := clconf.UnmarshalYaml("---\na: bar\n---\nb: bar", "---\na: foo\n---\nc: stuff\n---\n- one\n- two")
 	if err != nil || !reflect.DeepEqual(merged, expected) {
 		t.Errorf("Multiple docs failed: [%v] != [%v]", expected, merged)
 	}
