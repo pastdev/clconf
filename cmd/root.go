@@ -46,9 +46,12 @@ func (c *rootContext) getValue(path string) (interface{}, error) {
 		confSources.Stream = os.Stdin
 	}
 
-	config, err := confSources.Load()
+	config, err := confSources.LoadInterface()
 	if err != nil {
 		return nil, err
+	}
+	if config == nil {
+		config = map[interface{}]interface{}{}
 	}
 
 	for _, v := range c.vars {
