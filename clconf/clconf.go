@@ -40,10 +40,10 @@ type ConfSources struct {
 	Stream io.Reader
 }
 
-// Load will load the config determined by settings in the struct. In order
+// LoadInterface will load the config determined by settings in the struct. In order
 // of precedence (highest last), Files, YAML_FILES env var, Overrides,
 // YAML_VARS env var, Stream.
-func (s ConfSources) Load() (map[interface{}]interface{}, error) {
+func (s ConfSources) LoadInterface() (interface{}, error) {
 	files := s.Files
 	overrides := s.Overrides
 
@@ -83,7 +83,14 @@ func (s ConfSources) Load() (map[interface{}]interface{}, error) {
 		yamls = append(yamls, string(streamYaml))
 	}
 
-	return UnmarshalYaml(yamls...)
+	return UnmarshalYamlInterface(yamls...)
+}
+
+// Load will load the config determined by settings in the struct. In order
+// of precedence (highest last), Files, YAML_FILES env var, Overrides,
+// YAML_VARS env var, Stream.
+func (s ConfSources) Load() (map[interface{}]interface{}, error) {
+	return backCompat(s.LoadInterface())
 }
 
 // DecodeBase64Strings will decode all the base64 strings supplied
@@ -97,6 +104,19 @@ func DecodeBase64Strings(values ...string) ([]string, error) {
 		contents = append(contents, string(content))
 	}
 	return contents, nil
+}
+
+func backCompat(result interface{}, err error) (map[interface{}]interface{}, error) {
+	if err != nil {
+		return nil, err
+	}
+	if result == nil {
+		return map[interface{}]interface{}{}, nil
+	}
+	if rmap, ok := result.(map[interface{}]interface{}); ok {
+		return rmap, nil
+	}
+	return nil, fmt.Errorf("merge result is not a map")
 }
 
 // Fill will fill a according to DecoderConfig with the values from conf.
@@ -185,14 +205,27 @@ func ListToMap(l []interface{}) map[interface{}]interface{} {
 // LoadConf will load all configurations provided.  In order of precedence
 // (highest last), files, overrides.
 func LoadConf(files []string, overrides []string) (map[interface{}]interface{}, error) {
-	return ConfSources{Files: files, Overrides: overrides}.Load()
+	return backCompat(LoadConfInterface(files, overrides))
+}
+
+// LoadConfInterface will load all configurations provided.  In order of precedence
+// (highest last), files, overrides.
+func LoadConfInterface(files []string, overrides []string) (interface{}, error) {
+	return ConfSources{Files: files, Overrides: overrides}.LoadInterface()
 }
 
 // LoadConfFromEnvironment will load all configurations present.  In order
 // of precedence (highest last), files, YAML_FILES env var, overrides,
 // YAML_VARS env var.
 func LoadConfFromEnvironment(files []string, overrides []string) (map[interface{}]interface{}, error) {
-	return ConfSources{Files: files, Overrides: overrides, Environment: true}.Load()
+	return backCompat(LoadConfFromEnvironmentInterface(files, overrides))
+}
+
+// LoadConfFromEnvironmentInterface will load all configurations present.  In order
+// of precedence (highest last), files, YAML_FILES env var, overrides,
+// YAML_VARS env var.
+func LoadConfFromEnvironmentInterface(files []string, overrides []string) (interface{}, error) {
+	return ConfSources{Files: files, Overrides: overrides, Environment: true}.LoadInterface()
 }
 
 // LoadSettableConfFromEnvironment loads configuration for setting.  Only one
@@ -411,36 +444,48 @@ func UnmarshalAllYaml(yamlString string) ([]interface{}, error) {
 	return results, err
 }
 
-// UnmarshalYaml will parse all the supplied yaml strings, merge the resulting
+// UnmarshalYamlInterface will parse all the supplied yaml strings, merge the resulting
 // objects, and return the resulting map. If a root node is a list it will be
-// converted to an int map prior to merging.
-func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
-	var allYamls []interface{}
+// converted to an int map prior to merging. An emtpy document returns nil.
+func UnmarshalYamlInterface(yamlStrings ...string) (interface{}, error) {
+	// We collect all the yamls into a base string map so mergo can handle them as
+	// subnodes for consistentcy (mergo doesn't like conflicting types in root
+	// nodes)
+	var allYamls []map[string]interface{}
 	for _, yamlString := range yamlStrings {
 		yamls, err := UnmarshalAllYaml(yamlString)
 		if err != nil {
 			return nil, err
 		}
-		if len(yamls) > 0 {
-			allYamls = append(allYamls, yamls...)
+		for _, yaml := range yamls {
+			// We do this to maintain backward compatibility with empty docs being
+			// treated as an empty map
+			if yaml != nil {
+				allYamls = append(allYamls, map[string]interface{}{"root": yaml})
+			}
 		}
 	}
 
-	result := make(map[interface{}]interface{})
+	result := make(map[string]interface{})
 	for _, y := range allYamls {
-		if y == nil {
-			// a yaml that is `---` only, is _valid_ (passes yaml lint) but will
-			// be <nil>.  mergo.Merge does not like <nil>
-			continue
-		}
-		if l, ok := y.([]interface{}); ok {
-			y = ListToMap(l)
-		}
 		if err := mergo.Merge(&result, y, mergo.WithOverride); err != nil {
 			return nil, fmt.Errorf("yaml merge failed: %v", err)
 		}
 	}
-	return result, nil
+	r := result["root"]
+	if r == nil {
+		// We do this to maintain backward compatibility with empty docs being
+		// treated as an empty map
+		return map[interface{}]interface{}{}, nil
+	}
+	return r, nil
+}
+
+// UnmarshalYaml will parse all the supplied yaml strings, merge the resulting
+// objects, and return the resulting map. If a root node is a list it will be
+// converted to an int map prior to merging.
+func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
+	return backCompat(UnmarshalYamlInterface(yamlStrings...))
 }
 
 // Walk will recursively iterate over all the nodes of conf calling callback

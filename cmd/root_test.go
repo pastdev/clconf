@@ -33,6 +33,15 @@ func Example_testConfig() {
 	//     username-plaintext: SECRET_USER
 }
 
+func Example_testList() {
+	newCmd(
+		"--yaml", filepath.Join("..", "testdata", "testrootlist.yml"),
+	).Execute()
+	// Output:
+	// - foo: bar
+	// - foo: baz
+}
+
 func Example_testConfigGetv() {
 	newCmd(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),

@@ -45,26 +45,6 @@ const secrets = "" +
 	"  database:\n" +
 	"    password: p@sSw0rd\n" +
 	"    username: confd\n"
-const configMapAndSecrets = "" +
-	"---\n" +
-	"key: foobar\n" +
-	"database:\n" +
-	"  host: 127.0.0.1\n" +
-	"  password: p@sSw0rd\n" +
-	"  port: \"3306\"\n" +
-	"  username: confd\n" +
-	"upstream:\n" +
-	"  app1: 10.0.1.10:8080\n" +
-	"  app2: 10.0.1.11:8080\n" +
-	"prefix:\n" +
-	"  database:\n" +
-	"    host: 127.0.0.1\n" +
-	"    password: p@sSw0rd\n" +
-	"    port: \"3306\"\n" +
-	"    username: confd\n" +
-	"  upstream:\n" +
-	"    app1: 10.0.1.10:8080\n" +
-	"    app2: 10.0.1.11:8080\n"
 const yaml1 = "" +
 	"a: Nope\n" +
 	"b:\n" +
@@ -94,6 +74,32 @@ const yamlWithList = "" +
 	"- one\n" +
 	"- two\n" +
 	"- three\n"
+
+var configMapAndSecretsExpected = map[interface{}]interface{}{
+	"key": "foobar",
+	"database": map[interface{}]interface{}{
+		"host":     "127.0.0.1",
+		"password": "p@sSw0rd",
+		"port":     "3306",
+		"username": "confd",
+	},
+	"upstream": map[interface{}]interface{}{
+		"app1": "10.0.1.10:8080",
+		"app2": "10.0.1.11:8080",
+	},
+	"prefix": map[interface{}]interface{}{
+		"database": map[interface{}]interface{}{
+			"host":     "127.0.0.1",
+			"password": "p@sSw0rd",
+			"port":     "3306",
+			"username": "confd",
+		},
+		"upstream": map[interface{}]interface{}{
+			"app1": "10.0.1.10:8080",
+			"app2": "10.0.1.11:8080",
+		},
+	},
+}
 
 func assertMergeValue(
 	t *testing.T,
@@ -891,15 +897,36 @@ func TestUnmarshalYaml(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
 		expected := map[interface{}]interface{}{}
 		actual, err := clconf.UnmarshalYaml("---")
-		if err != nil || !reflect.DeepEqual(actual, expected) {
-			t.Errorf("ConfigMap and Secrets failed: [%v] != [%v]", expected, actual)
+		if err != nil {
+			t.Fatalf("Error UnmarshalYaml: %v", err)
+		}
+		if !reflect.DeepEqual(actual, expected) {
+			t.Errorf("Empty failed: [%#v] != [%#v]", expected, actual)
 		}
 	})
 	t.Run("configMapAndSecrets", func(t *testing.T) {
-		expected, _ := clconf.UnmarshalYaml(configMapAndSecrets)
 		actual, err := clconf.UnmarshalYaml(configMap, secrets)
-		if err != nil || !reflect.DeepEqual(actual, expected) {
-			t.Errorf("ConfigMap and Secrets failed: [%v] != [%v]", expected, actual)
+		if err != nil || !reflect.DeepEqual(actual, configMapAndSecretsExpected) {
+			t.Errorf("ConfigMap and Secrets failed: [%v] != [%v]", configMapAndSecretsExpected, actual)
+		}
+	})
+}
+
+func TestUnmarshalYamlInterface(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		var expected interface{}
+		actual, err := clconf.UnmarshalYamlInterface("---")
+		if err != nil {
+			t.Fatalf("Error UnmarshalYaml: %v", err)
+		}
+		if !reflect.DeepEqual(actual, expected) {
+			t.Errorf("Empty failed: [%#v] != [%#v]", expected, actual)
+		}
+	})
+	t.Run("configMapAndSecrets", func(t *testing.T) {
+		actual, err := clconf.UnmarshalYamlInterface(configMap, secrets)
+		if err != nil || !reflect.DeepEqual(actual, configMapAndSecretsExpected) {
+			t.Errorf("ConfigMap and Secrets failed: [%#v] != [%#v]", configMapAndSecretsExpected, actual)
 		}
 	})
 }
@@ -909,14 +936,47 @@ func TestUnmarshalYamlMultipleDocs(t *testing.T) {
 		"a": "foo",
 		"b": "bar",
 		"c": "stuff",
-		0:   "one",
-		1:   "two",
 	}
 
-	merged, err := clconf.UnmarshalYaml("---\na: bar\n---\nb: bar", "---\na: foo\n---\nc: stuff\n---\n- one\n- two")
+	merged, err := clconf.UnmarshalYaml("---\na: bar\n---\nb: bar", "---\na: foo\n---\nc: stuff\n")
 	if err != nil || !reflect.DeepEqual(merged, expected) {
 		t.Errorf("Multiple docs failed: [%v] != [%v]", expected, merged)
 	}
+}
+
+func TestUnmarshalYamlInterfaceMultipleDocs(t *testing.T) {
+	t.Run("hashes", func(t *testing.T) {
+		expected := map[interface{}]interface{}{
+			"a": "foo",
+			"b": "bar",
+			"c": "stuff",
+		}
+		merged, err := clconf.UnmarshalYamlInterface("---\na: bar\n---\nb: bar", "---\na: foo\n---\nc: stuff\n")
+		if err != nil || !reflect.DeepEqual(merged, expected) {
+			t.Errorf("Multiple docs failed: [%#v] != [%#v]", expected, merged)
+		}
+	})
+	t.Run("hashes then array", func(t *testing.T) {
+		expected := []interface{}{
+			"one",
+			"two",
+		}
+		merged, err := clconf.UnmarshalYamlInterface("---\na: bar\n---\nb: bar", "---\na: foo\n---\nc: stuff\n---\n- one\n- two")
+		if err != nil || !reflect.DeepEqual(merged, expected) {
+			t.Errorf("Multiple docs failed: [%#v] != [%#v]", expected, merged)
+		}
+	})
+	t.Run("hashes then nil", func(t *testing.T) {
+		expected := map[interface{}]interface{}{
+			"a": "foo",
+			"b": "bar",
+			"c": "stuff",
+		}
+		merged, err := clconf.UnmarshalYamlInterface("---\na: bar\n---\nb: bar", "---\na: foo\n---\nc: stuff\n---")
+		if err != nil || !reflect.DeepEqual(merged, expected) {
+			t.Errorf("Multiple docs failed: [%#v] != [%#v]", expected, merged)
+		}
+	})
 }
 
 func TestUnmarshalYamlJson(t *testing.T) {
