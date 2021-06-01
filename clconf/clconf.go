@@ -106,6 +106,9 @@ func DecodeBase64Strings(values ...string) ([]string, error) {
 	return contents, nil
 }
 
+// backCompat takes the result of one of the new *Interface functions (which return
+// interface{}) and ports it back to the old map[interface{}]interface{} output for
+// backward compatibility.
 func backCompat(result interface{}, err error) (map[interface{}]interface{}, error) {
 	if err != nil {
 		return nil, err
