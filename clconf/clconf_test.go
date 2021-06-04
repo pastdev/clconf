@@ -914,7 +914,7 @@ func TestUnmarshalYaml(t *testing.T) {
 
 func TestUnmarshalYamlInterface(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
-		var expected interface{}
+		expected := map[interface{}]interface{}{}
 		actual, err := clconf.UnmarshalYamlInterface("---")
 		if err != nil {
 			t.Fatalf("Error UnmarshalYaml: %v", err)
