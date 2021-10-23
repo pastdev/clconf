@@ -111,7 +111,7 @@ func processTemplate(paths pathWithRelative, dest string, value interface{},
 	targetDir := filepath.Dir(target)
 	err = MkdirAllNoUmask(targetDir, options.DirMode)
 	if err != nil {
-		return result, fmt.Errorf("Error making target dir %q: %v", targetDir, err)
+		return result, fmt.Errorf("error making target dir %q: %v", targetDir, err)
 	}
 
 	template, err := NewTemplateFromFile(paths.rel, paths.full,
@@ -124,7 +124,7 @@ func processTemplate(paths pathWithRelative, dest string, value interface{},
 
 	content, err := template.Execute(value)
 	if err != nil {
-		return result, fmt.Errorf("Error processing template: %v", err)
+		return result, fmt.Errorf("error processing template: %v", err)
 	}
 
 	if options.KeepEmpty || content != "" {

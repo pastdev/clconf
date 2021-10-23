@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	"github.com/ohler55/ojg/jp"
-	"github.com/pastdev/clconf/v2/clconf"
 	"github.com/spf13/cobra"
 )
 
 type jsonpathContext struct {
 	*rootContext
 	first bool
+	Marshaler
 }
 
 func (c *jsonpathContext) addFlags(cmd *cobra.Command) {
@@ -44,18 +44,21 @@ func (c jsonpathContext) jsonpath(cmd *cobra.Command, args []string) error {
 		value = result[0]
 	}
 
-	marshalled, err := clconf.MarshalYaml(value)
+	marshalled, err := c.Marshal(value)
 	if err != nil {
 		return err
 	}
 
-	fmt.Print(string(marshalled))
+	fmt.Print(marshalled)
 	return nil
 }
 
 func jsonpathCmd(rootCmdContext *rootContext) *cobra.Command {
 	var cmdContext = &jsonpathContext{
 		rootContext: rootCmdContext,
+		Marshaler: Marshaler{
+			secretAgentFactory: rootCmdContext,
+		},
 	}
 
 	var cmd = &cobra.Command{
@@ -67,6 +70,7 @@ func jsonpathCmd(rootCmdContext *rootContext) *cobra.Command {
 	}
 
 	cmdContext.addFlags(cmd)
+	cmdContext.Marshaler.AddFlags(cmd)
 
 	return cmd
 }

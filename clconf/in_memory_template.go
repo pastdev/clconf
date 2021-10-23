@@ -93,7 +93,7 @@ func NewTemplate(name, text string, config *TemplateConfig) (*Template, error) {
 
 	tmpl, err := template.New(name).Funcs(funcMap).Parse(text)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to process template %s: %s", name, err)
+		return nil, fmt.Errorf("unable to process template %s: %s", name, err)
 	}
 
 	return &Template{
