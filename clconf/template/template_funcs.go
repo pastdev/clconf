@@ -116,14 +116,12 @@ func SortByLength(values []string) []string {
 //Reverse returns the array in reversed order
 //works with []string and []KVPair
 func Reverse(values interface{}) interface{} {
-	switch values.(type) {
+	switch v := values.(type) {
 	case []string:
-		v := values.([]string)
 		for left, right := 0, len(v)-1; left < right; left, right = left+1, right-1 {
 			v[left], v[right] = v[right], v[left]
 		}
 	case []memkv.KVPair:
-		v := values.([]memkv.KVPair)
 		for left, right := 0, len(v)-1; left < right; left, right = left+1, right-1 {
 			v[left], v[right] = v[right], v[left]
 		}

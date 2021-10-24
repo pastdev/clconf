@@ -78,7 +78,7 @@ func (s ConfSources) LoadInterface() (interface{}, error) {
 	if s.Stream != nil {
 		streamYaml, err := ioutil.ReadAll(s.Stream)
 		if err != nil {
-			return nil, fmt.Errorf("Error reading stdin: %v", err)
+			return nil, fmt.Errorf("error reading stdin: %v", err)
 		}
 		yamls = append(yamls, string(streamYaml))
 	}
@@ -145,10 +145,7 @@ func Fill(keyPath string, conf interface{}, decoderConfig *mapstructure.DecoderC
 // FillValue will fill a struct, out, with values from conf.
 func FillValue(keyPath string, conf interface{}, out interface{}) bool {
 	err := Fill(keyPath, conf, &mapstructure.DecoderConfig{Result: out})
-	if err == nil {
-		return true
-	}
-	return false
+	return err == nil
 }
 
 // GetValue returns the value at the indicated path.  Paths are separated by
@@ -167,16 +164,26 @@ func GetValue(conf interface{}, keyPath string) (interface{}, error) {
 
 		currentPath = path.Join(currentPath, part)
 
-		switch reflect.ValueOf(value).Kind() {
-		case reflect.Map:
+		switch typed := value.(type) {
+		case map[string]interface{}:
+			// json deserialized
 			var ok bool
-			value, ok = value.(map[interface{}]interface{})[part]
+			value, ok = typed[part]
 			if !ok {
 				return nil, fmt.Errorf(
 					"value at [%v] does not exist",
 					currentPath)
 			}
-		case reflect.Slice:
+		case map[interface{}]interface{}:
+			// yaml deserialized
+			var ok bool
+			value, ok = typed[part]
+			if !ok {
+				return nil, fmt.Errorf(
+					"value at [%v] does not exist",
+					currentPath)
+			}
+		case []interface{}:
 			i, err := strconv.Atoi(part)
 			if err != nil {
 				return nil, fmt.Errorf(
@@ -185,7 +192,7 @@ func GetValue(conf interface{}, keyPath string) (interface{}, error) {
 					part,
 					err)
 			}
-			value = value.([]interface{})[i]
+			value = typed[i]
 		default:
 			return nil, fmt.Errorf(
 				"value at [%v] not a map or slice: %v",
@@ -242,7 +249,7 @@ func LoadSettableConfFromEnvironment(files []string) (string, map[interface{}]in
 		files = append(files, Splitter.Split(yamlFiles, -1)...)
 	}
 	if len(files) != 1 {
-		return "", nil, errors.New("Exactly one file required with setv")
+		return "", nil, errors.New("exactly one file required with setv")
 	}
 
 	if _, err := os.Stat(files[0]); os.IsNotExist(err) {
@@ -271,7 +278,7 @@ func ReadEnvVars(names ...string) ([]string, error) {
 		if value, ok := os.LookupEnv(name); ok {
 			values = append(values, value)
 		} else {
-			return nil, fmt.Errorf("Read env var [%s] failed, does not exist", name)
+			return nil, fmt.Errorf("read env var [%s] failed, does not exist", name)
 		}
 	}
 	return values, nil
@@ -343,7 +350,7 @@ func MergeValue(config interface{}, keyPath string, value interface{}, overwrite
 func getParentAndKey(config interface{}, keyPath string) (map[interface{}]interface{}, string, error) {
 	configMap, ok := config.(map[interface{}]interface{})
 	if !ok {
-		return nil, "", fmt.Errorf("Config not a map")
+		return nil, "", fmt.Errorf("config not a map")
 	}
 	parentParts, key := splitKeyPath(keyPath)
 	if key == "" {
@@ -360,7 +367,7 @@ func getParentAndKey(config interface{}, keyPath string) (map[interface{}]interf
 		valueMap, ok := parentValue.(map[interface{}]interface{})
 		if !ok {
 			return nil, "", fmt.Errorf(
-				"Parent at /%s not a map (type: %T)",
+				"parent at /%s not a map (type: %T)",
 				strings.Join(parentParts[0:i+1], "/"),
 				parentValue)
 		}
@@ -494,22 +501,25 @@ func UnmarshalYaml(yamlStrings ...string) (map[interface{}]interface{}, error) {
 // Walk will recursively iterate over all the nodes of conf calling callback
 // for each node.
 func Walk(callback func(key []string, value interface{}), conf interface{}) {
-	node, ok := conf.(map[interface{}]interface{})
-	if !ok {
-		callback([]string{}, conf)
-	}
-	walk(callback, node, []string{})
+	walk(callback, conf, []string{})
 }
 
 func walk(callback func(key []string, value interface{}), node interface{}, keyStack []string) {
-	switch node.(type) {
+	switch typed := node.(type) {
+	case map[string]interface{}:
+		// json deserialized
+		for k, v := range typed {
+			keyStack := append(keyStack, fmt.Sprintf("%v", k))
+			walk(callback, v, keyStack)
+		}
 	case map[interface{}]interface{}:
-		for k, v := range node.(map[interface{}]interface{}) {
+		// yaml deserialized
+		for k, v := range typed {
 			keyStack := append(keyStack, fmt.Sprintf("%v", k))
 			walk(callback, v, keyStack)
 		}
 	case []interface{}:
-		for i, j := range node.([]interface{}) {
+		for i, j := range typed {
 			keyStack := append(keyStack, strconv.Itoa(i))
 			walk(callback, j, keyStack)
 		}

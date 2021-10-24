@@ -158,6 +158,7 @@ takes precedence when merged`)
 		cgetvCmd(c),
 		csetvCmd(c),
 		getvCmd(c),
+		jsonpathCmd(c),
 		setvCmd(c),
 		templateCmd(c),
 		varCmd(),
