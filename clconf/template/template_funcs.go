@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kelseyhightower/memkv"
+	"github.com/pastdev/clconf/v2/clconf/memkv"
 )
 
 func NewFuncMap(s *memkv.Store) map[string]interface{} {
