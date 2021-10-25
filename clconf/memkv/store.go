@@ -96,6 +96,8 @@ func (s Store) GetValue(key string, defaultValue ...string) (string, error) {
 	return v, nil
 }
 
+// list implements path listings similar to the way unix ls command works
+// see the template.md for more detail
 func (s Store) list(filePath string, dir bool) []string {
 	filePath = strings.TrimSuffix(filePath, "/")
 
@@ -127,13 +129,6 @@ func (s Store) list(filePath string, dir bool) []string {
 			if dir {
 				continue
 			}
-			// this case seems hinky but it is compatible with behavior of the
-			// original kelseyhightower/memkv.  essentially this is an exact
-			// match which makes it a leaf node and seems like it should not be
-			// part of a listing otherwise i would expect to it when any sub
-			// paths exist as well but that would lead to ambiguous behavior
-			// we should revisit if this makes sense and whether it may break
-			// downstream consumer code
 			p = k[strings.LastIndex(k, "/")+1:]
 		default:
 			p = k[len(filePath)+1:]

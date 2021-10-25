@@ -353,7 +353,8 @@ Wrapper for [net.LookupSRV](https://golang.org/pkg/net/#LookupSRV). The wrapper 
 
 ### ls
 
-Returns all subkeys, []string, where path matches its argument. Returns an empty list if path is not found.
+Returns all subkeys, `[]string`, where path matches its argument. Returns an
+empty list if path is not found.
 
 ```text
 {{range ls "/deis/services"}}
@@ -363,12 +364,41 @@ Returns all subkeys, []string, where path matches its argument. Returns an empty
 
 ### lsdir
 
-Returns all subkeys, []string, where path matches its argument. It only returns subkeys that also have subkeys. Returns an empty list if path is not found.
+If you think of your data as being a filesystem where the leaf nodes is the
+content of the file, and the key (if map) or index (if array) is the name of the
+file, then this will return all the directories directly under the supplied
+path.  Returns an empty list if not found.  For example, given:
+
+```yaml
+foo:
+  bar: baz
+  hip:
+  - hop: hap
+  - hup: hep
+  zap:
+    dap: dop
+  zip:
+    dip: dop
+```
+
+The dirs are `/foo`, `/foo/hip/`, `/foo/hip/0`, `/foo/hip/1`, `/foo/zap` and
+`/foo/zip`, so:
 
 ```text
-{{range lsdir "/deis/services"}}
-   value: {{.}}
-{{end}}
+{{- range lsdir "/" -}}{{printf "/ -> %s\n" .}}{{- end -}}
+{{- range lsdir "/foo" -}}{{printf "/foo -> %s\n" .}}{{- end -}}
+{{- range lsdir "/foo/hip" -}}{{printf "/foo/hip -> %s\n" .}}{{- end -}}
+```
+
+Would print:
+
+```console
+/ -> foo
+/foo -> hip
+/foo -> zap
+/foo -> zip
+/foo/hip -> 0
+/foo/hip -> 1
 ```
 
 ### map

@@ -5,6 +5,7 @@ import (
 
 	"github.com/pastdev/clconf/v2/clconf/memkv"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v2"
 )
 
 func TestDel(t *testing.T) {
@@ -153,6 +154,16 @@ func TestListAndListDir(t *testing.T) {
 		[]string{"bar", "hip"},
 		[]string{"bar"})
 
+	tester("examine root",
+		map[string]string{
+			"/foo/bar": "hop",
+			"/foo/baz": "hap",
+			"/bip":     "bop",
+		},
+		"/",
+		[]string{"bip", "foo"},
+		[]string{"foo"})
+
 	tester("prefix same but not match",
 		map[string]string{
 			"/foo/bar/hip/0": "hop",
@@ -208,30 +219,66 @@ func TestSet(t *testing.T) {
 }
 
 func TestFromMapToKvMap(t *testing.T) {
-	tester := func(test string, data interface{}, expected map[string]string) {
+	tester := func(
+		test string,
+		unmarshaler func(t *testing.T, v string) interface{},
+		data interface{},
+		expected map[string]string,
+	) {
 		t.Run(test, func(t *testing.T) {
+			if unmarshaler != nil {
+				data = unmarshaler(t, data.(string))
+			}
 			s := memkv.New(memkv.WithMap(data))
 			assert.Equal(t, expected, s.ToKvMap())
 		})
 	}
 
+	unmarshalJson := func(t *testing.T, v string) interface{} {
+		var out map[string]interface{}
+		err := yaml.Unmarshal([]byte(v), &out)
+		if err != nil {
+			t.Fatalf("unable to json.Unmarshal: %v", err)
+		}
+		return out
+	}
+
+	unmarshalYaml := func(t *testing.T, v string) interface{} {
+		var out map[interface{}]interface{}
+		err := yaml.Unmarshal([]byte(v), &out)
+		if err != nil {
+			t.Fatalf("unable to yaml.Unmarshal: %v", err)
+		}
+		return out
+	}
+
 	tester("simple yaml deserialized",
-		map[interface{}]interface{}{
-			"foo": "bar",
-		},
+		unmarshalYaml,
+		""+
+			"---\n"+
+			"foo:\n"+
+			"  bar: baz\n"+
+			"  barint: 1\n"+
+			"  barbool: true\n"+
+			"  3: intkey\n",
 		map[string]string{
-			"/foo": "bar",
+			"/foo/bar":     "baz",
+			"/foo/barint":  "1",
+			"/foo/barbool": "true",
+			"/foo/3":       "intkey",
 		})
 
 	tester("simple json deserialized",
-		map[string]interface{}{
-			"foo": "bar",
-		},
+		unmarshalJson,
+		"{\"foo\": {\"bar\": \"baz\", \"barint\": 1, \"barbool\": true}}",
 		map[string]string{
-			"/foo": "bar",
+			"/foo/bar":     "baz",
+			"/foo/barint":  "1",
+			"/foo/barbool": "true",
 		})
 
 	tester("nil value",
+		nil,
 		map[string]interface{}{
 			"foo": nil,
 		},
@@ -240,6 +287,7 @@ func TestFromMapToKvMap(t *testing.T) {
 		})
 
 	tester("array",
+		nil,
 		map[string]interface{}{
 			"foo": []interface{}{"bar", "baz"},
 		},
@@ -249,6 +297,7 @@ func TestFromMapToKvMap(t *testing.T) {
 		})
 
 	tester("complex",
+		nil,
 		map[interface{}]interface{}{
 			"foo": []interface{}{"bar", "baz"},
 			"hip": map[interface{}]interface{}{

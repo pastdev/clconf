@@ -9,6 +9,7 @@ on:
   push:
 
 jobs:
+  # https://github.com/golangci/golangci-lint-action
   lint:
     name: lint
     runs-on: ubuntu-latest
