@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/pastdev/clconf/v2/clconf/template"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEscapeOsgi(t *testing.T) {
@@ -41,6 +42,25 @@ func TestFqdn(t *testing.T) {
 			t.Errorf("Fqdn failed: [%s] != [%s]", actual, test[2])
 		}
 	}
+}
+
+func TestMarshalJsonString(t *testing.T) {
+	tester := func(test string, data interface{}, expected string) {
+		t.Run(test, func(t *testing.T) {
+			actual, err := template.MarshalJsonString(data)
+			assert.NoError(t, err)
+			assert.Equal(t, expected, actual)
+		})
+	}
+
+	tester("simple", "foo", "\"foo\"")
+	tester("two lines",
+		`foo
+bar`,
+		"\"foo\\nbar\"")
+	tester("with quotes", "foo\"bar", "\"foo\\\"bar\"")
+	tester("number", 1, "\"1\"")
+	tester("number", false, "\"false\"")
 }
 
 func TestRegexReplace(t *testing.T) {

@@ -12,11 +12,6 @@ import (
 
 const fakeValue = "bar"
 
-type relExpectedPath struct {
-	subPath string
-	ext     string
-}
-
 func makeTestSubfolder(t *testing.T, temp string, subPath string, perms os.FileMode) {
 	path := filepath.Join(temp, subPath)
 	err := MkdirAllNoUmask(path, perms)
@@ -40,7 +35,10 @@ func writeTestFile(t *testing.T, temp string, subPath string, perms os.FileMode)
 	if err != nil {
 		t.Fatalf("Error making temp file %q: %v", path, err)
 	}
-	os.Chmod(path, perms)
+	err = os.Chmod(path, perms)
+	if err != nil {
+		t.Fatalf("Error setting mode on file %q after creation: %v", path, err)
+	}
 	stat, err := os.Stat(path)
 	if err != nil {
 		t.Fatalf("Error stating file %q after creation: %v", path, err)
@@ -178,10 +176,7 @@ func defaultContext() (TemplateOptions, *SecretAgent) {
 
 func exists(path string) bool {
 	_, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func checkFile(t *testing.T, path string, expectedPerms os.FileMode) {
@@ -278,7 +273,10 @@ func TestProcessTemplateFolder(t *testing.T) {
 	defer os.RemoveAll(temp)
 
 	dest := filepath.Join(temp, "dest")
-	os.Mkdir(dest, 0755)
+	err := os.Mkdir(dest, 0755)
+	if err != nil {
+		t.Fatalf("failed to create dest dir: %v", err)
+	}
 
 	options, secretAgent := defaultContext()
 
@@ -325,7 +323,10 @@ func TestProcessTemplateKeepEmpty(t *testing.T) {
 	defer os.RemoveAll(temp)
 
 	dest := filepath.Join(temp, "dest")
-	os.Mkdir(dest, 0755)
+	err := os.Mkdir(dest, 0755)
+	if err != nil {
+		t.Fatalf("failed to create dest dir: %v", err)
+	}
 
 	options, secretAgent := defaultContext()
 
@@ -466,13 +467,16 @@ func TestProcessTemplatesWithExtension(t *testing.T) {
 	defer os.RemoveAll(temp)
 
 	dest := filepath.Join(temp, "dest")
-	os.Mkdir(dest, 0755)
+	err := os.Mkdir(dest, 0755)
+	if err != nil {
+		t.Fatalf("unable to create temp dest dir: %v", err)
+	}
 
 	options, secretAgent := defaultContext()
 
 	value := map[interface{}]interface{}{"foo": fakeValue}
 
-	_, err := ProcessTemplates([]string{temp}, dest, value, secretAgent, options)
+	_, err = ProcessTemplates([]string{temp}, dest, value, secretAgent, options)
 	if err != nil {
 		t.Errorf("TestProcessTemplatesWithExtension: Error processing templates: %v", err)
 	}

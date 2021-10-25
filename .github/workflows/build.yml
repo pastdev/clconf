@@ -9,6 +9,15 @@ on:
   push:
 
 jobs:
+  # https://github.com/golangci/golangci-lint-action
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+
   test:
     runs-on: ubuntu-latest
     steps:

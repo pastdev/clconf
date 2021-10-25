@@ -47,7 +47,10 @@ func (secretAgent *SecretAgent) DecryptPaths(config interface{}, encryptedPaths 
 		if err != nil {
 			return err
 		}
-		SetValue(config, encryptedPath, decrypted)
+		err = SetValue(config, encryptedPath, decrypted)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

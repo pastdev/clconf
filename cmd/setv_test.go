@@ -140,6 +140,9 @@ func TestSetValue(t *testing.T) {
 		return
 	}
 	actual, err := secretAgent.Decrypt(unmarshaled["foo"])
+	if err != nil {
+		t.Errorf("failed to decrypt: %v", err)
+	}
 	if expected != actual {
 		t.Errorf("SetValue encrypted not equal [%s] != [%s]", expected, actual)
 	}

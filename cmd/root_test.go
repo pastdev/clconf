@@ -10,7 +10,7 @@ import (
 )
 
 func Example_noArg() {
-	newCmd().Execute()
+	_ = newCmd().Execute()
 	// Output:
 	// {}
 }
@@ -24,7 +24,7 @@ app:
     schema: appdb
     hostname: db.example.com
 `
-	newCmdWithYaml(yaml).Execute()
+	_ = newCmdWithYaml(yaml).Execute()
 	// Output:
 	// app:
 	//   db:
@@ -35,7 +35,7 @@ app:
 }
 
 func Example_testList() {
-	newCmd(
+	_ = newCmd(
 		"--yaml", filepath.Join("..", "testdata", "testrootlist.yml"),
 	).Execute()
 	// Output:
@@ -52,7 +52,7 @@ app:
     schema: appdb
     hostname: db.example.com
 `
-	newCmdWithYaml(yaml, "getv").Execute()
+	_ = newCmdWithYaml(yaml, "getv").Execute()
 	// Output:
 	// app:
 	//   db:
@@ -63,7 +63,7 @@ app:
 }
 
 func Example_testConfigGetvDecrypt() {
-	newCmd(
+	_ = newCmd(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"getv",
@@ -86,7 +86,7 @@ func Example_testConfigGetvDecrypt() {
 }
 
 func Example_testConfigGetvDecryptWithPath() {
-	newCmd(
+	_ = newCmd(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"getv",
@@ -105,7 +105,7 @@ func Example_testConfigGetvDecryptWithPath() {
 }
 
 func Example_testConfigGetvDecryptWithPathAndTemplate() {
-	newCmd(
+	_ = newCmd(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"getv",
@@ -117,7 +117,7 @@ func Example_testConfigGetvDecryptWithPathAndTemplate() {
 }
 
 func Example_testConfigGetvDecryptWithPrefixAndPathAndTemplate() {
-	newCmd(
+	_ = newCmd(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"--prefix", "/app/db",
@@ -142,7 +142,7 @@ app:
   - foo
   - bar
 `
-	newCmdWithYaml(yaml, "getv", "/app/aliases").Execute()
+	_ = newCmdWithYaml(yaml, "getv", "/app/aliases").Execute()
 	// Output:
 	// - foo
 	// - bar
@@ -161,7 +161,7 @@ app:
   - foo
   - bar
 `
-	newCmdWithYaml(yaml, "getv", "/app/db/port").Execute()
+	_ = newCmdWithYaml(yaml, "getv", "/app/db/port").Execute()
 	// Output:
 	// 3306
 }
@@ -179,7 +179,7 @@ app:
   - foo
   - bar
 `
-	newCmdWithYaml(yaml, "getv", "/app/db/hostname").Execute()
+	_ = newCmdWithYaml(yaml, "getv", "/app/db/hostname").Execute()
 	// Output:
 	// db.example.com
 }
@@ -197,7 +197,7 @@ app:
   - foo
   - bar
 `
-	newCmdWithYaml(yaml, "getv", "/INVALID_PATH", "--default", "foo").Execute()
+	_ = newCmdWithYaml(yaml, "getv", "/INVALID_PATH", "--default", "foo").Execute()
 	// Output:
 	// foo
 }
@@ -215,13 +215,13 @@ app:
   - foo
   - bar
 `
-	newCmdWithYaml(yaml, "getv", "/app/db/hostname", "--default", "INVALID_HOSTNAME").Execute()
+	_ = newCmdWithYaml(yaml, "getv", "/app/db/hostname", "--default", "INVALID_HOSTNAME").Execute()
 	// Output:
 	// db.example.com
 }
 
 func Example_testConfigCgetvAppDbUsername() {
-	newCmd(
+	_ = newCmd(
 		"--yaml", filepath.Join("..", "testdata", "testconfig.yml"),
 		"--secret-keyring", filepath.Join("..", "testdata", "test.secring.gpg"),
 		"cgetv",
@@ -232,7 +232,7 @@ func Example_testConfigCgetvAppDbUsername() {
 }
 
 func Example_withEnvNoArg() {
-	WithEnv(func() { newCmd().Execute() })
+	WithEnv(func() { _ = newCmd().Execute() })
 	// Output:
 	// app:
 	//   aliases:
@@ -249,49 +249,49 @@ func Example_withEnvNoArg() {
 }
 
 func Example_withEnvCgetvAppDbPassword() {
-	WithEnv(func() { newCmd("cgetv", "/app/db/password").Execute() })
+	WithEnv(func() { _ = newCmd("cgetv", "/app/db/password").Execute() })
 	// Output:
 	// SECRET_PASS
 }
 
 func Example_var() {
-	newCmd("var", "/foo", "bar").Execute()
+	_ = newCmd("var", "/foo", "bar").Execute()
 	// Output:
 	// /foo="bar"
 }
 
 func Example_varForceArray() {
-	newCmd("var", "/foo", "bar", "--force-array").Execute()
+	_ = newCmd("var", "/foo", "bar", "--force-array").Execute()
 	// Output:
 	// /foo=["bar"]
 }
 
 func Example_varValueOnly() {
-	newCmd("var", "/foo", "bar", "--value-only").Execute()
+	_ = newCmd("var", "/foo", "bar", "--value-only").Execute()
 	// Output:
 	// "bar"
 }
 
 func Example_varForceArrayValueOnly() {
-	newCmd("var", "/foo", "bar", "--force-array", "--value-only").Execute()
+	_ = newCmd("var", "/foo", "bar", "--force-array", "--value-only").Execute()
 	// Output:
 	// ["bar"]
 }
 
 func Example_varArray() {
-	newCmd("var", "/foo", "bar", "baz").Execute()
+	_ = newCmd("var", "/foo", "bar", "baz").Execute()
 	// Output:
 	// /foo=["bar","baz"]
 }
 
 func Example_getvVar() {
-	newCmd("getv", "--var", `/foo="bar"`).Execute()
+	_ = newCmd("getv", "--var", `/foo="bar"`).Execute()
 	// Output:
 	// foo: bar
 }
 
 func Example_getvMultipleVar() {
-	newCmd("getv", "--var", `/foo/baz="bar"`, "--var", `/foo/hip="hop"`).Execute()
+	_ = newCmd("getv", "--var", `/foo/baz="bar"`, "--var", `/foo/hip="hop"`).Execute()
 	// Output:
 	// foo:
 	//   baz: bar
@@ -299,7 +299,7 @@ func Example_getvMultipleVar() {
 }
 
 func Example_getvObject() {
-	newCmd("getv", "--var", `/={"foo":{"baz":"bar","hip":"hop"}}`).Execute()
+	_ = newCmd("getv", "--var", `/={"foo":{"baz":"bar","hip":"hop"}}`).Execute()
 	// Output:
 	// foo:
 	//   baz: bar
@@ -307,31 +307,31 @@ func Example_getvObject() {
 }
 
 func Example_getvStringAsJson() {
-	newCmd("getv", "--var", `/foo="bar"`, "/foo", "--as-json").Execute()
+	_ = newCmd("getv", "--var", `/foo="bar"`, "/foo", "--as-json").Execute()
 	// Output:
 	// "bar"
 }
 
 func Example_getvScalarAsBashArray() {
-	newCmd("getv", "--var", `/a="bar"`, "/a", "--as-bash-array").Execute()
+	_ = newCmd("getv", "--var", `/a="bar"`, "/a", "--as-bash-array").Execute()
 	// Output:
 	// ([0]="bar")
 }
 
 func Example_getvArrayAsBashArray() {
-	newCmd("getv", "--var", `/a=["foo","bar"]`, "/a", "--as-bash-array").Execute()
+	_ = newCmd("getv", "--var", `/a=["foo","bar"]`, "/a", "--as-bash-array").Execute()
 	// Output:
 	// ([0]="foo" [1]="bar")
 }
 
 func Example_getvMapAsBashArray() {
-	newCmd("getv", "--var", `/a={"foo":"bar","hip":"hop"}`, "/a", "--as-bash-array").Execute()
+	_ = newCmd("getv", "--var", `/a={"foo":"bar","hip":"hop"}`, "/a", "--as-bash-array").Execute()
 	// Output:
 	// ([0]="{\"key\":\"foo\",\"value\":\"bar\"}" [1]="{\"key\":\"hip\",\"value\":\"hop\"}")
 }
 
 func Example_getvArrayOfObjectsAsBashArray() {
-	newCmd("getv", "--var", `/a=[{"foo":"bar"},{"hip":"hop"}]`, "/a", "--as-bash-array").Execute()
+	_ = newCmd("getv", "--var", `/a=[{"foo":"bar"},{"hip":"hop"}]`, "/a", "--as-bash-array").Execute()
 	// Output:
 	// ([0]="{\"foo\":\"bar\"}" [1]="{\"hip\":\"hop\"}")
 }
@@ -357,7 +357,7 @@ func Example_mergeOverridesBooleanToFalse() {
 		return
 	}
 
-	newCmd("getv", "--yaml", footrue.Name(), "--yaml", foofalse.Name()).Execute()
+	_ = newCmd("getv", "--yaml", footrue.Name(), "--yaml", foofalse.Name()).Execute()
 	// Output:
 	// foo: false
 }
@@ -370,7 +370,7 @@ a_list:
 - cat
 - unicorn
 `
-	newCmdWithYaml(yaml, "getv", "/", "--template-string",
+	_ = newCmdWithYaml(yaml, "getv", "/", "--template-string",
 		`{{ range (getksvs "/a_list/*" "int") }}{{.}}{{"\n"}}{{ end }}`).Execute()
 	// Output:
 	// zebra
@@ -387,7 +387,7 @@ a_list:
 - cat
 - unicorn
 `
-	newCmdWithYaml(yaml, "getv", "/", "--template-string",
+	_ = newCmdWithYaml(yaml, "getv", "/", "--template-string",
 		`{{ range getsvs "/a_list/*" }}{{.}}{{"\n"}}{{ end }}`).Execute()
 	// Output:
 	// cat

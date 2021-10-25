@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/kelseyhightower/memkv"
+	"github.com/pastdev/clconf/v2/clconf/memkv"
 	clconftemplate "github.com/pastdev/clconf/v2/clconf/template"
 )
 
