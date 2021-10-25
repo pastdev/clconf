@@ -270,11 +270,12 @@ func TestFromMapToKvMap(t *testing.T) {
 
 	tester("simple json deserialized",
 		unmarshalJson,
-		"{\"foo\": {\"bar\": \"baz\", \"barint\": 1, \"barbool\": true}}",
+		"{\"foo\": {\"bar\": \"baz\", \"barint\": 1, \"barbool\": true, 3: \"intkey\"}}",
 		map[string]string{
 			"/foo/bar":     "baz",
 			"/foo/barint":  "1",
 			"/foo/barbool": "true",
+			"/foo/3":       "intkey",
 		})
 
 	tester("nil value",
