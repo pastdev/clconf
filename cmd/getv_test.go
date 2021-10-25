@@ -146,7 +146,7 @@ func TestGetTemplate(t *testing.T) {
 
 	tempDir, err := ioutil.TempDir("", "clconf")
 	if err != nil {
-		t.Errorf("Unable to create temp dir: %v", err)
+		t.Fatalf("Unable to create temp dir: %v", err)
 	}
 	defer func() {
 		os.RemoveAll(tempDir)
@@ -157,7 +157,10 @@ func TestGetTemplate(t *testing.T) {
 	templateBytes := []byte(templateString)
 	templateBase64 := base64.StdEncoding.EncodeToString(templateBytes)
 	templateFile := filepath.Join(tempDir, "template")
-	ioutil.WriteFile(templateFile, templateBytes, 0600)
+	err = ioutil.WriteFile(templateFile, templateBytes, 0600)
+	if err != nil {
+		t.Fatalf("failed to write template file: %v", err)
+	}
 
 	context := getvContext{
 		rootContext: &rootContext{

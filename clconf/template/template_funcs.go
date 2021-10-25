@@ -18,47 +18,47 @@ import (
 	"github.com/pastdev/clconf/v2/clconf/memkv"
 )
 
-func NewFuncMap(s *memkv.Store) map[string]interface{} {
-	m := make(map[string]interface{})
-	m["base"] = path.Base
-	m["split"] = strings.Split
-	m["json"] = UnmarshalJsonObject
-	m["jsonArray"] = UnmarshalJsonArray
-	m["dir"] = path.Dir
-	m["map"] = CreateMap
-	m["getenv"] = Getenv
-	m["join"] = strings.Join
-	m["datetime"] = time.Now
-	m["toUpper"] = strings.ToUpper
-	m["toLower"] = strings.ToLower
-	m["contains"] = strings.Contains
-	m["replace"] = strings.Replace
-	m["trimSuffix"] = strings.TrimSuffix
-	m["lookupIP"] = LookupIP
-	m["lookupIPV4"] = LookupIPV4
-	m["lookupIPV6"] = LookupIPV6
-	m["lookupSRV"] = LookupSRV
-	m["fileExists"] = isFileExist
-	m["base64Encode"] = Base64Encode
-	m["base64Decode"] = Base64Decode
-	m["parseBool"] = strconv.ParseBool
-	m["regexReplace"] = RegexReplace
-	m["reverse"] = Reverse
-	m["sortByLength"] = SortByLength
-	m["sortKVByLength"] = SortKVByLength
-	m["add"] = func(a, b int) int { return a + b }
-	m["sub"] = func(a, b int) int { return a - b }
-	m["div"] = func(a, b int) int { return a / b }
-	m["mod"] = func(a, b int) int { return a % b }
-	m["mul"] = func(a, b int) int { return a * b }
-	m["seq"] = Seq
-	m["atoi"] = strconv.Atoi
-	m["escapeOsgi"] = EscapeOsgi
-	m["fqdn"] = Fqdn
-	m["sort"] = sortAs
-	m["getsvs"] = getsvs(s)
-	m["getksvs"] = getksvs(s)
-	return m
+type asInt []string
+
+type byLength []string
+
+type byLengthKV []memkv.KVPair
+
+type sortSRV []*net.SRV
+
+func (p asInt) Len() int { return len(p) }
+func (p asInt) Less(i, j int) bool {
+	a, aerr := strconv.Atoi(p[i])
+	b, berr := strconv.Atoi(p[j])
+
+	if aerr == nil {
+		if berr == nil {
+			return a < b
+		}
+		return true // Numbers come first
+	} else {
+		if berr == nil {
+			return false
+		}
+	}
+	return p[i] < p[j]
+}
+func (p asInt) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+
+func (s byLength) Len() int           { return len(s) }
+func (s byLength) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s byLength) Less(i, j int) bool { return len(s[i]) < len(s[j]) }
+
+func (s byLengthKV) Len() int           { return len(s) }
+func (s byLengthKV) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s byLengthKV) Less(i, j int) bool { return len(s[i].Key) < len(s[j].Key) }
+
+func (s sortSRV) Len() int      { return len(s) }
+func (s sortSRV) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s sortSRV) Less(i, j int) bool {
+	str1 := fmt.Sprintf("%s%d%d%d", s[i].Target, s[i].Port, s[i].Priority, s[i].Weight)
+	str2 := fmt.Sprintf("%s%d%d%d", s[j].Target, s[j].Port, s[j].Priority, s[j].Weight)
+	return str1 < str2
 }
 
 func AddFuncs(out, in map[string]interface{}) {
@@ -67,82 +67,13 @@ func AddFuncs(out, in map[string]interface{}) {
 	}
 }
 
-// Seq creates a sequence of integers. It's named and used as GNU's seq.
-// Seq takes the first and the last element as arguments. So Seq(3, 5) will generate [3,4,5]
-func Seq(first, last int) []int {
-	var arr []int
-	for i := first; i <= last; i++ {
-		arr = append(arr, i)
-	}
-	return arr
+func Base64Decode(data string) (string, error) {
+	s, err := base64.StdEncoding.DecodeString(data)
+	return string(s), err
 }
 
-type byLengthKV []memkv.KVPair
-
-func (s byLengthKV) Len() int {
-	return len(s)
-}
-
-func (s byLengthKV) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func (s byLengthKV) Less(i, j int) bool {
-	return len(s[i].Key) < len(s[j].Key)
-}
-
-func SortKVByLength(values []memkv.KVPair) []memkv.KVPair {
-	sort.Sort(byLengthKV(values))
-	return values
-}
-
-type byLength []string
-
-func (s byLength) Len() int {
-	return len(s)
-}
-func (s byLength) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-func (s byLength) Less(i, j int) bool {
-	return len(s[i]) < len(s[j])
-}
-
-func SortByLength(values []string) []string {
-	sort.Sort(byLength(values))
-	return values
-}
-
-//Reverse returns the array in reversed order
-//works with []string and []KVPair
-func Reverse(values interface{}) interface{} {
-	switch v := values.(type) {
-	case []string:
-		for left, right := 0, len(v)-1; left < right; left, right = left+1, right-1 {
-			v[left], v[right] = v[right], v[left]
-		}
-	case []memkv.KVPair:
-		for left, right := 0, len(v)-1; left < right; left, right = left+1, right-1 {
-			v[left], v[right] = v[right], v[left]
-		}
-	}
-	return values
-}
-
-// Getenv retrieves the value of the environment variable named by the key.
-// It returns the value, which will the default value if the variable is not present.
-// If no default value was given - returns "".
-func Getenv(key string, v ...string) string {
-	defaultValue := ""
-	if len(v) > 0 {
-		defaultValue = v[0]
-	}
-
-	value := os.Getenv(key)
-	if value == "" {
-		return defaultValue
-	}
-	return value
+func Base64Encode(data string) string {
+	return base64.StdEncoding.EncodeToString([]byte(data))
 }
 
 // CreateMap creates a key-value map of string -> interface{}
@@ -160,87 +91,6 @@ func CreateMap(values ...interface{}) (map[string]interface{}, error) {
 		dict[key] = values[i+1]
 	}
 	return dict, nil
-}
-
-func UnmarshalJsonObject(data string) (map[string]interface{}, error) {
-	var ret map[string]interface{}
-	err := json.Unmarshal([]byte(data), &ret)
-	return ret, err
-}
-
-func UnmarshalJsonArray(data string) ([]interface{}, error) {
-	var ret []interface{}
-	err := json.Unmarshal([]byte(data), &ret)
-	return ret, err
-}
-
-func LookupIP(data string) []string {
-	ips, err := net.LookupIP(data)
-	if err != nil {
-		return nil
-	}
-	// "Cast" IPs into strings and sort the array
-	ipStrings := make([]string, len(ips))
-
-	for i, ip := range ips {
-		ipStrings[i] = ip.String()
-	}
-	sort.Strings(ipStrings)
-	return ipStrings
-}
-
-func LookupIPV6(data string) []string {
-	var addresses []string
-	for _, ip := range LookupIP(data) {
-		if strings.Contains(ip, ":") {
-			addresses = append(addresses, ip)
-		}
-	}
-	return addresses
-}
-
-func LookupIPV4(data string) []string {
-	var addresses []string
-	for _, ip := range LookupIP(data) {
-		if strings.Contains(ip, ".") {
-			addresses = append(addresses, ip)
-		}
-	}
-	return addresses
-}
-
-type sortSRV []*net.SRV
-
-func (s sortSRV) Len() int {
-	return len(s)
-}
-
-func (s sortSRV) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func (s sortSRV) Less(i, j int) bool {
-	str1 := fmt.Sprintf("%s%d%d%d", s[i].Target, s[i].Port, s[i].Priority, s[i].Weight)
-	str2 := fmt.Sprintf("%s%d%d%d", s[j].Target, s[j].Port, s[j].Priority, s[j].Weight)
-	return str1 < str2
-}
-
-func LookupSRV(service, proto, name string) []*net.SRV {
-	_, addrs, err := net.LookupSRV(service, proto, name)
-	if err != nil {
-		return []*net.SRV{}
-	}
-	sort.Sort(sortSRV(addrs))
-	return addrs
-}
-
-func Base64Encode(data string) string {
-	return base64.StdEncoding.EncodeToString([]byte(data))
-}
-
-func Base64Decode(data string) (string, error) {
-	s, err := base64.StdEncoding.DecodeString(data)
-	return string(s), err
 }
 
 func EscapeOsgi(data string) string {
@@ -266,81 +116,20 @@ func Fqdn(hostname, domain string) string {
 	return hostname + "." + domain
 }
 
-// copied from confd util.go
-func isFileExist(fpath string) bool {
-	if _, err := os.Stat(fpath); os.IsNotExist(err) {
-		return false
-	}
-	return true
-}
-
-// RegexReplace maps to regexp.ReplaceAllString
-func RegexReplace(regex, src, repl string) (string, error) {
-	re, err := regexp.Compile(regex)
-	if err != nil {
-		return "", err
-	}
-	return re.ReplaceAllString(src, repl), nil
-}
-
-// sortType accepts an array because the input is an optional name of the type
-// for sorting and the actual implementation methods (getsvs, getksvs) accept
-// varargs so this utility function allows direct call without unpacking.
-func sortType(input []string) (string, error) {
-	r := "string"
-	if len(input) > 0 {
-		r = input[0]
-	}
-	if r != "string" && r != "int" {
-		return "", fmt.Errorf("sort: Type '%s' is not supported (only int, string)", r)
-	}
-	return r, nil
-}
-
-type asInt []string
-
-func (p asInt) Len() int { return len(p) }
-func (p asInt) Less(i, j int) bool {
-	a, aerr := strconv.Atoi(p[i])
-	b, berr := strconv.Atoi(p[j])
-
-	if aerr == nil {
-		if berr == nil {
-			return a < b
-		}
-		return true // Numbers come first
-	} else {
-		if berr == nil {
-			return false
-		}
-	}
-	return p[i] < p[j]
-}
-func (p asInt) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
-
-// sortAs sorts the input in-place as specified type (string, int, default: string) and returns it.
-func sortAs(v []string, asType ...string) ([]string, error) {
-	sortType, err := sortType(asType)
-	if err != nil {
-		return nil, err
+// Getenv retrieves the value of the environment variable named by the key.
+// It returns the value, which will the default value if the variable is not present.
+// If no default value was given - returns "".
+func Getenv(key string, v ...string) string {
+	defaultValue := ""
+	if len(v) > 0 {
+		defaultValue = v[0]
 	}
 
-	if sortType == "int" {
-		sort.Sort(asInt(v))
-	} else {
-		sort.Strings(v)
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
 	}
-	return v, nil
-}
-
-func getsvs(s *memkv.Store) func(string, ...string) ([]string, error) {
-	return func(pattern string, asType ...string) ([]string, error) {
-		vals, err := s.GetAllValues(pattern)
-		if err != nil {
-			return nil, err
-		}
-		return sortAs(vals, asType...)
-	}
+	return value
 }
 
 func getksvs(s *memkv.Store) func(string, ...string) ([]string, error) {
@@ -367,4 +156,212 @@ func getksvs(s *memkv.Store) func(string, ...string) ([]string, error) {
 		}
 		return r, nil
 	}
+}
+
+func getsvs(s *memkv.Store) func(string, ...string) ([]string, error) {
+	return func(pattern string, asType ...string) ([]string, error) {
+		vals, err := s.GetAllValues(pattern)
+		if err != nil {
+			return nil, err
+		}
+		return sortAs(vals, asType...)
+	}
+}
+
+// copied from confd util.go
+func isFileExist(fpath string) bool {
+	if _, err := os.Stat(fpath); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+func LookupIP(data string) []string {
+	ips, err := net.LookupIP(data)
+	if err != nil {
+		return nil
+	}
+	// "Cast" IPs into strings and sort the array
+	ipStrings := make([]string, len(ips))
+
+	for i, ip := range ips {
+		ipStrings[i] = ip.String()
+	}
+	sort.Strings(ipStrings)
+	return ipStrings
+}
+
+func LookupIPV4(data string) []string {
+	var addresses []string
+	for _, ip := range LookupIP(data) {
+		if strings.Contains(ip, ".") {
+			addresses = append(addresses, ip)
+		}
+	}
+	return addresses
+}
+
+func LookupIPV6(data string) []string {
+	var addresses []string
+	for _, ip := range LookupIP(data) {
+		if strings.Contains(ip, ":") {
+			addresses = append(addresses, ip)
+		}
+	}
+	return addresses
+}
+
+func LookupSRV(service, proto, name string) []*net.SRV {
+	_, addrs, err := net.LookupSRV(service, proto, name)
+	if err != nil {
+		return []*net.SRV{}
+	}
+	sort.Sort(sortSRV(addrs))
+	return addrs
+}
+
+// MarshalJsonString will return the JSON encoded string representation of the
+// supplied value. If data is not of type string, the fmt.Sprintf('%v', data)
+// will be used prior to serialization to ensure a string type.
+func MarshalJsonString(data interface{}) (string, error) {
+	strData, ok := data.(string)
+	if !ok {
+		strData = fmt.Sprintf("%v", data)
+	}
+
+	v, err := json.Marshal(strData)
+	if err != nil {
+		return "", err
+	}
+	return string(v), nil
+}
+
+func NewFuncMap(s *memkv.Store) map[string]interface{} {
+	m := make(map[string]interface{})
+	m["asJsonString"] = MarshalJsonString
+	m["atoi"] = strconv.Atoi
+	m["add"] = func(a, b int) int { return a + b }
+	m["base"] = path.Base
+	m["base64Decode"] = Base64Decode
+	m["base64Encode"] = Base64Encode
+	m["contains"] = strings.Contains
+	m["datetime"] = time.Now
+	m["dir"] = path.Dir
+	m["div"] = func(a, b int) int { return a / b }
+	m["escapeOsgi"] = EscapeOsgi
+	m["fileExists"] = isFileExist
+	m["fqdn"] = Fqdn
+	m["getenv"] = Getenv
+	m["getksvs"] = getksvs(s)
+	m["getsvs"] = getsvs(s)
+	m["join"] = strings.Join
+	m["json"] = UnmarshalJsonObject
+	m["jsonArray"] = UnmarshalJsonArray
+	m["lookupIP"] = LookupIP
+	m["lookupIPV4"] = LookupIPV4
+	m["lookupIPV6"] = LookupIPV6
+	m["lookupSRV"] = LookupSRV
+	m["map"] = CreateMap
+	m["mod"] = func(a, b int) int { return a % b }
+	m["mul"] = func(a, b int) int { return a * b }
+	m["parseBool"] = strconv.ParseBool
+	m["regexReplace"] = RegexReplace
+	m["replace"] = strings.Replace
+	m["reverse"] = Reverse
+	m["seq"] = Seq
+	m["sort"] = sortAs
+	m["sortByLength"] = SortByLength
+	m["sortKVByLength"] = SortByLengthKV
+	m["split"] = strings.Split
+	m["sub"] = func(a, b int) int { return a - b }
+	m["toLower"] = strings.ToLower
+	m["toUpper"] = strings.ToUpper
+	m["trimSuffix"] = strings.TrimSuffix
+	return m
+}
+
+// RegexReplace maps to regexp.ReplaceAllString
+func RegexReplace(regex, src, repl string) (string, error) {
+	re, err := regexp.Compile(regex)
+	if err != nil {
+		return "", err
+	}
+	return re.ReplaceAllString(src, repl), nil
+}
+
+//Reverse returns the array in reversed order
+//works with []string and []KVPair
+func Reverse(values interface{}) interface{} {
+	switch v := values.(type) {
+	case []string:
+		for left, right := 0, len(v)-1; left < right; left, right = left+1, right-1 {
+			v[left], v[right] = v[right], v[left]
+		}
+	case []memkv.KVPair:
+		for left, right := 0, len(v)-1; left < right; left, right = left+1, right-1 {
+			v[left], v[right] = v[right], v[left]
+		}
+	}
+	return values
+}
+
+// Seq creates a sequence of integers. It's named and used as GNU's seq.
+// Seq takes the first and the last element as arguments. So Seq(3, 5) will generate [3,4,5]
+func Seq(first, last int) []int {
+	var arr []int
+	for i := first; i <= last; i++ {
+		arr = append(arr, i)
+	}
+	return arr
+}
+
+// sortAs sorts the input in-place as specified type (string, int, default: string) and returns it.
+func sortAs(v []string, asType ...string) ([]string, error) {
+	sortType, err := sortType(asType)
+	if err != nil {
+		return nil, err
+	}
+
+	if sortType == "int" {
+		sort.Sort(asInt(v))
+	} else {
+		sort.Strings(v)
+	}
+	return v, nil
+}
+
+func SortByLength(values []string) []string {
+	sort.Sort(byLength(values))
+	return values
+}
+
+func SortByLengthKV(values []memkv.KVPair) []memkv.KVPair {
+	sort.Sort(byLengthKV(values))
+	return values
+}
+
+// sortType accepts an array because the input is an optional name of the type
+// for sorting and the actual implementation methods (getsvs, getksvs) accept
+// varargs so this utility function allows direct call without unpacking.
+func sortType(input []string) (string, error) {
+	r := "string"
+	if len(input) > 0 {
+		r = input[0]
+	}
+	if r != "string" && r != "int" {
+		return "", fmt.Errorf("sort: Type '%s' is not supported (only int, string)", r)
+	}
+	return r, nil
+}
+
+func UnmarshalJsonObject(data string) (map[string]interface{}, error) {
+	var ret map[string]interface{}
+	err := json.Unmarshal([]byte(data), &ret)
+	return ret, err
+}
+
+func UnmarshalJsonArray(data string) ([]interface{}, error) {
+	var ret []interface{}
+	err := json.Unmarshal([]byte(data), &ret)
+	return ret, err
 }

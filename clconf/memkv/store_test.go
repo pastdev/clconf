@@ -91,7 +91,7 @@ func TestGetAndGetValue(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, memkv.KVPair{Key: key, Value: value}, v)
 
-			v, err = s.Get(badKey)
+			_, err = s.Get(badKey)
 			assert.Error(t, err)
 			assert.True(t, memkv.IsNotExists(err))
 

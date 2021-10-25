@@ -45,25 +45,8 @@ const secrets = "" +
 	"  database:\n" +
 	"    password: p@sSw0rd\n" +
 	"    username: confd\n"
-const yaml1 = "" +
-	"a: Nope\n" +
-	"b:\n" +
-	"  c: 2\n"
-const yaml2 = "" +
-	"a: Yup\n" +
-	"b:\n" +
-	"  e: 2\n" +
-	"  f:\n" +
-	"    g: foobar\n"
 const yaml1and2 = "" +
 	"a: Yup\n" +
-	"b:\n" +
-	"  c: 2\n" +
-	"  e: 2\n" +
-	"  f:\n" +
-	"    g: foobar\n"
-const yaml2and1 = "" +
-	"a: Nope\n" +
 	"b:\n" +
 	"  c: 2\n" +
 	"  e: 2\n" +
@@ -129,14 +112,13 @@ func assertMergeValue(
 }
 
 func TestBase64Strings(t *testing.T) {
-	expected := []string{}
 	encoded := []string{}
 	actual, err := clconf.DecodeBase64Strings(encoded...)
 	if err != nil || len(actual) != 0 {
 		t.Errorf("Base64Strings empty failed: [%v]", actual)
 	}
 
-	expected = []string{"one", "two"}
+	expected := []string{"one", "two"}
 	encoded = []string{
 		base64.StdEncoding.EncodeToString([]byte(expected[0])),
 		base64.StdEncoding.EncodeToString([]byte(expected[1]))}
@@ -319,7 +301,7 @@ func TestGetValue(t *testing.T) {
 		t.Errorf("GetValue list item failed: (err:[%v]) [%v] == [%v]", err, stringExpected, value)
 	}
 
-	value, err = clconf.GetValue(conf, "/a/b")
+	_, err = clconf.GetValue(conf, "/a/b")
 	if err == nil {
 		t.Errorf("GetValue list item invalid index should have failed")
 	}
@@ -347,12 +329,21 @@ func TestLoadConf(t *testing.T) {
 	}
 
 	stdinFile := path.Join(tempDir, "stdin")
-	ioutil.WriteFile(stdinFile, []byte("a: stdin\nstdin: 1"), 0700)
+	err = ioutil.WriteFile(stdinFile, []byte("a: stdin\nstdin: 1"), 0700)
+	if err != nil {
+		t.Errorf("failed to write stdinFile: %v", err)
+	}
 
 	fileArg := path.Join(tempDir, "fileArg")
-	ioutil.WriteFile(fileArg, []byte("a: fileArg\nfileArg: 1"), 0700)
+	err = ioutil.WriteFile(fileArg, []byte("a: fileArg\nfileArg: 1"), 0700)
+	if err != nil {
+		t.Errorf("failed to write fileArg: %v", err)
+	}
 	fileEnv := path.Join(tempDir, "fileEnv")
-	ioutil.WriteFile(fileEnv, []byte("a: fileEnv\nfileEnv: 1"), 0700)
+	err = ioutil.WriteFile(fileEnv, []byte("a: fileEnv\nfileEnv: 1"), 0700)
+	if err != nil {
+		t.Errorf("failed to write fileEnv: %v", err)
+	}
 
 	b64Arg := base64.StdEncoding.EncodeToString([]byte("a: b64Arg\nb64Arg: 1"))
 	b64Env := base64.StdEncoding.EncodeToString([]byte("a: b64Env\nb64Env: 1"))
@@ -691,12 +682,6 @@ func TestReadFiles(t *testing.T) {
 	}
 }
 
-func TestReadFilesDoesNotExist(t *testing.T) {
-	defer func() {
-		recover()
-	}()
-}
-
 func TestReadFilesTempValues(t *testing.T) {
 	tempDir, err := ioutil.TempDir("", "clconf")
 	if err != nil {
@@ -709,7 +694,10 @@ func TestReadFilesTempValues(t *testing.T) {
 	names := []string{path.Join(tempDir, "foo"), path.Join(tempDir, "baz")}
 	values := []string{"bar", "qux"}
 	for index, name := range names {
-		ioutil.WriteFile(name, []byte(values[index]), 0700)
+		err := ioutil.WriteFile(name, []byte(values[index]), 0700)
+		if err != nil {
+			t.Errorf("unable to write %s: %v", name, err)
+		}
 	}
 	actual, err := clconf.ReadFiles(names...)
 	if err != nil || !reflect.DeepEqual(values, actual) {
@@ -736,7 +724,8 @@ func TestSaveConf(t *testing.T) {
 	if err != nil {
 		t.Errorf("SafeConf failed, unable to read %v", file)
 	}
-	if "a: b\n" != string(actual) {
+	expected := "a: b\n"
+	if expected != string(actual) {
 		t.Errorf("SafeConf failed, unexpected config: %v", string(actual))
 	}
 }
@@ -850,31 +839,23 @@ func TestUnmarshalSingleYaml(t *testing.T) {
 		}
 	})
 	t.Run("string", func(t *testing.T) {
-		yamlObj, err := clconf.UnmarshalSingleYaml("foo")
+		actual, err := clconf.UnmarshalSingleYaml("foo")
 		if err != nil {
 			t.Errorf("failed to unmarshal; %v", err)
 		}
-		if actual, ok := yamlObj.(interface{}); !ok {
-			t.Errorf("%v not a scalar", yamlObj)
-		} else {
-			expected := "foo"
-			if expected != actual {
-				t.Errorf("%v != %v", expected, actual)
-			}
+		expected := "foo"
+		if expected != actual {
+			t.Errorf("%v != %v", expected, actual)
 		}
 	})
 	t.Run("number", func(t *testing.T) {
-		yamlObj, err := clconf.UnmarshalSingleYaml("10")
+		actual, err := clconf.UnmarshalSingleYaml("10")
 		if err != nil {
 			t.Errorf("failed to unmarshal; %v", err)
 		}
-		if actual, ok := yamlObj.(interface{}); !ok {
-			t.Errorf("%v not a scalar", yamlObj)
-		} else {
-			expected := 10
-			if expected != actual {
-				t.Errorf("%v != %v", expected, actual)
-			}
+		expected := 10
+		if expected != actual {
+			t.Errorf("%v != %v", expected, actual)
 		}
 	})
 	t.Run("array", func(t *testing.T) {
