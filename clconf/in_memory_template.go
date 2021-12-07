@@ -13,6 +13,8 @@ import (
 type TemplateConfig struct {
 	Prefix      string
 	SecretAgent *SecretAgent
+	LeftDelim   string
+	RightDelim  string
 }
 
 // Template is a wrapper for template.Template to include custom template
@@ -91,7 +93,10 @@ func NewTemplate(name, text string, config *TemplateConfig) (*Template, error) {
 		addCryptFuncs(funcMap, config.SecretAgent)
 	}
 
-	tmpl, err := template.New(name).Funcs(funcMap).Parse(text)
+	tmpl, err := template.New(name).
+		Delims(config.LeftDelim, config.RightDelim).
+		Funcs(funcMap).
+		Parse(text)
 	if err != nil {
 		return nil, fmt.Errorf("unable to process template %s: %s", name, err)
 	}
