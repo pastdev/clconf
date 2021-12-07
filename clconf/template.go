@@ -34,6 +34,10 @@ type TemplateOptions struct {
 	// Extension is the extension to use when searching folders. If missing all files will be used.
 	// The extension is stripped from the file name when templating.
 	Extension string
+	// LeftDelim is passed to go teplate.Delims
+	LeftDelim string
+	// RightDelim is passed to go teplate.Delims
+	RightDelim string
 }
 
 type pathWithRelative struct {
@@ -117,6 +121,8 @@ func processTemplate(paths pathWithRelative, dest string, value interface{},
 	template, err := NewTemplateFromFile(paths.rel, paths.full,
 		&TemplateConfig{
 			SecretAgent: secretAgent,
+			LeftDelim:   options.LeftDelim,
+			RightDelim:  options.RightDelim,
 		})
 	if err != nil {
 		return result, err

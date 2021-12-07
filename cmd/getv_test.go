@@ -192,3 +192,30 @@ func TestGetTemplate(t *testing.T) {
 	}
 	testGetTemplate(t, "template file", "bar", data, context)
 }
+
+func TestGetTemplateDelims(t *testing.T) {
+	keyFile := path.Join("..", "testdata", "test.secring.gpg")
+
+	tempDir, err := ioutil.TempDir("", "clconf")
+	if err != nil {
+		t.Fatalf("Unable to create temp dir: %v", err)
+	}
+	defer func() {
+		os.RemoveAll(tempDir)
+	}()
+
+	data := map[interface{}]interface{}{"foo": "bar"}
+	templateString := "<< getv \"/foo\" >>"
+
+	context := getvContext{
+		rootContext: &rootContext{
+			secretKeyring: *newOptionalString(keyFile, true),
+		},
+		Marshaler: Marshaler{
+			templateString: *newOptionalString(templateString, true),
+			leftDelim:      "<<",
+			rightDelim:     ">>",
+		},
+	}
+	testGetTemplate(t, "template string", "bar", data, context)
+}

@@ -92,6 +92,16 @@ copy from source template).`)
 		"flatten",
 		false,
 		"Don't preserve relative folders when processing a source folder.")
+	cmd.Flags().StringVar(
+		&c.templateOptions.LeftDelim,
+		"left-delimiter",
+		"{{",
+		"Delimiter to use when parsing templates for substitutions")
+	cmd.Flags().StringVar(
+		&c.templateOptions.RightDelim,
+		"right-delimiter",
+		"}}",
+		"Delimiter to use when parsing templates for substitutions")
 
 	return cmd
 }

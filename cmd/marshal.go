@@ -18,7 +18,9 @@ type Marshaler struct {
 	asBashArray bool
 	asJSON      bool
 	asKvJSON    bool
+	leftDelim   string
 	pretty      bool
+	rightDelim  string
 	secretAgentFactory
 	template       optionalString
 	templateBase64 optionalString
@@ -59,6 +61,16 @@ resulting data.`)
 		&c.templateString,
 		"template-string",
 		"A string containing a go template that will be executed against the resulting data.")
+	cmd.Flags().StringVar(
+		&c.leftDelim,
+		"left-delimiter",
+		"{{",
+		"Delimiter to use when parsing templates for substitutions")
+	cmd.Flags().StringVar(
+		&c.rightDelim,
+		"right-delimiter",
+		"}}",
+		"Delimiter to use when parsing templates for substitutions")
 }
 
 func (c Marshaler) newSecretAgent() (*clconf.SecretAgent, error) {
@@ -71,29 +83,23 @@ func (c Marshaler) newSecretAgent() (*clconf.SecretAgent, error) {
 func (c Marshaler) getTemplate() (*clconf.Template, error) {
 	var tmpl *clconf.Template
 	var err error
+	secretAgent, _ := c.newSecretAgent()
+	config := &clconf.TemplateConfig{
+		SecretAgent: secretAgent,
+		LeftDelim:   c.leftDelim,
+		RightDelim:  c.rightDelim,
+	}
 	if c.templateString.set {
-		secretAgent, _ := c.newSecretAgent()
-		tmpl, err = clconf.NewTemplate("cli", c.templateString.value,
-			&clconf.TemplateConfig{
-				SecretAgent: secretAgent,
-			})
+		tmpl, err = clconf.NewTemplate("cli", c.templateString.value, config)
 	}
 	if err == nil && tmpl == nil {
 		if c.templateBase64.set {
-			secretAgent, _ := c.newSecretAgent()
-			tmpl, err = clconf.NewTemplateFromBase64("cli", c.templateBase64.value,
-				&clconf.TemplateConfig{
-					SecretAgent: secretAgent,
-				})
+			tmpl, err = clconf.NewTemplateFromBase64("cli", c.templateBase64.value, config)
 		}
 	}
 	if err == nil && tmpl == nil {
 		if c.template.set {
-			secretAgent, _ := c.newSecretAgent()
-			tmpl, err = clconf.NewTemplateFromFile("cli", c.template.value,
-				&clconf.TemplateConfig{
-					SecretAgent: secretAgent,
-				})
+			tmpl, err = clconf.NewTemplateFromFile("cli", c.template.value, config)
 		}
 	}
 	return tmpl, err
