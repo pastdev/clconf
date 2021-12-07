@@ -93,7 +93,8 @@ func NewTemplate(name, text string, config *TemplateConfig) (*Template, error) {
 		addCryptFuncs(funcMap, config.SecretAgent)
 	}
 
-	tmpl, err := template.New(name).
+	tmpl, err := template.
+		New(name).
 		Delims(config.LeftDelim, config.RightDelim).
 		Funcs(funcMap).
 		Parse(text)
