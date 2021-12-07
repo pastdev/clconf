@@ -16,8 +16,6 @@ type rootContext struct {
 	secretKeyring       optionalString
 	secretKeyringBase64 optionalString
 	stdin               bool
-	leftDelim           string
-	rightDelim          string
 	vars                []string
 	yaml                []string
 	yamlBase64          []string
