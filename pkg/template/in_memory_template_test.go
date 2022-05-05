@@ -3,8 +3,8 @@ package template_test
 import (
 	"testing"
 
-	"github.com/pastdev/clconf/v2/pkg/secret"
-	"github.com/pastdev/clconf/v2/pkg/template"
+	"github.com/pastdev/clconf/v3/pkg/secret"
+	"github.com/pastdev/clconf/v3/pkg/template"
 )
 
 func TestNewTemplate(t *testing.T) {

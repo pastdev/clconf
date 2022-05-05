@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/pastdev/clconf/v2/pkg/conf"
-	"github.com/pastdev/clconf/v2/pkg/yamljson"
+	"github.com/pastdev/clconf/v3/pkg/conf"
+	"github.com/pastdev/clconf/v3/pkg/yamljson"
 	"github.com/stretchr/testify/assert"
 )
 

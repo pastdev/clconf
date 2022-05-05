@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/pastdev/clconf/v2/pkg/core"
+	"github.com/pastdev/clconf/v3/pkg/core"
 	"github.com/xordataexchange/crypt/encoding/secconf"
 )
 

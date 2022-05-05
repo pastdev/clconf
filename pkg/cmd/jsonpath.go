@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ohler55/ojg/jp"
-	"github.com/pastdev/clconf/v2/pkg/yamljson"
+	"github.com/pastdev/clconf/v3/pkg/yamljson"
 	"github.com/spf13/cobra"
 )
 

@@ -7,9 +7,9 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/pastdev/clconf/v2/pkg/core"
-	"github.com/pastdev/clconf/v2/pkg/memkv"
-	"github.com/pastdev/clconf/v2/pkg/secret"
+	"github.com/pastdev/clconf/v3/pkg/core"
+	"github.com/pastdev/clconf/v3/pkg/memkv"
+	"github.com/pastdev/clconf/v3/pkg/secret"
 )
 
 // TemplateConfig allows for optional configuration.

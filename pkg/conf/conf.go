@@ -9,7 +9,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/pastdev/clconf/v2/pkg/yamljson"
+	"github.com/pastdev/clconf/v3/pkg/yamljson"
 )
 
 // Splitter is the regex used to split YAML_FILES and YAML_VARS

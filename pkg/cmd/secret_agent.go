@@ -4,7 +4,7 @@ import (
 	"errors"
 	"os"
 
-	"github.com/pastdev/clconf/v2/pkg/secret"
+	"github.com/pastdev/clconf/v3/pkg/secret"
 )
 
 func (c *rootContext) newSecretAgent() (*secret.SecretAgent, error) {

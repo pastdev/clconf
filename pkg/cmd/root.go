@@ -7,9 +7,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/pastdev/clconf/v2/pkg/conf"
-	"github.com/pastdev/clconf/v2/pkg/core"
-	"github.com/pastdev/clconf/v2/pkg/yamljson"
+	"github.com/pastdev/clconf/v3/pkg/conf"
+	"github.com/pastdev/clconf/v3/pkg/core"
+	"github.com/pastdev/clconf/v3/pkg/yamljson"
 	"github.com/spf13/cobra"
 )
 

@@ -1,4 +1,4 @@
-module github.com/pastdev/clconf/v2
+module github.com/pastdev/clconf/v3
 
 require (
 	github.com/evanphx/json-patch/v5 v5.6.0

@@ -12,7 +12,7 @@ import (
 
 	"github.com/imdario/mergo"
 	"github.com/mitchellh/mapstructure"
-	"github.com/pastdev/clconf/v2/pkg/yamljson"
+	"github.com/pastdev/clconf/v3/pkg/yamljson"
 )
 
 // Fill will fill a according to DecoderConfig with the values from conf.

@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pastdev/clconf/v2/pkg/core"
-	"github.com/pastdev/clconf/v2/pkg/yamljson"
+	"github.com/pastdev/clconf/v3/pkg/core"
+	"github.com/pastdev/clconf/v3/pkg/yamljson"
 )
 
 func NewTestConfig() (interface{}, error) {

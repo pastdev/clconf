@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pastdev/clconf/v2/pkg/memkv"
+	"github.com/pastdev/clconf/v3/pkg/memkv"
 )
 
 type asInt []string

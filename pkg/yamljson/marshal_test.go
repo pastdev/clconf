@@ -3,7 +3,7 @@ package yamljson_test
 import (
 	"testing"
 
-	"github.com/pastdev/clconf/v2/pkg/yamljson"
+	"github.com/pastdev/clconf/v3/pkg/yamljson"
 )
 
 func TestMarshalYaml(t *testing.T) {

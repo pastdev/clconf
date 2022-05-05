@@ -3,7 +3,7 @@ package template_test
 import (
 	"testing"
 
-	"github.com/pastdev/clconf/v2/pkg/template"
+	"github.com/pastdev/clconf/v3/pkg/template"
 	"github.com/stretchr/testify/assert"
 )
 

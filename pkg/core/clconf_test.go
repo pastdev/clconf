@@ -11,8 +11,8 @@ import (
 
 	"github.com/imdario/mergo"
 	"github.com/mitchellh/mapstructure"
-	"github.com/pastdev/clconf/v2/pkg/core"
-	"github.com/pastdev/clconf/v2/pkg/yamljson"
+	"github.com/pastdev/clconf/v3/pkg/core"
+	"github.com/pastdev/clconf/v3/pkg/yamljson"
 )
 
 const yaml1and2 = "" +

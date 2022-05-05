@@ -3,7 +3,7 @@ package memkv_test
 import (
 	"testing"
 
-	"github.com/pastdev/clconf/v2/pkg/memkv"
+	"github.com/pastdev/clconf/v3/pkg/memkv"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v2"
 )

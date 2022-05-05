@@ -5,7 +5,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/pastdev/clconf/v2/pkg/secret"
+	"github.com/pastdev/clconf/v3/pkg/secret"
 )
 
 func testMarshal(t *testing.T, message, expected string, data interface{}, marshaler Marshaler) {
