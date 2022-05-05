@@ -1,6 +1,8 @@
 # clconf
 
-`clconf` provides a utility for merging multiple config files and extracting values using a path string.  `clconf` is both a _library_, and a _command line application_.
+`clconf` provides a utility for merging multiple config files and extracting
+values using a path string.  `clconf` is both a _library_, and a _command line
+application_.
 
 For details, see `clconf --help`.
 
@@ -23,16 +25,24 @@ confd as
 
 ## Configuration
 
-Using `clconf` requires one or more yaml files (or strings) to merge together.  They are specified using either using environment variables or command line options, as either files or base64 encoded strings.  The order they are processed in is as follows:
+Using `clconf` requires one or more yaml files (or strings) to merge together.
+They are specified using either using environment variables or command line
+options, as either files or base64 encoded strings.  The order they are
+processed in is as follows:
 
-1. *`--yaml`*: One or more files.
-1. *`YAML_FILES` environment variable*: A comma separated list of files.
-1. *`--yaml-base64`*: One or more base64 encoded strings containing yaml.
-1. *`YAML_VARS` environment variable*: A comma separated list of environment variable names, each a base64 encoded string containing yaml.
-1. *`--stdin`*: One or more `---` separated yaml files read from `stdin`.
-1. *`--var`*: One or more path overrides of the form `/foo="bar"`.  Key is a path, an value is json/yaml encoded.
+1. _`--yaml`_: One or more files.
+1. _`YAML_FILES` environment variable_: A comma separated list of files.
+1. _`--yaml-base64`_: One or more base64 encoded strings containing yaml.
+1. _`YAML_VARS` environment variable_: A comma separated list of environment
+  variable names, each a base64 encoded string containing yaml.
+1. _`--stdin`_: One or more `---` separated yaml files read from `stdin`.
+1. _`--var`_: One or more path overrides of the form `/foo="bar"`.  Key is a
+  path, an value is json/yaml encoded.
+1. _`--patch`_: One or more rfc 6902 json/yaml patches to apply to the result
+  of merging all the config sources.
 
-All of these categories of input will be appended to each other and the _last defined value of any key will take precedence_.  For example:
+All of these categories of input will be appended to each other and the _last
+defined value of any key will take precedence_.  For example:
 
 ```bash
 YAML_FILES="a.yml,b.yml"
@@ -49,6 +59,7 @@ clconf \
   --yaml-base64 "$G_YML_B64" \
   --yaml-base64 "$H_YML_B64" \
   --var '/foo="bar"' \
+  --patch '[{"op": "replace", "path": "/foo", "value": "baz"}]' \
   <<<"---\nfoo: baz"
 ```
 
@@ -64,6 +75,7 @@ Would be processed in the following order:
 1. `H_YML_B64`
 1. `stdin`
 1. `/foo="bar"`
+1. `[{"op": "replace", "path": "/foo", "value": "baz"}]`
 
 ## Use Cases
 
@@ -131,9 +143,28 @@ for i in "${arr[@]}"; do
 done # <<<{"key":"foo","value":"bar"}>>><<<{"key":"hip","value":"hop"}>>>
 ```
 
+#### Get Value Using JSON Path
+
+The `jsonpath` subcommand allows you to use jsonpath syntax to locate values.
+The values obtained have the same output formatting options as `getv` does.
+
+```bash
+clconf --pipe jsonpath "$..credentials" <<'EOF'
+foodb:
+  host: foo.example.com
+  credentials:
+    username: foouser
+    password: foopass
+EOF
+
+# - password: foopass
+#   username: foouser
+```
+
 #### Getv Templates
 
-Templates allow you to apply your configuration to golang template plus some additional [custom functions](templates.md)
+Templates allow you to apply your configuration to golang template plus some
+additional [custom functions](docs/templates.md)
 
 Note that when used in conjunction with the `--template` options,
 `getv` templates see a one-level key-value map, not the map
@@ -315,50 +346,13 @@ yaml as a value store. It uses command line arguments in place of `confd`'s
 [toml files](https://github.com/kelseyhightower/confd/blob/master/docs/template-resources.md)
 to determine where templates are found and output placed.
 
-`clconf` supports [additional functions](templates.md) above what `confd` provides.
+`clconf` supports [additional functions](templates.md) above what `confd`
+provides.
 
 All of the options for `getv` are available for specifying yaml sources,
 and the templates behave as outlined above. The `template` operation takes it
 a step further by templating many files in a single run. The `template`
-function's `--help` provides examples:
+function's `--help` provides examples.
 
-```bash
-This will take an arbitrary number of source templates (or folders full
-of templates) and process them either in place (see --in-place) or into the
-folder specified as the last argument. It will make any folders required
-along the way. If a source is an existing file (not a folder) it will be
-treated as a template regardless of the extension (though if the extension
-matches it will still be removed).
-
-Usage:
-  clconf template <src1> [src2...] [destination folder] [flags]
-
-Examples:
-
-  # Apply all templates with the .clconf extension to their relative folders in /dest
-  template /tmp/srcFolder1 /tmp/srcFolder2 /dest
-
-  # Apply all templates in both folders with the .clconf extension to the root of /dest
-  template /tmp/srcFolder1 /tmp/srcFolder2 /dest --flatten
-
-  # Interpret /tmp/srcFile.sh where it is (result is /tmp/srcFile.sh)
-  template /tmp/srcFile.sh --in-place
-
-  # Interpret /tmp/srcFile.sh.clconf where it is (result is /tmp/srcFile.sh)
-  template /tmp/srcFile.sh.clconf --in-place
-
-  # Interpret /tmp/srcFile.sh.clconf where it is (result is /tmp/srcFile.sh.clconf)
-  template /tmp/srcFile.sh.clconf --in-place --template-extension ""
-
-
-Flags:
-      --dir-mode string             Chmod mode (e.g. 755) to apply to newly created directories. (default "775")
-      --file-mode string            Chmod mode (e.g. 644) to apply to files when templating (new and existing) (defaults to copy from source template).
-      --flatten                     Don't preserve relative folders when processing a source folder.
-  -h, --help                        help for template
-      --in-place                    Template the files in the folder they're found (implies no destination)
-      --keep-empty                  Keep empty (zero byte) result files (the default is to remove them)
-      --keep-existing-permissions   Only apply --file-mode to new files, leave existing files as-is.
-      --rm                          Remove template files after processing.
-      --template-extension string   Template file extension (will be removed during templating). (default ".clconf")
-```
+See the [template function documentation](docs/templates.md) for the available
+template functions.
