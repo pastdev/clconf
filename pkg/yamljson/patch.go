@@ -3,7 +3,7 @@ package yamljson
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 )
@@ -13,7 +13,7 @@ func PatchFromFiles(data interface{}, patchFiles ...string) (interface{}, error)
 	patches := make([][]byte, len(patchFiles))
 	var err error
 	for i, patch := range patchFiles {
-		patches[i], err = ioutil.ReadFile(patch)
+		patches[i], err = os.ReadFile(patch)
 		if err != nil {
 			return nil, fmt.Errorf("reading %s: %w", patch, err)
 		}
