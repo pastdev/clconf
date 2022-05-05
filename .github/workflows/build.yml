@@ -45,7 +45,7 @@ jobs:
         GITHUB_REF: ${{ github.ref }}
       name: Parse version from tag ${{ github.ref }}
       run: |
-        if [[ "${GITHUB_REF}" =~ ^refs/tags/(v[0-2]\.[0-9]+\.[0-9]+)$ ]]; then
+        if [[ "${GITHUB_REF}" =~ ^refs/tags/(v[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
           echo "::set-output name=release-version::${BASH_REMATCH[1]}"
         fi
 
@@ -79,7 +79,7 @@ jobs:
 
           OUT_FILE="${RELEASE_DIR}/clconf-${PLATFORM}${EXTENSION}"
           echo "Creating ${OUT_FILE} (${RELEASE_VERSION})"
-          go build -ldflags "-X github.com/pastdev/clconf/v2/cmd.version=$RELEASE_VERSION" -o "${OUT_FILE}"
+          go build -ldflags "-X github.com/pastdev/clconf/v3/pkg/cmd.version=$RELEASE_VERSION" -o "${OUT_FILE}"
 
           echo "::set-output name=${PLATFORM}-artifact::${OUT_FILE}"
         done
