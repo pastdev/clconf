@@ -79,7 +79,10 @@ jobs:
 
           OUT_FILE="${RELEASE_DIR}/clconf-${PLATFORM}${EXTENSION}"
           echo "Creating ${OUT_FILE} (${RELEASE_VERSION})"
-          go build -ldflags "-X github.com/pastdev/clconf/v3/pkg/cmd.version=$RELEASE_VERSION" -o "${OUT_FILE}"
+          go build \
+            -ldflags "-X github.com/pastdev/clconf/v3/pkg/cmd.version=$RELEASE_VERSION" \
+            -o "${OUT_FILE}" \
+            ./cmd/clconf
 
           echo "::set-output name=${PLATFORM}-artifact::${OUT_FILE}"
         done
