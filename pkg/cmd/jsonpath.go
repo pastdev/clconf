@@ -53,6 +53,12 @@ func (c jsonpathContext) jsonpath(
 }
 
 func evaluateJSONPath(path string, data interface{}, first bool) (interface{}, error) {
+	// We have to go through a complicated marshal->unmarshal->evaluate->marshal->unmarshal
+	// because our chosen jsonpath library deals in yaml.v3 Node objects, whereas the majority
+	// of clconf deals with maps and slices. Our final marshaller is also custom in that
+	// it may output in something besides yaml (properties, json, etc), so skipping the final
+	// unmarshal isn't universally possible. It's probably possible to optimize this somewhere,
+	// but given the use case performance at this level isn't a concern.
 	p, err := yamlpath.NewPath(path)
 	if err != nil {
 		return nil, fmt.Errorf("invalid jsonpath [%s]: %w", path, err)
@@ -62,6 +68,7 @@ func evaluateJSONPath(path string, data interface{}, first bool) (interface{}, e
 	if err != nil {
 		return nil, fmt.Errorf("marshalling via yaml.v3: %w", err)
 	}
+
 	var n yv3.Node
 
 	err = yv3.Unmarshal(yml, &n)
