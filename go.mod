@@ -4,7 +4,6 @@ require (
 	github.com/evanphx/json-patch/v5 v5.6.0
 	github.com/imdario/mergo v0.3.12
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/ohler55/ojg v1.14.3
 	github.com/spf13/cobra v1.4.0
 	github.com/stretchr/testify v1.7.1
 	github.com/vmware-labs/yaml-jsonpath v0.3.2
