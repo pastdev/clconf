@@ -38,7 +38,7 @@ func (c jsonpathContext) jsonpath(
 		return err
 	}
 
-	value, err := evaluateJsonPath(path, data, c.first)
+	value, err := evaluateJSONPath(path, data, c.first)
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func (c jsonpathContext) jsonpath(
 	return nil
 }
 
-func evaluateJsonPath(path string, data interface{}, first bool) (interface{}, error) {
+func evaluateJSONPath(path string, data interface{}, first bool) (interface{}, error) {
 	p, err := yamlpath.NewPath(path)
 	if err != nil {
 		return nil, fmt.Errorf("invalid jsonpath [%s]: %w", path, err)

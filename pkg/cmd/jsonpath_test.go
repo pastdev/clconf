@@ -20,12 +20,12 @@ images:
   - type: image
 `
 
-func TestJsonPathParse(t *testing.T) {
+func TestJSONPathParse(t *testing.T) {
 	test := func(name, path string, first bool, expected string) {
 		t.Run(name, func(t *testing.T) {
 			data, err := yamljson.UnmarshalSingleYaml(jsonPathBuildYml)
 			require.NoError(t, err, "Unmarshal succeeds")
-			result, err := evaluateJsonPath(path, data, first)
+			result, err := evaluateJSONPath(path, data, first)
 			require.NoError(t, err, "evaluateJsonPath succeeds")
 			actual, err := yamljson.MarshalYaml(result)
 			require.NoError(t, err, "back to yaml succeeds")
