@@ -19,7 +19,8 @@ var (
 // YAMLToJSON converts yaml bytes to json bytes. This is useful for other
 // packages that have json specific unmarshaling code (ie: json-patch). The
 // approach is inspired by:
-//   https://github.com/kubernetes-sigs/yaml/blob/9535b3b1e2893fe44efb37c5c9f5665e245d786a/yaml.go
+//
+//	https://github.com/kubernetes-sigs/yaml/blob/9535b3b1e2893fe44efb37c5c9f5665e245d786a/yaml.go
 func YAMLToJSON(data []byte) ([]byte, error) {
 	trimmed := bytes.TrimLeftFunc(data, unicode.IsSpace)
 	if bytes.HasPrefix(trimmed, JSONArrayPrefix) || bytes.HasPrefix(trimmed, JSONObjectPrefix) {
@@ -42,7 +43,8 @@ func YAMLToJSON(data []byte) ([]byte, error) {
 // ConvertMapIToMapS will convert a map of the format created by yaml.Unmarshal
 // to the format created by json.Unmarshal. Specifically, json uses string keys,
 // while yaml uses interface{} keys.
-//   https://stackoverflow.com/a/40737676/516433
+//
+//	https://stackoverflow.com/a/40737676/516433
 func ConvertMapIToMapS(mapI interface{}) interface{} {
 	switch x := mapI.(type) {
 	case map[interface{}]interface{}:
@@ -62,7 +64,8 @@ func ConvertMapIToMapS(mapI interface{}) interface{} {
 // ConvertMapSToMapI will convert a map of the format created by json.Unmarshal
 // to the format created by yaml.Unmarshal. Specifically, json uses string keys,
 // while yaml uses interface{} keys.
-//   https://stackoverflow.com/a/40737676/516433
+//
+//	https://stackoverflow.com/a/40737676/516433
 func ConvertMapSToMapI(mapS interface{}) interface{} {
 	switch x := mapS.(type) {
 	case map[string]interface{}:
