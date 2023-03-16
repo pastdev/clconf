@@ -152,6 +152,20 @@ func TestLoadConf(t *testing.T) {
 	assert.Nil(t, os.Unsetenv("YAML_FILES"))
 	assert.Nil(t, os.Unsetenv("YAML_VARS"))
 	assert.Nil(t, os.Unsetenv("YAML_VAR"))
+
+	assert.Nil(t, os.Setenv("YAML_VARS", ""))
+	assert.Nil(t, os.Setenv("YAML_FILES", ""))
+	expected, _ = yamljson.UnmarshalYamlInterface("a: b64Arg\nfileArg: 1\nb64Arg: 1")
+	actual, err = conf.ConfSources{
+		Environment: true,
+		Files:       []string{fileArg},
+		Overrides:   []string{b64Arg},
+	}.LoadInterface()
+	if err != nil || !reflect.DeepEqual(expected, actual) {
+		t.Errorf("LoadConf empty env vars failed: [%v] != [%v] (err: %v)", expected, actual, err)
+	}
+	assert.Nil(t, os.Unsetenv("YAML_VARS"))
+	assert.Nil(t, os.Unsetenv("YAML_VAR"))
 }
 
 func TestReadEnvVars(t *testing.T) {

@@ -249,6 +249,14 @@ func Example_withEnvNoArg() {
 	//     username-plaintext: SECRET_USER
 }
 
+func Example_withEnvVarEmpty() {
+	WithExplicitEnv(
+		map[string]string{"YAML_VARS": "", "YAML_FILES": ""},
+		func() { _ = newCmd().Execute() })
+	// Output:
+	// {}
+}
+
 func Example_withEnvCgetvAppDbPassword() {
 	WithEnv(func() { _ = newCmd("cgetv", "/app/db/password").Execute() })
 	// Output:
@@ -428,10 +436,15 @@ func newCmdWithYaml(yaml string, args ...string) *cobra.Command {
 }
 
 func WithEnv(do func()) {
-	env := map[string]string{
-		"YAML_FILES":     filepath.Join("..", "..", "testdata", "testconfig.yml"),
-		"SECRET_KEYRING": filepath.Join("..", "..", "testdata", "test.secring.gpg"),
-	}
+	WithExplicitEnv(
+		map[string]string{
+			"YAML_FILES":     filepath.Join("..", "..", "testdata", "testconfig.yml"),
+			"SECRET_KEYRING": filepath.Join("..", "..", "testdata", "test.secring.gpg"),
+		},
+		do)
+}
+
+func WithExplicitEnv(env map[string]string, do func()) {
 	defer func() {
 		for key := range env {
 			_ = os.Unsetenv(key)
