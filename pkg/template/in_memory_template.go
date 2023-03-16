@@ -28,7 +28,7 @@ type Template struct {
 	template *template.Template
 }
 
-/////// mapped to confd resource.go ///////
+// ///// mapped to confd resource.go ///////
 func addCryptFuncs(funcMap map[string]interface{}, sa *secret.SecretAgent) {
 	AddFuncs(funcMap, map[string]interface{}{
 		"cget": func(key string) (memkv.KVPair, error) {
@@ -143,7 +143,7 @@ func (tmpl *Template) Execute(data interface{}) (string, error) {
 	return buf.String(), nil
 }
 
-/////// mapped to confd resource.go ///////
+// ///// mapped to confd resource.go ///////
 func (tmpl *Template) setVars(data interface{}) {
 	value, _ := core.GetValue(data, tmpl.config.Prefix)
 	tmpl.store.Purge()

@@ -58,10 +58,10 @@ func (s ConfSources) loadInterface(settable bool) (interface{}, string, error) {
 	overrides := s.Overrides
 
 	if s.Environment {
-		if yamlFiles, ok := os.LookupEnv("YAML_FILES"); ok {
+		if yamlFiles, ok := os.LookupEnv("YAML_FILES"); ok && len(yamlFiles) > 0 {
 			files = append(files, Splitter.Split(yamlFiles, -1)...)
 		}
-		if yamlVars, ok := os.LookupEnv("YAML_VARS"); ok {
+		if yamlVars, ok := os.LookupEnv("YAML_VARS"); ok && len(yamlVars) > 0 {
 			envVars, err := ReadEnvVars(Splitter.Split(yamlVars, -1)...)
 			if err != nil {
 				return nil, "", err
