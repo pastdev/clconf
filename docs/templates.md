@@ -37,7 +37,7 @@ A `*` does not match `/`.
 
 Adds two int values.
 
-```shell
+```console
 $ clconf getv / --template-string '{{add 1 3}}'
 4
 ```
@@ -47,7 +47,7 @@ $ clconf getv / --template-string '{{add 1 3}}'
 Converts the supplied value to a properly encoded JSON string.
 For any value that is not currently of type string, `fmt.Sprintf("%v", value)` will be used to convert prior to encoding.
 
-```shell
+```console
 $ clconf --pipe getv / --template-string '{{printf "{\"safeforjson\": %s}" (asJsonString (getv "/notsafeforjson"))}}' <<EOF
 notsafeforjson: |
   {"']
@@ -59,7 +59,7 @@ EOF
 
 Alias for the [strconv.Atoi](https://golang.org/pkg/strconv/#Atoi) function.
 
-```shell
+```console
 $ clconf getv / --template-string '{{seq 1 (atoi "10")}}'
 [1 2 3 4 5 6 7 8 9 10]
 ```
@@ -68,7 +68,7 @@ $ clconf getv / --template-string '{{seq 1 (atoi "10")}}'
 
 Alias for the [path.Base](https://golang.org/pkg/path/#Base) function.
 
-```shell
+```console
 $ clconf getv / --template-string '{{base "/foo/bar.txt"}}'
 bar.txt
 ```
@@ -77,7 +77,7 @@ bar.txt
 
 Returns the string representing the decoded base64 value.
 
-```shell
+```console
 $ clconf getv / --template-string '{{base64Decode "VmFsdWU="}}'
 Value
 ```
@@ -86,7 +86,7 @@ Value
 
 Returns a base64 encoded string of the value.
 
-```shell
+```console
 $ clconf getv / --template-string '{{base64Encode "Value"}}'
 VmFsdWU=
 ```
@@ -111,7 +111,7 @@ Equivalent to [`getvs`](#getvs) but the value will be decrypted.
 
 Alias for [strings.Contains](https://golang.org/pkg/strings/#Contains)
 
-```shell
+```console
 $ clconf getv / --template-string '{{if contains "a long time ago" "time"}}{{"the world makes sense"}}{{end}}'
 the world makes sense
 ```
@@ -120,12 +120,12 @@ the world makes sense
 
 Alias for [time.Now](https://golang.org/pkg/time/#Now)
 
-```shell
+```console
 clconf getv / --template-string '{{datetime}}'
 2023-03-24 10:25:20.282129609 -0600 MDT m=+0.000769001
 ```
 
-```shell
+```console
 $ clconf getv / --template-string '{{datetime.Format "Jan 2, 2006 at 3:04pm (MST)"}}'
 Mar 24, 2023 at 10:25am (MDT)
 ```
@@ -136,7 +136,7 @@ See the time package for more usage: [http://golang.org/pkg/time/](http://golang
 
 Equivalent to `path.Dir`
 
-```shell
+```console
 $ clconf getv / --template-string '{{dir "."}}'
 .
 
@@ -154,7 +154,7 @@ $ clconf getv / --template-string '{{dir ""}}'
 
 Divides two int values.
 
-```shell
+```console
 $ clconf getv / --template-string '{{div 4 2}}'
 2
 
@@ -166,7 +166,7 @@ $ clconf getv / --template-string '{{div 3 2}}'
 
 Places a single `\` prior to any `'`, `"`, `\`, `=` or space.
 
-```bash
+```console
 $ clconf --pipe getv --template-string '{{escapeOsgi "foo=bar"}}' < /dev/null
 foo\=bar
 ```
@@ -175,7 +175,7 @@ foo\=bar
 
 Checks if the key exists. Return false if key is not found.
 
-```shell
+```console
 $ clconf --pipe getv / --template-string '{{if exists "/foo/bar"}}exists{{else}}nope{{end}}' <<EOF
 foo:
   bar: bip
@@ -185,7 +185,7 @@ exists
 
 [Caveat's apply](#flat-keyvalue-caveats-and-considerations):
 
-```shell
+```console
 $ clconf --pipe getv / --template-string '{{if exists "/foo"}}exists{{else}}nope{{end}}' <<EOF
 foo:
   bar: bip
@@ -207,7 +207,7 @@ Checks if the file or directory at the specified filesystem path exists.
 
 Adds a domain to a hostname if not already qualified.
 
-```bash
+```console
 $ clconf --pipe getv --template-string '{{fqdn "foo" "example.com"}}' < /dev/null
 foo.example.com
 $ clconf --pipe getv --template-string '{{fqdn "foo.google.com" "example.com"}}' < /dev/null
@@ -220,7 +220,7 @@ Returns the KVPair where key matches its argument.
 Returns an error if key is not found.
 Wildcards not supported.
 
-```shell
+```console
 clconf --pipe getv / --template-string '{{with get "/foo/bar"}}k: {{.Key}}, v: {{.Value}}{{end}}' <<EOF
 foo:
   bar: bip
@@ -235,7 +235,7 @@ Error: template execute: execute template: template: cli:1:7: executing "cli" at
 
 [Caveat's apply](#flat-keyvalue-caveats-and-considerations):
 
-```shell
+```console
 $ clconf --pipe getv / --template-string '{{with get "/foo"}}k: {{.Key}}, v: {{.Value}}{{end}}' <<EOF
 foo:
   bar: bip
@@ -247,7 +247,7 @@ Error: template execute: execute template: template: cli:1:7: executing "cli" at
 
 Wrapper for [os.Getenv](https://golang.org/pkg/os/#Getenv). Retrieves the value of the environment variable named by the key. It returns the value, which will be empty if the variable is not present. Optionally, you can give a default value that will be returned if the key is not present.
 
-```shell
+```console
 MYENV=foo clconf getv / --template-string '[{{getenv "MYENV"}}]'
 [foo]
 
@@ -275,7 +275,7 @@ Wildcards are allowed.
 
 Preserve the order of list inputs:
 
-```shell
+```console
 $ clconf --pipe getv --template-string '{{getksvs "/foo/*" "int"}}' <<EOF
 foo:
 - dog
@@ -287,7 +287,7 @@ EOF
 
 Sort by string keys:
 
-```shell
+```console
 $ clconf --pipe getv --template-string '{{getksvs "/foo/*"}}' <<EOF
 foo:
   dog: woof
@@ -317,7 +317,7 @@ EOF
 
 [Caveat's](#flat-keyvalue-caveats-and-considerations) and [wildcard rules](#wildcards) apply:
 
-```shell
+```console
 $ clconf --pipe getv --template-string '{{getksvs "/*"}}' <<EOF
 foo:
   dog: woof
@@ -341,7 +341,7 @@ Returns all values, []string, where key matches its argument, sorted.
 Optionally specify `int` to sort the values as integers. Returns an error if key is not found.
 Wildcards optional.
 
-```bash
+```console
 clconf --pipe getv --template-string '{{getsvs "/foo/*"}}' <<EOF
 foo:
 - dog
@@ -379,7 +379,7 @@ EOF
 
 [Caveat's](#flat-keyvalue-caveats-and-considerations) and [wildcard rules](#wildcards) apply:
 
-```shell
+```console
 $ clconf --pipe getv --template-string '{{getsvs "/*"}}' <<EOF
 foo:
   dog: woof
@@ -403,7 +403,7 @@ Returns all KVPair, []KVPair, where key matches its argument.
 Returns an error if key is not found.
 Wildcards optional.
 
-```shell
+```console
 $ clconf --pipe getv / --template-string '{{range gets "/foo/*"}}k: {{.Key}}, v: {{.Value}}{{"\n"}}{{end}}' <<EOF
 foo:
   bar: bip
@@ -430,7 +430,7 @@ k: /foo/zip, v: zap
 
 [Caveat's](#flat-keyvalue-caveats-and-considerations) and [wildcard rules](#wildcards) apply:
 
-```shell
+```console
 $ clconf --pipe getv / --template-string '{{range gets "/*"}}k: {{.Key}}, v: {{.Value}}{{"\n"}}{{end}}' <<EOF
 foo:
   bar: bip
@@ -450,7 +450,7 @@ Returns the value as a string where key matches its argument or an optional defa
 Returns an error if key is not found and no default value given.
 Wildcards not supported.
 
-```shell
+```console
 $ clconf --pipe getv / --template-string '{{getv "/foo/bar"}}' <<EOF
 foo:
   bar: bip
@@ -477,7 +477,7 @@ Error: template execute: execute template: template: cli:1:2: executing "cli" at
 
 [Caveat's apply](#flat-keyvalue-caveats-and-considerations):
 
-```shell
+```console
 $ clconf --pipe getv / --template-string '{{getv "/foo"}}' <<EOF
 foo:
   bar: bip
@@ -491,7 +491,7 @@ Error: template execute: execute template: template: cli:1:2: executing "cli" at
 Returns all values, []string, where key matches its argument, string-sorted.
 Wildcard required.
 
-```shell
+```console
 $ clconf --pipe getv / --template-string '{{getvs "/foo/*"}}' <<EOF
 foo:
   buzz: 1 
@@ -533,7 +533,7 @@ EOF
 
 Alias for the [strings.Join](https://golang.org/pkg/strings/#Join) function.
 
-```shell
+```console
 $ clconf --pipe getv / --template-string '{{join (getvs "/things/*") ","}}' <<EOF
 things:
 - thing1
@@ -546,7 +546,7 @@ thing1,thing2
 
 Returns an map[string]interface{} of the json value.
 
-```shell
+```console
 $ clconf --pipe getv / --template-string '{{(json (getv "/json_obj_string")).foo}}' <<EOF
 json_obj_string: |
   {"foo": "bar"}
@@ -558,7 +558,7 @@ bar
 
 Returns a []interface{} from a json array such as `["a", "b", "c"]`.
 
-```shell
+```console
 $ clconf --pipe getv / --template-string '{{range (jsonArray (getv "/json_array_string"))}}{{ . }}{{"\n"}}{{end}}' <<EOF
 json_array_string: |
   ["foo", "bar"]
@@ -608,7 +608,7 @@ If the search string exists and has subkeys, returns a list of the subkeys.
 Returns an empty list if search string is not found.
 Wildcards are not supported.
 
-```shell
+```console
 $ clconf --pipe getv / --template-string '[{{join (ls "/foo") ","}}]' <<EOF
 foo:
   bar: bip
@@ -660,7 +660,7 @@ EOF
 
 Returns all subkeys that are not full keys when appended to the search string.
 
-```shell
+```console
 # Note 'bar' is missing from the returned value because /foo/bar is a full key
 $ clconf --pipe getv / --template-string '[{{join (lsdir "/foo") ","}}]' <<EOF
 foo:
@@ -724,7 +724,7 @@ $ clconf getv / --template-string '{{mod 10 3}}'
 
 An alias to [`strconv.ParseBool`](https://golang.org/pkg/strconv/#ParseBool)
 
-```shell
+```console
 $ clconf getv / --template-string '{{parseBool "true"}}'
 true
 
@@ -751,7 +751,7 @@ false
 
 Given a regex, an original string and a replacement string run [`regexp.ReplaceAllString`](https://golang.org/pkg/regexp/#Regexp.ReplaceAllString) and return the result. Returns an error if the regex fails to compile.
 
-```bash
+```console
 $ clconf --pipe getv --template-string '{{regexReplace "o+" "foo" "e"}}' < /dev/null
 fe
 ```
@@ -760,7 +760,7 @@ fe
 
 Alias for the [strings.Replace](https://golang.org/pkg/strings/#Replace) function.
 
-```shell
+```console
 $ clconf getv / --template-string '{{replace "foo" "o" "e" -1}}'
 fee
 
@@ -776,7 +776,7 @@ Reverses a list.  If the list is `KVPair`, will compare keys, not values.
 
 Alias for the [template.Seq](https://golang.org/pkg/template/#Seq) function.
 
-```shell
+```console
 $ clconf getv / --template-string '{{range (seq 1 10) }}{{.}}{{"\n"}}{{end}}'
 1
 2
@@ -794,7 +794,7 @@ $ clconf getv / --template-string '{{range (seq 1 10) }}{{.}}{{"\n"}}{{end}}'
 
 Sorts the input ([]interface{}) by translating it to the specified type (one of `int`, `string`, default: `string`)
 
-```bash
+```console
 clconf --pipe getv --template-string '{{sort (getvs "/foo/*") }}' <<EOF
 foo:
 - dog

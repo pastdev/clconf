@@ -25,7 +25,7 @@ func (c *jsonpathContext) addFlags(cmd *cobra.Command) {
 }
 
 func (c jsonpathContext) jsonpath(
-	cmd *cobra.Command, //nolint:unparam
+	_ *cobra.Command,
 	args []string,
 ) error {
 	path := "$"
