@@ -30,6 +30,7 @@ Additional functions, like `ls` and `lsdir` can provide access to inspecting and
 
 Some commands allow for wildcard key matching using `*`.
 A `*` does not match `/`.
+Multiple `*` are allowed such as `/foo/*/bar/*`.
 
 ## Template Functions
 
