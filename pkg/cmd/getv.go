@@ -27,7 +27,7 @@ error).`)
 }
 
 func (c *getvContext) getv(
-	cmd *cobra.Command, //nolint:unparam
+	_ *cobra.Command,
 	args []string,
 ) error {
 	var path string
