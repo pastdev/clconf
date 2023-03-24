@@ -143,7 +143,7 @@ $ clconf getv / --template-string '{{dir "."}}'
 $ clconf getv / --template-string '{{dir "/foo/bar/bip.txt"}}'
 /foo/bar
 
-clconf getv / --template-string '{{dir "/foo"}}'
+$ clconf getv / --template-string '{{dir "/foo"}}'
 /
 
 $ clconf getv / --template-string '{{dir ""}}'
@@ -221,7 +221,7 @@ Returns an error if key is not found.
 Wildcards not supported.
 
 ```console
-clconf --pipe getv / --template-string '{{with get "/foo/bar"}}k: {{.Key}}, v: {{.Value}}{{end}}' <<EOF
+$ clconf --pipe getv / --template-string '{{with get "/foo/bar"}}k: {{.Key}}, v: {{.Value}}{{end}}' <<EOF
 foo:
   bar: bip
 EOF
@@ -342,7 +342,7 @@ Optionally specify `int` to sort the values as integers. Returns an error if key
 Wildcards optional.
 
 ```console
-clconf --pipe getv --template-string '{{getsvs "/foo/*"}}' <<EOF
+$ clconf --pipe getv --template-string '{{getsvs "/foo/*"}}' <<EOF
 foo:
 - dog
 - bird
@@ -627,7 +627,6 @@ foo:
 EOF
 [hop]
 
-# I'm actually not sure why this one works
 $ clconf --pipe getv / --template-string '[{{join (ls "/foo/hip/hop") ","}}]' <<EOF
 foo:
   bar: bip
