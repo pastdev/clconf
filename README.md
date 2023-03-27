@@ -245,12 +245,12 @@ db:
 
 Then with:
 
-```yaml
+```bash
 clconf \
-    --yaml /etc/myapp/config.yml \
-    --yaml /etc/myapp/secrets.yml \
-    getv \
-    > /app/config/application.yml
+  --yaml /etc/myapp/config.yml \
+  --yaml /etc/myapp/secrets.yml \
+  getv \
+  > /app/config/application.yml
 ```
 
 You would have a file containing:
@@ -301,13 +301,13 @@ Then add your secrets:
 
 ```bash
 clconf \
-    --secret-keyring testdata/test.secring.gpg \
-    --yaml C:/Temp/config.yml \
-    csetv /db/username dbuser
+  --secret-keyring testdata/test.secring.gpg \
+  --yaml C:/Temp/config.yml \
+  csetv /db/username dbuser
 clconf \
-    --secret-keyring testdata/test.secring.gpg \
-    --yaml C:/Temp/config.yml \
-    csetv /db/password dbpass
+  --secret-keyring testdata/test.secring.gpg \
+  --yaml C:/Temp/config.yml \
+  csetv /db/password dbpass
 ```
 
 Which would result in something safe to commit with your source code:
@@ -323,23 +323,23 @@ These values can be decrypted using:
 
 ```bash
 clconf \
-    --secret-keyring testdata/test.secring.gpg \
-    --yaml C:/Temp/config.yml \
-    cgetv /db/username
+  --secret-keyring testdata/test.secring.gpg \
+  --yaml C:/Temp/config.yml \
+  cgetv /db/username
 clconf \
-    --secret-keyring testdata/test.secring.gpg \
-    --yaml C:/Temp/config.yml \
-    cgetv /db/password
+  --secret-keyring testdata/test.secring.gpg \
+  --yaml C:/Temp/config.yml \
+  cgetv /db/password
 ```
 
 Or in conjunction with templates
 
 ```bash
 clconf \
-    --secret-keyring testdata/test.secring.gpg \
-    --yaml C:/Temp/config.yml \
-    getv / \
-    --template-string '{{ cgetv "/db/username" }}:{{ cgetv "/db/password" }}'
+  --secret-keyring testdata/test.secring.gpg \
+  --yaml C:/Temp/config.yml \
+  getv / \
+  --template-string '{{ cgetv "/db/username" }}:{{ cgetv "/db/password" }}'
 ```
 
 ### Templating
