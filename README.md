@@ -38,8 +38,10 @@ processed in is as follows:
 1. _`--stdin`_: One or more `---` separated yaml files read from `stdin`.
 1. _`--var`_: One or more path overrides of the form `/foo="bar"`.  Key is a
   path, an value is json/yaml encoded.
-1. _`--patch`_: One or more rfc 6902 json/yaml patches to apply to the result
-  of merging all the config sources.
+1. _`--patch`_: One or more rfc 6902 json/yaml patch files to apply to the
+  result of merging all the config sources.
+1. _`--patch-string`_: One or more rfc 6902 json/yaml patches to apply to the
+  result of merging all the config sources.
 
 All of these categories of input will be appended to each other and the _last
 defined value of any key will take precedence_.  For example:
@@ -59,7 +61,8 @@ clconf \
   --yaml-base64 "$G_YML_B64" \
   --yaml-base64 "$H_YML_B64" \
   --var '/foo="bar"' \
-  --patch '[{"op": "replace", "path": "/foo", "value": "baz"}]' \
+  --patch patch.json \
+  --patch-string '[{"op": "replace", "path": "/foo", "value": "baz"}]' \
   <<<"---\nfoo: baz"
 ```
 
@@ -75,6 +78,7 @@ Would be processed in the following order:
 1. `H_YML_B64`
 1. `stdin`
 1. `/foo="bar"`
+1. `patch.json`
 1. `[{"op": "replace", "path": "/foo", "value": "baz"}]`
 
 ## Use Cases
@@ -241,12 +245,12 @@ db:
 
 Then with:
 
-```yaml
+```bash
 clconf \
-    --yaml /etc/myapp/config.yml \
-    --yaml /etc/myapp/secrets.yml \
-    getv \
-    > /app/config/application.yml
+  --yaml /etc/myapp/config.yml \
+  --yaml /etc/myapp/secrets.yml \
+  getv \
+  > /app/config/application.yml
 ```
 
 You would have a file containing:
@@ -297,13 +301,13 @@ Then add your secrets:
 
 ```bash
 clconf \
-    --secret-keyring testdata/test.secring.gpg \
-    --yaml C:/Temp/config.yml \
-    csetv /db/username dbuser
+  --secret-keyring testdata/test.secring.gpg \
+  --yaml C:/Temp/config.yml \
+  csetv /db/username dbuser
 clconf \
-    --secret-keyring testdata/test.secring.gpg \
-    --yaml C:/Temp/config.yml \
-    csetv /db/password dbpass
+  --secret-keyring testdata/test.secring.gpg \
+  --yaml C:/Temp/config.yml \
+  csetv /db/password dbpass
 ```
 
 Which would result in something safe to commit with your source code:
@@ -319,23 +323,23 @@ These values can be decrypted using:
 
 ```bash
 clconf \
-    --secret-keyring testdata/test.secring.gpg \
-    --yaml C:/Temp/config.yml \
-    cgetv /db/username
+  --secret-keyring testdata/test.secring.gpg \
+  --yaml C:/Temp/config.yml \
+  cgetv /db/username
 clconf \
-    --secret-keyring testdata/test.secring.gpg \
-    --yaml C:/Temp/config.yml \
-    cgetv /db/password
+  --secret-keyring testdata/test.secring.gpg \
+  --yaml C:/Temp/config.yml \
+  cgetv /db/password
 ```
 
 Or in conjunction with templates
 
 ```bash
 clconf \
-    --secret-keyring testdata/test.secring.gpg \
-    --yaml C:/Temp/config.yml \
-    getv / \
-    --template-string '{{ cgetv "/db/username" }}:{{ cgetv "/db/password" }}'
+  --secret-keyring testdata/test.secring.gpg \
+  --yaml C:/Temp/config.yml \
+  getv / \
+  --template-string '{{ cgetv "/db/username" }}:{{ cgetv "/db/password" }}'
 ```
 
 ### Templating

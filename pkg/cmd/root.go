@@ -23,6 +23,7 @@ type rootContext struct {
 	yaml                []string
 	yamlBase64          []string
 	patch               []string
+	patchStrings        []string
 }
 
 func (c *rootContext) getPath(valuePath string) string {
@@ -42,10 +43,11 @@ func (c *rootContext) getValue(path string) (interface{}, error) {
 	path = c.getPath(path)
 
 	confSources := conf.ConfSources{
-		Files:       c.yaml,
-		Patches:     c.patch,
-		Overrides:   c.yamlBase64,
-		Environment: !c.ignoreEnv,
+		Files:        c.yaml,
+		Patches:      c.patch,
+		PatchStrings: c.patchStrings,
+		Overrides:    c.yamlBase64,
+		Environment:  !c.ignoreEnv,
 	}
 	if c.stdin {
 		confSources.Stream = os.Stdin
@@ -134,7 +136,12 @@ the order of precedence from least to greatest is:
 		&c.patch,
 		"patch",
 		nil,
-		"json patches to apply after the merge")
+		"files containing json patches to apply after the merge")
+	cmd.PersistentFlags().StringArrayVar(
+		&c.patchStrings,
+		"patch-string",
+		nil,
+		"strings containing json patches to apply after the merge")
 	cmd.PersistentFlags().BoolVarP(
 		&pipe,
 		"pipe",

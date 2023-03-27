@@ -387,6 +387,18 @@ func Example_patch() {
 	// foo: baz
 }
 
+func Example_patch_string() {
+	_ = newCmdWithYaml(
+		`foo: bar`,
+		"--patch-string",
+		`[{"op":"replace","path":"/foo","value":"baz"}]`,
+		"getv",
+		"/",
+	).Execute()
+	// Output:
+	// foo: baz
+}
+
 func Example_preserveListOrderInRange() {
 	yaml := `
 a_list:
