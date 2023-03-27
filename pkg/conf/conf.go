@@ -30,6 +30,9 @@ type ConfSources struct { //nolint:revive
 	// Patches are files containing JSON 6902 patches to apply after the merge
 	// is complete
 	Patches []string
+	// PatchStrings are strings containing JSON 6902 patches to apply after the
+	// merge is complete
+	PatchStrings []string
 	// An optional (can be nil) stream to read raw yaml (potentially multiple
 	// inline documents)
 	Stream io.Reader
@@ -118,6 +121,16 @@ func (s ConfSources) loadInterface(settable bool) (interface{}, string, error) {
 		merged, err = yamljson.PatchFromFiles(merged, s.Patches...)
 		if err != nil {
 			return nil, "", fmt.Errorf("patch: %w", err)
+		}
+	}
+
+	if len(s.PatchStrings) > 0 {
+		if settable {
+			return nil, "", errors.New("patch string not allowed when settable")
+		}
+		merged, err = yamljson.PatchFromStrings(merged, s.PatchStrings...)
+		if err != nil {
+			return nil, "", fmt.Errorf("patch string: %w", err)
 		}
 	}
 
