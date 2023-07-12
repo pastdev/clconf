@@ -47,19 +47,19 @@ All of these categories of input will be appended to each other and the _last
 defined value of any key will take precedence_.  For example:
 
 ```bash
-YAML_FILES="a.yml,b.yml"
-YAML_VARS="C_YML_B64,D_YML_B64"
-C_YML_B64"$(echo -e "c:\n  foo: bar" | base64 -w 0)
-D_YML_B64"$(echo -e "d:\n  foo: bar" | base64 -w 0)
+YAML_FILES="c.yml,d.yml"
+YAML_VARS="G_YML_B64,H_YML_B64"
+E_YML_B64"$(echo -e "c:\n  foo: bar" | base64 -w 0)
+F_YML_B64"$(echo -e "d:\n  foo: bar" | base64 -w 0)
 
 G_YML_B64="$(echo -e "g:\n  foo: bar" | base64 -w 0)
 H_YML_B64="$(echo -e "h:\n  foo: bar" | base64 -w 0)
 
 clconf \
-  --yaml e.yml \
-  --yaml f.yml \
-  --yaml-base64 "$G_YML_B64" \
-  --yaml-base64 "$H_YML_B64" \
+  --yaml a.yml \
+  --yaml b.yml \
+  --yaml-base64 "$E_YML_B64" \
+  --yaml-base64 "$F_YML_B64" \
   --var '/foo="bar"' \
   --patch patch.json \
   --patch-string '[{"op": "replace", "path": "/foo", "value": "baz"}]' \
@@ -70,10 +70,10 @@ Would be processed in the following order:
 
 1. `a.yml`
 1. `b.yml`
-1. `C_YML_B64`
-1. `D_YML_B64`
-1. `e.yml`
-1. `f.yml`
+1. `c.yml`
+1. `d.yml`
+1. `E_YML_B64`
+1. `F_YML_B64`
 1. `G_YML_B64`
 1. `H_YML_B64`
 1. `stdin`
