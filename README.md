@@ -109,6 +109,43 @@ To get:
 ["a","b","c"]
 ```
 
+#### Safe iteration of YAML/JSON elements
+
+The `--as-json-lines` option will convert each top level element to a [JSON lines](https://jsonlines.org/) object.
+This allows you to safely process the results one line at a time with a simple line oriented reader.
+For example:
+
+```bash
+readarray -t dbs < <(clconf --pipe jsonpath '$[*]' --as-json-lines <<'EOF'
+---
+foodb:
+  host: foo.example.com
+  credentials:
+    username: foouser
+    password: foopass
+bardb:
+  host: bar.example.com
+  credentials:
+    username: baruser
+    password: barpass
+EOF
+)
+for db in "${dbs[@]}"; do
+  host="$(clconf --pipe getv /host <<<"${db}")"
+  user="$(clconf --pipe getv /credentials/username <<<"${db}")"
+  pass="$(clconf --pipe getv /credentials/password <<<"${db}")"
+
+  query_db "${host}" "${user}" "${pass}"
+done
+```
+
+If the top level element is a map, then each JSON lines object will contain two top level keys: `key`, `value`.
+For example:
+
+```bash
+clconf --var '/foo=["bar","baz"]' getv / --as-json-lines # {"key":"foo","value":["bar","baz"]}
+```
+
 #### Convert Bash Array to JSON
 
 ```bash
