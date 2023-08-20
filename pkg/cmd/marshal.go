@@ -20,6 +20,7 @@ type secretAgentFactory interface {
 type Marshaler struct {
 	asBashArray bool
 	asJSON      bool
+	asJSONLines bool
 	asKvJSON    bool
 	leftDelim   string
 	pretty      bool
@@ -28,6 +29,7 @@ type Marshaler struct {
 	template       optionalString
 	templateBase64 optionalString
 	templateString optionalString
+	Executor
 }
 
 func (c *Marshaler) AddFlags(cmd *cobra.Command) {
@@ -41,6 +43,11 @@ func (c *Marshaler) AddFlags(cmd *cobra.Command) {
 		"as-json",
 		false,
 		"Prints value as json")
+	cmd.Flags().BoolVar(
+		&c.asJSONLines,
+		"as-json-lines",
+		false,
+		"Prints each top level element as its own json structure on a single line")
 	cmd.Flags().BoolVar(
 		&c.asKvJSON,
 		"as-kv-json",
@@ -74,6 +81,7 @@ resulting data.`)
 		"right-delimiter",
 		"}}",
 		"Delimiter to use when parsing templates for substitutions")
+	c.Executor.AddFlags(cmd)
 }
 
 func (c Marshaler) newSecretAgent() (*secret.SecretAgent, error) {
@@ -116,8 +124,19 @@ func (c Marshaler) getTemplate() (*template.Template, error) {
 }
 
 func (c Marshaler) Marshal(value interface{}) (string, error) {
+	if len(c.execs) > 0 {
+		secretAgent, _ := c.newSecretAgent()
+		return "", c.Execute(value, &template.TemplateConfig{
+			SecretAgent: secretAgent,
+			LeftDelim:   c.leftDelim,
+			RightDelim:  c.rightDelim,
+		})
+	}
 	if c.asBashArray {
 		return c.marshalBashArray(value)
+	}
+	if c.asJSONLines {
+		return c.marshalJSONLines(value)
 	}
 
 	template, err := c.getTemplate()
@@ -172,43 +191,24 @@ func (c Marshaler) Marshal(value interface{}) (string, error) {
 	return fmt.Sprintf("%v", value), nil
 }
 
-func (c Marshaler) marshalBashArray(value interface{}) (string, error) {
-	c.asJSON = true
-	c.asBashArray = false
+func (c Marshaler) marshalJSONLines(value interface{}) (string, error) {
+	lines, err := ToJSONLines(value)
+	if err != nil {
+		return "", err
+	}
+	return strings.Join(lines, "\n"), nil
+}
 
-	values := []string{}
-	switch v := value.(type) {
-	case []interface{}:
-		for i, val := range v {
-			val, err := c.Marshal(val)
-			if err != nil {
-				return "", fmt.Errorf("marshal value at %d: %w", i, err)
-			}
-			values = append(values, val)
-		}
-	case map[interface{}]interface{}:
-		keys := []string{}
-		for key, val := range v {
-			keys = append(keys, fmt.Sprintf("%s", key))
-			val, err := c.Marshal(map[interface{}]interface{}{"key": key, "value": val})
-			if err != nil {
-				return "", fmt.Errorf("marshal value at %s: %w", key, err)
-			}
-			values = append(values, val)
-		}
-		sort.Slice(values, func(i, j int) bool { return keys[i] < keys[j] })
-	default:
-		val, err := c.Marshal(value)
-		if err != nil {
-			return "", fmt.Errorf("marshal value: %w", err)
-		}
-		values = append(values, val)
+func (c Marshaler) marshalBashArray(value interface{}) (string, error) {
+	lines, err := ToJSONLines(value)
+	if err != nil {
+		return "", err
 	}
 
 	first := true
 	var builder strings.Builder
 	builder.WriteString("(")
-	for i, val := range values {
+	for i, val := range lines {
 		if first {
 			first = false
 		} else {
@@ -238,4 +238,39 @@ func bashEscape(s string) string {
 	builder.WriteRune('"')
 
 	return builder.String()
+}
+
+func ToJSONLines(value interface{}) ([]string, error) {
+	marshaler := Marshaler{asJSON: true}
+
+	values := []string{}
+	switch v := value.(type) {
+	case []interface{}:
+		for i, val := range v {
+			val, err := marshaler.Marshal(val)
+			if err != nil {
+				return nil, fmt.Errorf("marshal value at %d: %w", i, err)
+			}
+			values = append(values, val)
+		}
+	case map[interface{}]interface{}:
+		keys := []string{}
+		for key, val := range v {
+			keys = append(keys, fmt.Sprintf("%s", key))
+			val, err := marshaler.Marshal(map[interface{}]interface{}{"key": key, "value": val})
+			if err != nil {
+				return nil, fmt.Errorf("marshal value at %s: %w", key, err)
+			}
+			values = append(values, val)
+		}
+		sort.Slice(values, func(i, j int) bool { return keys[i] < keys[j] })
+	default:
+		val, err := marshaler.Marshal(value)
+		if err != nil {
+			return nil, fmt.Errorf("marshal value: %w", err)
+		}
+		values = append(values, val)
+	}
+
+	return values, nil
 }
