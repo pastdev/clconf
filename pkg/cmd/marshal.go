@@ -29,6 +29,7 @@ type Marshaler struct {
 	template       optionalString
 	templateBase64 optionalString
 	templateString optionalString
+	Executor
 }
 
 func (c *Marshaler) AddFlags(cmd *cobra.Command) {
@@ -80,6 +81,7 @@ resulting data.`)
 		"right-delimiter",
 		"}}",
 		"Delimiter to use when parsing templates for substitutions")
+	c.Executor.AddFlags(cmd)
 }
 
 func (c Marshaler) newSecretAgent() (*secret.SecretAgent, error) {
@@ -122,6 +124,14 @@ func (c Marshaler) getTemplate() (*template.Template, error) {
 }
 
 func (c Marshaler) Marshal(value interface{}) (string, error) {
+	if len(c.execs) > 0 {
+		secretAgent, _ := c.newSecretAgent()
+		return "", c.Execute(value, &template.TemplateConfig{
+			SecretAgent: secretAgent,
+			LeftDelim:   c.leftDelim,
+			RightDelim:  c.rightDelim,
+		})
+	}
 	if c.asBashArray {
 		return c.marshalBashArray(value)
 	}
