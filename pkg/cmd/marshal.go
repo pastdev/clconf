@@ -89,13 +89,13 @@ func (c *Marshaler) AddFlags(cmd *cobra.Command) {
 		"right-delimiter",
 		"}}",
 		"Delimiter to use when parsing templates for substitutions")
-	deprecateFlag(cmd, "as-bash-array", "use --output bash-array")
-	deprecateFlag(cmd, "as-json", "use --output json")
-	deprecateFlag(cmd, "as-kv-json", "use --output kv-json")
-	deprecateFlag(cmd, "left-delimiter", "use --template-left")
-	deprecateFlag(cmd, "right-delimiter", "use --template-right")
-	deprecateFlag(cmd, "template-base64", "use --output go-template-base64 --template <template>")
-	deprecateFlag(cmd, "template-string", "use --output go-template --template <template>")
+	deprecateFlag(cmd, "as-bash-array")
+	deprecateFlag(cmd, "as-json")
+	deprecateFlag(cmd, "as-kv-json")
+	deprecateFlag(cmd, "left-delimiter")
+	deprecateFlag(cmd, "right-delimiter")
+	deprecateFlag(cmd, "template-base64")
+	deprecateFlag(cmd, "template-string")
 
 	cmd.Flags().StringVar(
 		&c.output,
@@ -232,8 +232,9 @@ func bashEscape(s string) string {
 	return builder.String()
 }
 
-func deprecateFlag(cmd *cobra.Command, name, usageMessage string) {
-	//err := cmd.Flags().MarkDeprecated(name, usageMessage)
+func deprecateFlag(cmd *cobra.Command, name string) {
+	// use MarkHidden instead of deprecate so as to not leak the deprecation
+	// message into the stderr of current consumers for safer backwards compat.
 	err := cmd.Flags().MarkHidden(name)
 	if err != nil {
 		panic(fmt.Sprintf("failed to deprectate %s", name))
