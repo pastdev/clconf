@@ -87,8 +87,9 @@ Would be processed in the following order:
 
 #### Getv as JSON
 
-When using the `--as-json` option, the value obtained at the indicated path
-will be serialized to json.  For example, if you have `foo.yml`:
+When using the `--output json` option, the value obtained at the indicated path
+will be serialized to json.
+For example, if you have `foo.yml`:
 
 ```yaml
 applications:
@@ -100,13 +101,52 @@ applications:
 You could use:
 
 ```bash
-clconf --yaml foo.yml getv /applications --as-json
+clconf --yaml foo.yml getv /applications --output json
 ```
 
 To get:
 
 ```json
 ["a","b","c"]
+```
+
+#### Safe iteration of YAML/JSON elements
+
+The `--output json-lines` option will convert each top level element to a [JSON lines](https://jsonlines.org/) object.
+This allows you to safely process the results one line at a time with a simple line oriented reader.
+For example:
+
+```bash
+readarray -t dbs < <(clconf --pipe jsonpath '$[*]' --output json-lines <<'EOF'
+---
+foodb:
+  host: foo.example.com
+  credentials:
+    username: foouser
+    password: foopass
+bardb:
+  host: bar.example.com
+  credentials:
+    username: baruser
+    password: barpass
+EOF
+)
+for db in "${dbs[@]}"; do
+  host="$(clconf --pipe getv /host <<<"${db}")"
+  user="$(clconf --pipe getv /credentials/username <<<"${db}")"
+  pass="$(clconf --pipe getv /credentials/password <<<"${db}")"
+
+  echo "connecting to ${host} with ${user}/${pass}"
+done
+# connecting to bar.example.com with baruser/barpass
+# connecting to foo.example.com with foouser/foopass
+```
+
+If the top level element is a map, then each JSON lines object will contain two top level keys: `key`, `value`.
+For example:
+
+```bash
+clconf --var '/foo=["bar","baz"]' getv / --output json-lines # {"key":"foo","value":["bar","baz"]}
 ```
 
 #### Convert Bash Array to JSON
@@ -132,19 +172,21 @@ Allows for iteration:
 # clconf getv --as-bash array will print out '([0]="foo bar" [1]="hip hop")'
 # which bash's declare -a can turn into an array.  using --var here for
 # simplicity but any yaml/json source will do.
-declare -a arr="$(clconf --var '/a=["foo bar", "hip hop"]' getv /a --as-bash-array)"
+declare -a arr="$(clconf --var '/a=["foo bar", "hip hop"]' getv /a --output bash-array)"
 for i in "${arr[@]}"; do
   printf '<<<%s>>>' "$i"
-done # prints out <<<foo bar>>><<<hip hop>>>
+done
+# <<<foo bar>>><<<hip hop>>>
 ```
 
 Also allows for iteration over maps:
 
 ```bash
-declare -a arr="$(clconf --var '/a={"foo": "bar","hip":"hop"}' getv /a --as-bash-array)"
+declare -a arr="$(clconf --var '/a={"foo": "bar","hip":"hop"}' getv /a --output bash-array)"
 for i in "${arr[@]}"; do
   printf '<<<%s>>>' "$i"
-done # <<<{"key":"foo","value":"bar"}>>><<<{"key":"hip","value":"hop"}>>>
+done
+# <<<{"key":"foo","value":"bar"}>>><<<{"key":"hip","value":"hop"}>>>
 ```
 
 #### Get Value Using JSON Path
@@ -160,7 +202,6 @@ foodb:
     username: foouser
     password: foopass
 EOF
-
 # - password: foopass
 #   username: foouser
 ```
@@ -204,10 +245,8 @@ set -e
 function applications {
   run_clconf \
     getv '/' \
-    --template-string "
-      {{- range getvs \"/applications/*\" }}
-        {{- . }}
-      {{ end }}"
+    --output template \
+    --template '{{range getvs "/applications/*"}}{{.}}{{end}}'
 }
 
 function getv {
@@ -339,7 +378,8 @@ clconf \
   --secret-keyring testdata/test.secring.gpg \
   --yaml C:/Temp/config.yml \
   getv / \
-  --template-string '{{ cgetv "/db/username" }}:{{ cgetv "/db/password" }}'
+  --output template \
+  --template '{{ cgetv "/db/username" }}:{{ cgetv "/db/password" }}'
 ```
 
 ### Templating
