@@ -86,6 +86,9 @@ func (c *getvContext) getValue(path string) (interface{}, error) {
 func cgetvCmd(rootCmdContext *rootContext) *cobra.Command {
 	var cmdContext = &getvContext{
 		rootContext: rootCmdContext,
+		Marshaler: Marshaler{
+			output: "yaml",
+		},
 	}
 
 	var cmd = &cobra.Command{

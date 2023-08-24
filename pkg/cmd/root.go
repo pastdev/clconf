@@ -110,7 +110,16 @@ the order of precedence from least to greatest is:
 			}
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return (&getvContext{rootContext: c}).getv(cmd, args)
+			return (&getvContext{
+				rootContext: c,
+				// default values for flags only occur on the cmd that is actually
+				// invoked, in this case the root command. the root command does
+				// not have an --output flag so it's default never gets set.
+				// the desired, backwards compatible, behavior of clconf without
+				// a subcommand is to simply dump the yaml back out so we explicitly
+				// set it here
+				Marshaler: Marshaler{output: "yaml"},
+			}).getv(cmd, args)
 		},
 		SilenceUsage: true,
 	}

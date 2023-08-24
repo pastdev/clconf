@@ -8,23 +8,30 @@ import (
 	"github.com/pastdev/clconf/v3/pkg/secret"
 )
 
-func testMarshal(t *testing.T, message, expected string, data interface{}, marshaler Marshaler) {
-	t.Run(message, func(t *testing.T) {
-		actual, err := marshaler.Marshal(data)
-		if err != nil {
-			t.Fatalf("testMarshal %s execute failed: %s", message, err)
-		}
+type MarshalerTestCase struct {
+	name      string
+	marshaler Marshaler
+}
 
-		if !marshaler.pretty && !marshaler.template.set && !marshaler.templateBase64.set && !marshaler.templateString.set {
-			assertYamlEqual(t, fmt.Sprintf("testMarshal (yaml) %s", message), expected, actual)
-		} else if expected != actual {
-			t.Errorf("testMarshal %s: %s != %s", message, expected, actual)
-		}
-	})
+func testMarshal(t *testing.T, message, expected string, data interface{}, marshalers ...MarshalerTestCase) {
+	for _, c := range marshalers {
+		t.Run(fmt.Sprintf("%s: %s", c.name, message), func(t *testing.T) {
+			actual, err := c.marshaler.Marshal(data)
+			if err != nil {
+				t.Fatalf("testMarshal %s execute failed: %s", message, err)
+			}
+
+			if !c.marshaler.pretty && !c.marshaler.template.set && !c.marshaler.templateBase64.set && !c.marshaler.templateString.set {
+				assertYamlEqual(t, fmt.Sprintf("testMarshal (yaml) %s", message), expected, actual)
+			} else if expected != actual {
+				t.Errorf("testMarshal %s: %v != %v", message, expected, actual)
+			}
+		})
+	}
 }
 
 func TestMarshal(t *testing.T) {
-	marshaler := Marshaler{}
+	marshaler := MarshalerTestCase{name: "normal", marshaler: Marshaler{output: "yaml"}}
 
 	testMarshal(t, "scalar", "foo", "foo", marshaler)
 	testMarshal(t, "scalar number", "1", 1, marshaler)
@@ -47,79 +54,71 @@ func TestMarshal(t *testing.T) {
 }
 
 func TestMarshalJSON(t *testing.T) {
-	marshaler := Marshaler{}
-	marshaler.asJSON = true
+	marshalers := []MarshalerTestCase{
+		{name: "normal", marshaler: Marshaler{output: "json"}},
+		{name: "deprecated", marshaler: Marshaler{asJSON: true}},
+	}
 
-	testMarshal(t, "scalar", "foo", "foo", marshaler)
-	testMarshal(t, "scalar number", "1", 1, marshaler)
+	testMarshal(t, "scalar", "foo", "foo", marshalers...)
+	testMarshal(t, "scalar number", "1", 1, marshalers...)
 	testMarshal(t, "list",
 		"- bar\n- baz",
 		[]interface{}{"bar", "baz"},
-		marshaler)
+		marshalers...)
 	testMarshal(t, "map",
 		"foo: bar\nhip: hop",
 		map[interface{}]interface{}{"foo": "bar", "hip": "hop"},
-		marshaler)
+		marshalers...)
 	testMarshal(t, "map with list",
 		"foo:\n- bar\n- baz",
 		map[interface{}]interface{}{"foo": []interface{}{"bar", "baz"}},
-		marshaler)
+		marshalers...)
 	testMarshal(t, "map with sub-map",
 		"foo:\n  bar:\n    baz",
 		map[interface{}]interface{}{"foo": map[interface{}]interface{}{"bar": "baz"}},
-		marshaler)
+		marshalers...)
 }
 
 func TestMarshalJSONPretty(t *testing.T) {
-	marshaler := Marshaler{}
-	marshaler.asJSON = true
-	marshaler.pretty = true
+	marshalers := []MarshalerTestCase{
+		{name: "normal", marshaler: Marshaler{output: "json", pretty: true}},
+		{name: "deprecated", marshaler: Marshaler{asJSON: true, pretty: true}},
+	}
 
-	testMarshal(t, "scalar", `"foo"`, "foo", marshaler)
-	testMarshal(t, "scalar number", "1", 1, marshaler)
+	testMarshal(t, "scalar", `"foo"`, "foo", marshalers...)
+	testMarshal(t, "scalar number", "1", 1, marshalers...)
 	testMarshal(t, "list",
 		"[\n  \"bar\",\n  \"baz\"\n]",
 		[]interface{}{"bar", "baz"},
-		marshaler)
+		marshalers...)
 	testMarshal(t, "map",
 		"{\n  \"foo\": \"bar\",\n  \"hip\": \"hop\"\n}",
 		map[interface{}]interface{}{"foo": "bar", "hip": "hop"},
-		marshaler)
+		marshalers...)
 	testMarshal(t, "map with list",
 		"{\n  \"foo\": [\n    \"bar\",\n    \"baz\"\n  ]\n}",
 		map[interface{}]interface{}{"foo": []interface{}{"bar", "baz"}},
-		marshaler)
+		marshalers...)
 	testMarshal(t, "map with sub-map",
 		"{\n  \"foo\": {\n    \"bar\": \"baz\"\n  }\n}",
 		map[interface{}]interface{}{"foo": map[interface{}]interface{}{"bar": "baz"}},
-		marshaler)
+		marshalers...)
 }
 
 func TestMarshalKvJSON(t *testing.T) {
-	marshaler := Marshaler{}
-	marshaler.asKvJSON = true
-	testMarshal(t, "kvjson map with list",
-		"/foo/0: bar\n/foo/1: baz",
-		map[interface{}]interface{}{"foo": []interface{}{"bar", "baz"}},
-		marshaler)
-	testMarshal(t, "kvjson map with sub-map",
-		"/foo/bar: baz",
-		map[interface{}]interface{}{"foo": map[interface{}]interface{}{"bar": "baz"}},
-		marshaler)
-}
+	marshalers := []MarshalerTestCase{
+		{name: "normal", marshaler: Marshaler{output: "kv-json"}},
+		{name: "deprecated", marshaler: Marshaler{asKvJSON: true}},
+	}
 
-func TestMarshalPrettyKvJSON(t *testing.T) {
-	marshaler := Marshaler{}
-	marshaler.pretty = true
-	marshaler.asKvJSON = true
 	testMarshal(t, "kvjson map with list",
-		"{\n\"/foo/0\": \"bar\",\n\"/foo/1\": \"baz\"\n}",
+		"/foo/0: bar\n/foo/1: baz\n",
 		map[interface{}]interface{}{"foo": []interface{}{"bar", "baz"}},
-		marshaler)
+		marshalers...)
 	testMarshal(t, "kvjson map with sub-map",
-		"{\n\"/foo/bar\": \"baz\"\n}",
+		"/foo/bar: baz\n",
 		map[interface{}]interface{}{"foo": map[interface{}]interface{}{"bar": "baz"}},
-		marshaler)
+		marshalers...)
 }
 
 func TestMarshalWithTemplate(t *testing.T) {
@@ -137,20 +136,26 @@ func TestMarshalWithTemplate(t *testing.T) {
 		t.Error("Unable to encrypt bar")
 	}
 
-	marshaler := Marshaler{
-		secretAgentFactory: &rootContext{
-			secretKeyring: *newOptionalString(keyFile, true),
+	marshalers := []MarshalerTestCase{
+		{
+			name: "normal",
+			marshaler: Marshaler{
+				output: "yaml",
+				secretAgentFactory: &rootContext{
+					secretKeyring: *newOptionalString(keyFile, true),
+				},
+				templateString: *newOptionalString("{{getv \"/username\"}}:{{getv \"/password\"}}", true),
+			},
 		},
-		templateString: *newOptionalString("{{getv \"/username\"}}:{{getv \"/password\"}}", true),
 	}
 	testMarshal(t, "basic template",
 		"foo:bar",
 		map[interface{}]interface{}{"username": "foo", "password": "bar"},
-		marshaler)
+		marshalers...)
 
-	marshaler.templateString = *newOptionalString("{{cgetv \"/username\"}}:{{cgetv \"/password\"}}", true)
+	marshalers[0].marshaler.templateString = *newOptionalString("{{cgetv \"/username\"}}:{{cgetv \"/password\"}}", true)
 	testMarshal(t, "decrypt template",
 		"foo:bar",
 		map[interface{}]interface{}{"username": encryptedFoo, "password": encryptedBar},
-		marshaler)
+		marshalers...)
 }
