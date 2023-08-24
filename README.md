@@ -245,7 +245,7 @@ set -e
 function applications {
   run_clconf \
     getv '/' \
-    --output template \
+    --output go-template \
     --template '{{range getvs "/applications/*"}}{{.}}{{end}}'
 }
 
@@ -378,7 +378,7 @@ clconf \
   --secret-keyring testdata/test.secring.gpg \
   --yaml C:/Temp/config.yml \
   getv / \
-  --output template \
+  --output go-template \
   --template '{{ cgetv "/db/username" }}:{{ cgetv "/db/password" }}'
 ```
 

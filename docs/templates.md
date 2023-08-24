@@ -39,7 +39,7 @@ Multiple `*` are allowed such as `/foo/*/bar/*`.
 Adds two int values.
 
 ```console
-$ clconf getv / --output template --template '{{add 1 3}}'
+$ clconf getv / --output go-template --template '{{add 1 3}}'
 4
 ```
 
@@ -49,7 +49,7 @@ Converts the supplied value to a properly encoded JSON string.
 For any value that is not currently of type string, `fmt.Sprintf("%v", value)` will be used to convert prior to encoding.
 
 ```console
-$ clconf --pipe getv / --output template --template '{{printf "{\"safeforjson\": %s}" (asJsonString (getv "/notsafeforjson"))}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{printf "{\"safeforjson\": %s}" (asJsonString (getv "/notsafeforjson"))}}' <<EOF
 notsafeforjson: |
   {"']
 EOF
@@ -61,7 +61,7 @@ EOF
 Alias for the [strconv.Atoi](https://golang.org/pkg/strconv/#Atoi) function.
 
 ```console
-$ clconf getv / --output template --template '{{seq 1 (atoi "10")}}'
+$ clconf getv / --output go-template --template '{{seq 1 (atoi "10")}}'
 [1 2 3 4 5 6 7 8 9 10]
 ```
 
@@ -70,7 +70,7 @@ $ clconf getv / --output template --template '{{seq 1 (atoi "10")}}'
 Alias for the [path.Base](https://golang.org/pkg/path/#Base) function.
 
 ```console
-$ clconf getv / --output template --template '{{base "/foo/bar.txt"}}'
+$ clconf getv / --output go-template --template '{{base "/foo/bar.txt"}}'
 bar.txt
 ```
 
@@ -79,7 +79,7 @@ bar.txt
 Returns the string representing the decoded base64 value.
 
 ```console
-$ clconf getv / --output template --template '{{base64Decode "VmFsdWU="}}'
+$ clconf getv / --output go-template --template '{{base64Decode "VmFsdWU="}}'
 Value
 ```
 
@@ -88,7 +88,7 @@ Value
 Returns a base64 encoded string of the value.
 
 ```console
-$ clconf getv / --output template --template '{{base64Encode "Value"}}'
+$ clconf getv / --output go-template --template '{{base64Encode "Value"}}'
 VmFsdWU=
 ```
 
@@ -113,7 +113,7 @@ Equivalent to [`getvs`](#getvs) but the value will be decrypted.
 Alias for [strings.Contains](https://golang.org/pkg/strings/#Contains)
 
 ```console
-$ clconf getv / --output template --template '{{if contains "a long time ago" "time"}}{{"the world makes sense"}}{{end}}'
+$ clconf getv / --output go-template --template '{{if contains "a long time ago" "time"}}{{"the world makes sense"}}{{end}}'
 the world makes sense
 ```
 
@@ -122,12 +122,12 @@ the world makes sense
 Alias for [time.Now](https://golang.org/pkg/time/#Now)
 
 ```console
-clconf getv / --output template --template '{{datetime}}'
+clconf getv / --output go-template --template '{{datetime}}'
 2023-03-24 10:25:20.282129609 -0600 MDT m=+0.000769001
 ```
 
 ```console
-$ clconf getv / --output template --template '{{datetime.Format "Jan 2, 2006 at 3:04pm (MST)"}}'
+$ clconf getv / --output go-template --template '{{datetime.Format "Jan 2, 2006 at 3:04pm (MST)"}}'
 Mar 24, 2023 at 10:25am (MDT)
 ```
 
@@ -138,16 +138,16 @@ See the time package for more usage: [http://golang.org/pkg/time/](http://golang
 Equivalent to `path.Dir`
 
 ```console
-$ clconf getv / --output template --template '{{dir "."}}'
+$ clconf getv / --output go-template --template '{{dir "."}}'
 .
 
-$ clconf getv / --output template --template '{{dir "/foo/bar/bip.txt"}}'
+$ clconf getv / --output go-template --template '{{dir "/foo/bar/bip.txt"}}'
 /foo/bar
 
-$ clconf getv / --output template --template '{{dir "/foo"}}'
+$ clconf getv / --output go-template --template '{{dir "/foo"}}'
 /
 
-$ clconf getv / --output template --template '{{dir ""}}'
+$ clconf getv / --output go-template --template '{{dir ""}}'
 .
 ```
 
@@ -156,10 +156,10 @@ $ clconf getv / --output template --template '{{dir ""}}'
 Divides two int values.
 
 ```console
-$ clconf getv / --output template --template '{{div 4 2}}'
+$ clconf getv / --output go-template --template '{{div 4 2}}'
 2
 
-$ clconf getv / --output template --template '{{div 3 2}}'
+$ clconf getv / --output go-template --template '{{div 3 2}}'
 1
 ```
 
@@ -168,7 +168,7 @@ $ clconf getv / --output template --template '{{div 3 2}}'
 Places a single `\` prior to any `'`, `"`, `\`, `=` or space.
 
 ```console
-$ clconf --pipe getv --output template --template '{{escapeOsgi "foo=bar"}}' < /dev/null
+$ clconf --pipe getv --output go-template --template '{{escapeOsgi "foo=bar"}}' < /dev/null
 foo\=bar
 ```
 
@@ -177,7 +177,7 @@ foo\=bar
 Checks if the key exists. Return false if key is not found.
 
 ```console
-$ clconf --pipe getv / --output template --template '{{if exists "/foo/bar"}}exists{{else}}nope{{end}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{if exists "/foo/bar"}}exists{{else}}nope{{end}}' <<EOF
 foo:
   bar: bip
 EOF
@@ -187,7 +187,7 @@ exists
 [Caveat's apply](#flat-keyvalue-caveats-and-considerations):
 
 ```console
-$ clconf --pipe getv / --output template --template '{{if exists "/foo"}}exists{{else}}nope{{end}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{if exists "/foo"}}exists{{else}}nope{{end}}' <<EOF
 foo:
   bar: bip
 EOF
@@ -209,9 +209,9 @@ Checks if the file or directory at the specified filesystem path exists.
 Adds a domain to a hostname if not already qualified.
 
 ```console
-$ clconf --pipe getv --output template --template '{{fqdn "foo" "example.com"}}' < /dev/null
+$ clconf --pipe getv --output go-template --template '{{fqdn "foo" "example.com"}}' < /dev/null
 foo.example.com
-$ clconf --pipe getv --output template --template '{{fqdn "foo.google.com" "example.com"}}' < /dev/null
+$ clconf --pipe getv --output go-template --template '{{fqdn "foo.google.com" "example.com"}}' < /dev/null
 foo.google.com
 ```
 
@@ -222,12 +222,12 @@ Returns an error if key is not found.
 Wildcards not supported.
 
 ```console
-$ clconf --pipe getv / --output template --template '{{with get "/foo/bar"}}k: {{.Key}}, v: {{.Value}}{{end}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{with get "/foo/bar"}}k: {{.Key}}, v: {{.Value}}{{end}}' <<EOF
 foo:
   bar: bip
 EOF
 
-$ clconf --pipe getv / --output template --template '{{with get "/foo/*"}}k: {{.Key}}, v: {{.Value}}{{end}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{with get "/foo/*"}}k: {{.Key}}, v: {{.Value}}{{end}}' <<EOF
 foo:
   bar: bip
 EOF
@@ -237,7 +237,7 @@ Error: template execute: execute template: template: cli:1:7: executing "cli" at
 [Caveat's apply](#flat-keyvalue-caveats-and-considerations):
 
 ```console
-$ clconf --pipe getv / --output template --template '{{with get "/foo"}}k: {{.Key}}, v: {{.Value}}{{end}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{with get "/foo"}}k: {{.Key}}, v: {{.Value}}{{end}}' <<EOF
 foo:
   bar: bip
 EOF
@@ -249,21 +249,21 @@ Error: template execute: execute template: template: cli:1:7: executing "cli" at
 Wrapper for [os.Getenv](https://golang.org/pkg/os/#Getenv). Retrieves the value of the environment variable named by the key. It returns the value, which will be empty if the variable is not present. Optionally, you can give a default value that will be returned if the key is not present.
 
 ```console
-MYENV=foo clconf getv / --output template --template '[{{getenv "MYENV"}}]'
+MYENV=foo clconf getv / --output go-template --template '[{{getenv "MYENV"}}]'
 [foo]
 
-$ MYENV= clconf getv / --output template --template '[{{getenv "MYENV"}}]'
+$ MYENV= clconf getv / --output go-template --template '[{{getenv "MYENV"}}]'
 []
 
 # Default used when defined and empty
-$ MYENV= clconf getv / --output template --template '[{{getenv "MYENV" "adefault"}}]'
+$ MYENV= clconf getv / --output go-template --template '[{{getenv "MYENV" "adefault"}}]'
 [adefault]
 
-$ clconf getv / --output template --template '[{{getenv "MYENV" "adefault"}}]'
+$ clconf getv / --output go-template --template '[{{getenv "MYENV" "adefault"}}]'
 [adefault]
 
 # Does not fail if not defined
-$ clconf getv / --output template --template '[{{getenv "MYENV"}}]'
+$ clconf getv / --output go-template --template '[{{getenv "MYENV"}}]'
 []
 ```
 
@@ -277,7 +277,7 @@ Wildcards are allowed.
 Preserve the order of list inputs:
 
 ```console
-$ clconf --pipe getv --output template --template '{{getksvs "/foo/*" "int"}}' <<EOF
+$ clconf --pipe getv --output go-template --template '{{getksvs "/foo/*" "int"}}' <<EOF
 foo:
 - dog
 - bird
@@ -289,7 +289,7 @@ EOF
 Sort by string keys:
 
 ```console
-$ clconf --pipe getv --output template --template '{{getksvs "/foo/*"}}' <<EOF
+$ clconf --pipe getv --output go-template --template '{{getksvs "/foo/*"}}' <<EOF
 foo:
   dog: woof
   bird: tweet
@@ -297,7 +297,7 @@ foo:
 EOF
 [tweet meow woof]
 
-$ clconf --pipe getv --output template --template '{{getksvs "/*/*"}}' <<EOF
+$ clconf --pipe getv --output go-template --template '{{getksvs "/*/*"}}' <<EOF
 foo:
   dog: woof
   bird: tweet
@@ -307,7 +307,7 @@ bar:
 EOF
 [tweet meow woof ????]
 
-$ clconf --pipe getv --output template --template '{{getksvs "/foo/dog"}}' <<EOF
+$ clconf --pipe getv --output go-template --template '{{getksvs "/foo/dog"}}' <<EOF
 foo:
   dog: woof
   bird: tweet
@@ -319,7 +319,7 @@ EOF
 [Caveat's](#flat-keyvalue-caveats-and-considerations) and [wildcard rules](#wildcards) apply:
 
 ```console
-$ clconf --pipe getv --output template --template '{{getksvs "/*"}}' <<EOF
+$ clconf --pipe getv --output go-template --template '{{getksvs "/*"}}' <<EOF
 foo:
   dog: woof
   bird: tweet
@@ -327,7 +327,7 @@ foo:
 EOF
 []
 
-$ clconf --pipe getv --output template --template '{{getksvs "/foo"}}' <<EOF
+$ clconf --pipe getv --output go-template --template '{{getksvs "/foo"}}' <<EOF
 foo:
   dog: woof
   bird: tweet
@@ -343,7 +343,7 @@ Optionally specify `int` to sort the values as integers. Returns an error if key
 Wildcards optional.
 
 ```console
-$ clconf --pipe getv --output template --template '{{getsvs "/foo/*"}}' <<EOF
+$ clconf --pipe getv --output go-template --template '{{getsvs "/foo/*"}}' <<EOF
 foo:
 - dog
 - bird
@@ -351,7 +351,7 @@ foo:
 EOF
 [bird cat dog]
 
-$ clconf --pipe getv --output template --template '{{getsvs "/foo/*"}}' <<EOF
+$ clconf --pipe getv --output go-template --template '{{getsvs "/foo/*"}}' <<EOF
 foo:
   dog: woof
   bird: tweet
@@ -359,7 +359,7 @@ foo:
 EOF
 [meow tweet woof]
 
-$ clconf --pipe getv --output template --template '{{getsvs "/foo/dog"}}' <<EOF
+$ clconf --pipe getv --output go-template --template '{{getsvs "/foo/dog"}}' <<EOF
 foo:
   dog: woof
   bird: tweet
@@ -367,7 +367,7 @@ foo:
 EOF
 [woof]
 
-$ clconf --pipe getv --output template --template '{{getsvs "/*/*"}}' <<EOF
+$ clconf --pipe getv --output go-template --template '{{getsvs "/*/*"}}' <<EOF
 foo:
   dog: woof
   bird: tweet
@@ -381,7 +381,7 @@ EOF
 [Caveat's](#flat-keyvalue-caveats-and-considerations) and [wildcard rules](#wildcards) apply:
 
 ```console
-$ clconf --pipe getv --output template --template '{{getsvs "/*"}}' <<EOF
+$ clconf --pipe getv --output go-template --template '{{getsvs "/*"}}' <<EOF
 foo:
   dog: woof
   bird: tweet
@@ -389,7 +389,7 @@ foo:
 EOF
 []
 
-$ clconf --pipe getv --output template --template '{{getsvs "/foo"}}' <<EOF
+$ clconf --pipe getv --output go-template --template '{{getsvs "/foo"}}' <<EOF
 foo:
   dog: woof
   bird: tweet
@@ -405,7 +405,7 @@ Returns an error if key is not found.
 Wildcards optional.
 
 ```console
-$ clconf --pipe getv / --output template --template '{{range gets "/foo/*"}}k: {{.Key}}, v: {{.Value}}{{"\n"}}{{end}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{range gets "/foo/*"}}k: {{.Key}}, v: {{.Value}}{{"\n"}}{{end}}' <<EOF
 foo:
   bar: bip
   zip: zap
@@ -413,14 +413,14 @@ EOF
 k: /foo/bar, v: bip
 k: /foo/zip, v: zap
 
-$ clconf --pipe getv / --output template --template '{{range gets "/foo/bar"}}k: {{.Key}}, v: {{.Value}}{{"\n"}}{{end}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{range gets "/foo/bar"}}k: {{.Key}}, v: {{.Value}}{{"\n"}}{{end}}' <<EOF
 foo:
   bar: bip
   zip: zap
 EOF
 k: /foo/bar, v: bip
 
-$ clconf --pipe getv / --output template --template '{{range gets "/*/*"}}k: {{.Key}}, v: {{.Value}}{{"\n"}}{{end}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{range gets "/*/*"}}k: {{.Key}}, v: {{.Value}}{{"\n"}}{{end}}' <<EOF
 foo:
   bar: bip
   zip: zap
@@ -432,13 +432,13 @@ k: /foo/zip, v: zap
 [Caveat's](#flat-keyvalue-caveats-and-considerations) and [wildcard rules](#wildcards) apply:
 
 ```console
-$ clconf --pipe getv / --output template --template '{{range gets "/*"}}k: {{.Key}}, v: {{.Value}}{{"\n"}}{{end}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{range gets "/*"}}k: {{.Key}}, v: {{.Value}}{{"\n"}}{{end}}' <<EOF
 foo:
   bar: bip
   zip: zap
 EOF
 
-$ clconf --pipe getv / --output template --template '{{range gets "/foo"}}k: {{.Key}}, v: {{.Value}}{{"\n"}}{{end}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{range gets "/foo"}}k: {{.Key}}, v: {{.Value}}{{"\n"}}{{end}}' <<EOF
 foo:
   bar: bip
   zip: zap
@@ -452,7 +452,7 @@ Returns an error if key is not found and no default value given.
 Wildcards not supported.
 
 ```console
-$ clconf --pipe getv / --output template --template '{{getv "/foo/bar"}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{getv "/foo/bar"}}' <<EOF
 foo:
   bar: bip
   zip: zap
@@ -460,7 +460,7 @@ EOF
 bip
 
 # With default value
-$ clconf --pipe getv / --output template --template '{{getv "/foo/hip" "hop"}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{getv "/foo/hip" "hop"}}' <<EOF
 foo:
   bar: bip
   zip: zap
@@ -468,7 +468,7 @@ EOF
 hop
 
 # Missing, no default
-$ clconf --pipe getv / --output template --template '{{getv "/foo/hip"}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{getv "/foo/hip"}}' <<EOF
 foo:
   bar: bip
   zip: zap
@@ -479,7 +479,7 @@ Error: template execute: execute template: template: cli:1:2: executing "cli" at
 [Caveat's apply](#flat-keyvalue-caveats-and-considerations):
 
 ```console
-$ clconf --pipe getv / --output template --template '{{getv "/foo"}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{getv "/foo"}}' <<EOF
 foo:
   bar: bip
   zip: zap
@@ -493,7 +493,7 @@ Returns all values, []string, where key matches its argument, string-sorted.
 Wildcard required.
 
 ```console
-$ clconf --pipe getv / --output template --template '{{getvs "/foo/*"}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{getvs "/foo/*"}}' <<EOF
 foo:
   buzz: 1 
   zap: 10
@@ -501,7 +501,7 @@ foo:
 EOF
 [1 10 2]
 
-$ clconf --pipe getv / --output template --template '{{getvs "/bar/*"}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{getvs "/bar/*"}}' <<EOF
 foo:
   buzz: 1 
   zap: 10
@@ -509,7 +509,7 @@ foo:
 EOF
 []
 
-clconf --pipe getv / --output template --template '{{getvs "/foo/buzz"}}' <<EOF
+clconf --pipe getv / --output go-template --template '{{getvs "/foo/buzz"}}' <<EOF
 foo:
   buzz: 1 
   zap: 10
@@ -518,7 +518,7 @@ EOF
 []
 
 # Multiple wildcards supported
-$ clconf --pipe getv / --output template --template '{{getvs "/*/*"}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{getvs "/*/*"}}' <<EOF
 foo:
   buzz: 1 
   zap: 10
@@ -535,7 +535,7 @@ EOF
 Alias for the [strings.Join](https://golang.org/pkg/strings/#Join) function.
 
 ```console
-$ clconf --pipe getv / --output template --template '{{join (getvs "/things/*") ","}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{join (getvs "/things/*") ","}}' <<EOF
 things:
 - thing1
 - thing2
@@ -548,7 +548,7 @@ thing1,thing2
 Returns an map[string]interface{} of the json value.
 
 ```console
-$ clconf --pipe getv / --output template --template '{{(json (getv "/json_obj_string")).foo}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{(json (getv "/json_obj_string")).foo}}' <<EOF
 json_obj_string: |
   {"foo": "bar"}
 EOF
@@ -560,7 +560,7 @@ bar
 Returns a []interface{} from a json array such as `["a", "b", "c"]`.
 
 ```console
-$ clconf --pipe getv / --output template --template '{{range (jsonArray (getv "/json_array_string"))}}{{ . }}{{"\n"}}{{end}}' <<EOF
+$ clconf --pipe getv / --output go-template --template '{{range (jsonArray (getv "/json_array_string"))}}{{ . }}{{"\n"}}{{end}}' <<EOF
 json_array_string: |
   ["foo", "bar"]
 EOF
@@ -576,7 +576,7 @@ This is crucial since in dynamic environments DNS servers typically shuffle the 
 And that would cause unnecessary config reloads.
 
 ```text
-$ clconf getv / --output template --template '{{lookupIP "localhost"}}'
+$ clconf getv / --output go-template --template '{{lookupIP "localhost"}}'
 [127.0.0.1]
 ```
 
@@ -610,7 +610,7 @@ Returns an empty list if search string is not found.
 Wildcards are not supported.
 
 ```console
-$ clconf --pipe getv / --output template --template '[{{join (ls "/foo") ","}}]' <<EOF
+$ clconf --pipe getv / --output go-template --template '[{{join (ls "/foo") ","}}]' <<EOF
 foo:
   bar: bip
   hip:
@@ -619,7 +619,7 @@ foo:
 EOF
 [bar,hip,zip]
 
-$ clconf --pipe getv / --output template --template '[{{join (ls "/foo/hip") ","}}]' <<EOF
+$ clconf --pipe getv / --output go-template --template '[{{join (ls "/foo/hip") ","}}]' <<EOF
 foo:
   bar: bip
   hip:
@@ -628,7 +628,7 @@ foo:
 EOF
 [hop]
 
-$ clconf --pipe getv / --output template --template '[{{join (ls "/foo/hip/hop") ","}}]' <<EOF
+$ clconf --pipe getv / --output go-template --template '[{{join (ls "/foo/hip/hop") ","}}]' <<EOF
 foo:
   bar: bip
   hip:
@@ -637,7 +637,7 @@ foo:
 EOF
 [hop]
 
-$ clconf --pipe getv / --output template --template '[{{join (ls "/") ","}}]' <<EOF
+$ clconf --pipe getv / --output go-template --template '[{{join (ls "/") ","}}]' <<EOF
 foo:
   bar: bip
   hip:
@@ -646,7 +646,7 @@ foo:
 EOF
 [foo]
 
-$ clconf --pipe getv / --output template --template '[{{join (ls "/bar") ","}}]' <<EOF
+$ clconf --pipe getv / --output go-template --template '[{{join (ls "/bar") ","}}]' <<EOF
 foo:
   bar: bip
   hip:
@@ -662,7 +662,7 @@ Returns all subkeys that are not full keys when appended to the search string.
 
 ```console
 # Note 'bar' is missing from the returned value because /foo/bar is a full key
-$ clconf --pipe getv / --output template --template '[{{join (lsdir "/foo") ","}}]' <<EOF
+$ clconf --pipe getv / --output go-template --template '[{{join (lsdir "/foo") ","}}]' <<EOF
 foo:
   bar: baz
   hip:
@@ -673,7 +673,7 @@ foo:
 EOF
 [hip,zip]
 
-$ clconf --pipe getv / --output template --template '[{{join (lsdir "/foo/hip") ","}}]' <<EOF
+$ clconf --pipe getv / --output go-template --template '[{{join (lsdir "/foo/hip") ","}}]' <<EOF
 foo:
   bar: baz
   hip:
@@ -685,7 +685,7 @@ EOF
 [0,1]
 
 # No results here because /foo/zip/zap would be a full key
-$ clconf --pipe getv / --output template --template '[{{join (lsdir "/foo/zip") ","}}]' <<EOF
+$ clconf --pipe getv / --output go-template --template '[{{join (lsdir "/foo/zip") ","}}]' <<EOF
 foo:
   bar: baz
   hip:
@@ -716,7 +716,7 @@ specifically useful if you use a sub-template and you want to pass multiple valu
 Modulus of two int values.
 
 ```text
-$ clconf getv / --output template --template '{{mod 10 3}}'
+$ clconf getv / --output go-template --template '{{mod 10 3}}'
 1
 ```
 
@@ -725,25 +725,25 @@ $ clconf getv / --output template --template '{{mod 10 3}}'
 An alias to [`strconv.ParseBool`](https://golang.org/pkg/strconv/#ParseBool)
 
 ```console
-$ clconf getv / --output template --template '{{parseBool "true"}}'
+$ clconf getv / --output go-template --template '{{parseBool "true"}}'
 true
 
-$ clconf getv / --output template --template '{{parseBool "T"}}'
+$ clconf getv / --output go-template --template '{{parseBool "T"}}'
 true
 
-$ clconf getv / --output template --template '{{parseBool "F"}}'
+$ clconf getv / --output go-template --template '{{parseBool "F"}}'
 false
 
-$ clconf getv / --output template --template '{{parseBool "1"}}'
+$ clconf getv / --output go-template --template '{{parseBool "1"}}'
 true
 
-$ clconf getv / --output template --template '{{parseBool "R"}}'
+$ clconf getv / --output go-template --template '{{parseBool "R"}}'
 Error: template execute: execute template: template: cli:1:2: executing "cli" at <parseBool "R">: error calling parseBool: strconv.ParseBool: parsing "R": invalid syntax
 
-$ clconf getv / --output template --template '{{parseBool "-1"}}'
+$ clconf getv / --output go-template --template '{{parseBool "-1"}}'
 Error: template execute: execute template: template: cli:1:2: executing "cli" at <parseBool "-1">: error calling parseBool: strconv.ParseBool: parsing "-1": invalid syntax
 
-$ clconf getv / --output template --template '{{parseBool "0"}}'
+$ clconf getv / --output go-template --template '{{parseBool "0"}}'
 false
 ```
 
@@ -752,7 +752,7 @@ false
 Given a regex, an original string and a replacement string run [`regexp.ReplaceAllString`](https://golang.org/pkg/regexp/#Regexp.ReplaceAllString) and return the result. Returns an error if the regex fails to compile.
 
 ```console
-$ clconf --pipe getv --output template --template '{{regexReplace "o+" "foo" "e"}}' < /dev/null
+$ clconf --pipe getv --output go-template --template '{{regexReplace "o+" "foo" "e"}}' < /dev/null
 fe
 ```
 
@@ -761,10 +761,10 @@ fe
 Alias for the [strings.Replace](https://golang.org/pkg/strings/#Replace) function.
 
 ```console
-$ clconf getv / --output template --template '{{replace "foo" "o" "e" -1}}'
+$ clconf getv / --output go-template --template '{{replace "foo" "o" "e" -1}}'
 fee
 
-$ clconf getv / --output template --template '{{replace "foo" "o" "e" 1}}'
+$ clconf getv / --output go-template --template '{{replace "foo" "o" "e" 1}}'
 feo
 ```
 
@@ -777,7 +777,7 @@ Reverses a list.  If the list is `KVPair`, will compare keys, not values.
 Alias for the [template.Seq](https://golang.org/pkg/template/#Seq) function.
 
 ```console
-$ clconf getv / --output template --template '{{range (seq 1 10) }}{{.}}{{"\n"}}{{end}}'
+$ clconf getv / --output go-template --template '{{range (seq 1 10) }}{{.}}{{"\n"}}{{end}}'
 1
 2
 3
@@ -795,7 +795,7 @@ $ clconf getv / --output template --template '{{range (seq 1 10) }}{{.}}{{"\n"}}
 Sorts the input ([]interface{}) by translating it to the specified type (one of `int`, `string`, default: `string`)
 
 ```console
-clconf --pipe getv --output template --template '{{sort (getvs "/foo/*") }}' <<EOF
+clconf --pipe getv --output go-template --template '{{sort (getvs "/foo/*") }}' <<EOF
 foo:
 - dog
 - bird
@@ -803,7 +803,7 @@ foo:
 EOF
 [bird cat dog]
 
-clconf --pipe getv --output template --template '{{ range $i := (sort (ls "/foo") "int")}}{{ getv (printf "/foo/%s" $i) }},{{ end }}' <<EOF
+clconf --pipe getv --output go-template --template '{{ range $i := (sort (ls "/foo") "int")}}{{ getv (printf "/foo/%s" $i) }},{{ end }}' <<EOF
 foo:
 - dog
 - bird
