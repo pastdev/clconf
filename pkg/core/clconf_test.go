@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/imdario/mergo"
+	"dario.cat/mergo"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pastdev/clconf/v3/pkg/core"
 	"github.com/pastdev/clconf/v3/pkg/yamljson"

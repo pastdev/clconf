@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/imdario/mergo"
+	"dario.cat/mergo"
 	"gopkg.in/yaml.v2"
 )
 
