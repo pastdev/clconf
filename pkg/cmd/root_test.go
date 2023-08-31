@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"encoding/base64"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -14,6 +15,34 @@ func Example_noArg() {
 	_ = newCmd().Execute()
 	// Output:
 	// {}
+}
+
+// see https://github.com/pastdev/clconf/issues/47
+func Example_scalarDefaultOutput() {
+	yaml := `
+example: '
+   This is a string value.
+'
+`
+	// print out leader and trailer chars to demonstrate leading and trailing
+	// spaces that get ignored by go Example testing by default
+	fmt.Print(">>>")
+	_ = newCmdWithYaml(yaml, "getv", "/example").Execute()
+	fmt.Print("<<<")
+	// Output:
+	// >>> This is a string value. <<<
+}
+
+// see https://github.com/pastdev/clconf/issues/47
+func Example_scalarYamlOutput() {
+	yaml := `
+example: '
+   This is a string value.
+'
+`
+	_ = newCmdWithYaml(yaml, "getv", "/example", "--output", "yaml").Execute()
+	// Output:
+	// ' This is a string value. '
 }
 
 func Example_testConfig() {
