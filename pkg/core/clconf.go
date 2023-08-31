@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/imdario/mergo"
+	"dario.cat/mergo"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pastdev/clconf/v3/pkg/yamljson"
 )

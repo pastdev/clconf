@@ -26,6 +26,7 @@ var marshalOutputOptions = map[string]string{
 	"json-lines":         "print each top level element in the config as a single line json object. if the top level is a map, the json lines object will have two top level elements: `key` and `value`",
 	"kv-json":            "print the config as a single line json object after mapping to key/value pairs",
 	"yaml":               "print the config in yaml format",
+	"value":              "like yaml, except that if it is a scalar value, it will not be quoted. this is the legacy format and thus set as default for backwards compatibility reasons",
 }
 
 type Marshaler struct {
@@ -100,7 +101,7 @@ func (c *Marshaler) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(
 		&c.output,
 		"output",
-		"yaml",
+		"value",
 		usageForMarshalOutput())
 	cmd.Flags().BoolVar(
 		&c.pretty,
@@ -196,6 +197,11 @@ func (c Marshaler) Marshal(value interface{}) (string, error) {
 	case c.output == "kv-json" || c.asKvJSON:
 		return marshalJSON(core.ToKvMap(value), c.pretty)
 	case c.output == "yaml":
+		return marshalYaml(value)
+	case c.output == "value":
+		if stringValue, ok := value.(string); ok {
+			return stringValue, nil
+		}
 		return marshalYaml(value)
 	default:
 		return "", fmt.Errorf("output %s is not supported", c.output)
