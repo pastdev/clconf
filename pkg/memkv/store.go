@@ -167,6 +167,8 @@ func (s Store) Set(key string, value string) {
 	s.kv[key] = value
 }
 
+// ToKvMap will return a one-level map of key value pairs where the key is
+// a / separated path of subkeys.
 func (s Store) ToKvMap() map[string]string {
 	result := make(map[string]string, len(s.kv))
 	for k, v := range s.kv {
@@ -175,8 +177,7 @@ func (s Store) ToKvMap() map[string]string {
 	return result
 }
 
-// ToKvMap will return a one-level map of key value pairs where the key is
-// a / separated path of subkeys.
+// FillKvMap will fill the supplied kvMap with values from data.
 func FillKvMap(kvMap map[string]string, data interface{}) {
 	Walk(func(keyStack []string, value interface{}) {
 		key := "/" + strings.Join(keyStack, "/")

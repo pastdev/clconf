@@ -2,8 +2,6 @@
 
 Templates are written in Go's [`text/template`](http://golang.org/pkg/text/template/).
 
-[[_TOC_]]
-
 ## Flat key/value caveats and considerations
 
 Because the [templates only see a flat list of key/value pairs](../README.md#getv-templates), certain operations will behave differently than the CLI (notably `getv` itself).
@@ -41,6 +39,19 @@ Adds two int values.
 ```console
 $ clconf getv / --output go-template --template '{{add 1 3}}'
 4
+```
+
+### asJson
+
+Converts the supplied value to properly encoded JSON.
+
+```console
+$ clconf --pipe getv /foo --output go-template --template '{{asJson (getvs "/*")}}' <<EOF
+foo:
+- bar
+- baz
+EOF
+["bar","baz"]
 ```
 
 ### asJsonString

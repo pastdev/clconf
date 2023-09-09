@@ -211,9 +211,8 @@ EOF
 Templates allow you to apply your configuration to golang template plus some
 additional [custom functions](docs/templates.md)
 
-Note that when used in conjunction with the `--template` options,
-`getv` templates see a one-level key-value map, not the map
-represented by the yaml.  For example, this yaml (`foo.yml`):
+Note that when used in conjunction with the `--output go-template*` options, `getv` templates see a one-level key-value map, not the map represented by the yaml.
+For example, this yaml (`foo.yml`):
 
 ```yaml
 applications:
@@ -235,32 +234,33 @@ Would be seen by inside the templates as:
 /credentials/password: bar
 ```
 
-A simple bash program to utilize this might look like:
+A simple bash program to utilizes this might look something like:
 
 ```bash
-#!/bin/bash
-
-set -e
-
-function applications {
-  run_clconf \
-    getv '/' \
-    --output go-template \
-    --template '{{range getvs "/applications/*"}}{{.}}{{end}}'
-}
-
-function getv {
-  local path=$1
-  run_clconf getv "${path}"
-}
-
-function run_clconf {
-  ./clconf --ignore-env --yaml 'foo.yml' "$@"
-}
-
-user="$(getv "/credentials/username")"
-pass="$(getv "/credentials/password")"
-applications | xargs -I {} {} --user "${user}" --pass "${pass}"
+(
+  clconf --pipe \
+    getv / \
+    --output go-template-file \
+    --template <(cat <<'EOF'
+{{- range (getvs "/applications/*")}}
+echo {{.}} --user {{getv "/credentials/username"}} --pass {{getv "/credentials/password"}}
+{{- end}}
+EOF
+      ) \
+    <<'EOF'
+---
+applications:
+- command_a
+- command_b
+- command_c
+credentials:
+  username: foo
+  password: bar
+EOF
+) | bash
+# command_a --user foo --pass bar
+# command_b --user foo --pass bar
+# command_c --user foo --pass bar
 ```
 
 ### Kubernetes/OpenShift
@@ -390,7 +390,7 @@ yaml as a value store. It uses command line arguments in place of `confd`'s
 [toml files](https://github.com/kelseyhightower/confd/blob/master/docs/template-resources.md)
 to determine where templates are found and output placed.
 
-`clconf` supports [additional functions](templates.md) above what `confd`
+`clconf` supports [additional functions](docs/templates.md) above what `confd`
 provides.
 
 All of the options for `getv` are available for specifying yaml sources,
