@@ -191,9 +191,8 @@ func TestGetValue(t *testing.T) {
 			if errExpected {
 				require.Error(t, err)
 				return
-			} else {
-				require.NoError(t, err)
 			}
+			require.NoError(t, err)
 			require.Equal(t, expected, actual)
 		})
 	}
