@@ -71,11 +71,42 @@ func GetValue(conf interface{}, keyPath string) (interface{}, error) {
 			// yaml deserialized
 			var ok bool
 			value, ok = typed[part]
-			if !ok {
-				return nil, fmt.Errorf(
-					"value at [%v] does not exist",
-					currentPath)
+			if ok {
+				continue
 			}
+			intKey, err := strconv.ParseInt(part, 10, 64)
+			if err == nil {
+				value, ok = typed[int(intKey)]
+				if ok {
+					continue
+				}
+				value, ok = typed[int8(intKey)]
+				if ok {
+					continue
+				}
+				value, ok = typed[int16(intKey)]
+				if ok {
+					continue
+				}
+				value, ok = typed[int32(intKey)]
+				if ok {
+					continue
+				}
+				value, ok = typed[int64(intKey)]
+				if ok {
+					continue
+				}
+			}
+			boolKey, err := strconv.ParseBool(part)
+			if err == nil {
+				value, ok = typed[boolKey]
+				if ok {
+					continue
+				}
+			}
+			return nil, fmt.Errorf(
+				"value at [%v] does not exist",
+				currentPath)
 		case []interface{}:
 			i, err := strconv.Atoi(part)
 			if err != nil {

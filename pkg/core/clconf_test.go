@@ -13,6 +13,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/pastdev/clconf/v3/pkg/core"
 	"github.com/pastdev/clconf/v3/pkg/yamljson"
+	"github.com/stretchr/testify/require"
 )
 
 const yaml1and2 = "" +
@@ -27,6 +28,12 @@ const yamlWithList = "" +
 	"- one\n" +
 	"- two\n" +
 	"- three\n"
+const yamlWithNonStringKeys = "" +
+	"a:\n" +
+	"  1234:\n" +
+	"    foo: bar\n" +
+	"  5578: 91011\n" +
+	"  true: really?"
 
 func assertMergeValue(
 	t *testing.T,
@@ -178,56 +185,42 @@ func TestFillValue(t *testing.T) {
 }
 
 func TestGetValue(t *testing.T) {
-	conf, _ := yamljson.UnmarshalYamlInterface(yaml1and2)
-
-	value, err := core.GetValue(conf, "")
-	if err != nil || !reflect.DeepEqual(conf, value) {
-		t.Errorf("GetValue empty path failed: [%v] [%v] == [%v]", err, conf, value)
+	test := func(name string, conf interface{}, path string, expected interface{}, errExpected bool) {
+		t.Run(name, func(t *testing.T) {
+			actual, err := core.GetValue(conf, path)
+			if errExpected {
+				require.Error(t, err)
+				return
+			} else {
+				require.NoError(t, err)
+			}
+			require.Equal(t, expected, actual)
+		})
 	}
 
-	value, err = core.GetValue(conf, "/")
-	if err != nil || !reflect.DeepEqual(conf, value) {
-		t.Errorf("GetValue empty path failed: [%v] [%v] == [%v]", err, conf, value)
-	}
+	conf, err := yamljson.UnmarshalYamlInterface(yaml1and2)
+	require.NoError(t, err, "parsing yaml1and2")
 
-	value, err = core.GetValue(conf, "/a")
-	if err != nil || value != "Yup" {
-		t.Errorf("GetValue first level string failed: [%v] [%v]", err, value)
-	}
+	test("empty path", conf, "", conf, false)
+	test("slash path", conf, "/", conf, false)
+	test("first level string", conf, "/a", "Yup", false)
+	test("third level string multi slash", conf, "/b//f//g", "foobar", false)
+	test("non map indexing", conf, "/a/f", "", true)
+	test("missing", conf, "/z", "", true)
 
-	value, err = core.GetValue(conf, "/b//f//g")
-	if err != nil || value != "foobar" {
-		t.Errorf("GetValue third level string multi slash failed: [%v] [%v]", err, value)
-	}
+	conf, err = yamljson.UnmarshalYamlInterface(yamlWithList)
+	require.NoError(t, err, "parsing yamlWithList")
 
-	value, err = core.GetValue(conf, "/a/f")
-	if err == nil {
-		t.Errorf("GetValue non map indexing should have failed: [%v] [%v]", err, value)
-	}
+	test("list", conf, "/a", []interface{}{"one", "two", "three"}, false)
+	test("list item", conf, "/a/0", "one", false)
+	test("list item invalid index", conf, "/a/b", "", true)
 
-	value, err = core.GetValue(conf, "/z")
-	if err == nil {
-		t.Errorf("GetValue missing have failed: [%v] [%v]", err, value)
-	}
+	conf, err = yamljson.UnmarshalYamlInterface(yamlWithNonStringKeys)
+	require.NoError(t, err, "parsing yaml with int keys")
 
-	conf, _ = yamljson.UnmarshalYamlInterface(yamlWithList)
-
-	value, err = core.GetValue(conf, "/a")
-	expected := []interface{}{"one", "two", "three"}
-	if err != nil || !reflect.DeepEqual(expected, value) {
-		t.Errorf("GetValue list failed: (err:[%v]) [%v] == [%v]", err, expected, value)
-	}
-
-	value, err = core.GetValue(conf, "/a/0")
-	stringExpected := "one"
-	if err != nil || !reflect.DeepEqual(stringExpected, value) {
-		t.Errorf("GetValue list item failed: (err:[%v]) [%v] == [%v]", err, stringExpected, value)
-	}
-
-	_, err = core.GetValue(conf, "/a/b")
-	if err == nil {
-		t.Errorf("GetValue list item invalid index should have failed")
-	}
+	test("int key with nested", conf, "/a/1234/foo", "bar", false)
+	test("int key", conf, "/a/5578", 91011, false)
+	test("bool key", conf, "/a/true", "really?", false)
 }
 
 func TestMerge(t *testing.T) {
