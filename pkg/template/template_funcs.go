@@ -218,6 +218,16 @@ func LookupSRV(service, proto, name string) []*net.SRV {
 	return addrs
 }
 
+// MarshalJSON will return the JSON encoded representation of the supplied
+// data.
+func MarshalJSON(data interface{}) (string, error) {
+	v, err := json.Marshal(data)
+	if err != nil {
+		return "", fmt.Errorf("json marshal: %w", err)
+	}
+	return string(v), nil
+}
+
 // MarshalJSONString will return the JSON encoded string representation of the
 // supplied value. If data is not of type string, the fmt.Sprintf('%v', data)
 // will be used prior to serialization to ensure a string type.
@@ -236,6 +246,7 @@ func MarshalJSONString(data interface{}) (string, error) {
 
 func NewFuncMap(s *memkv.Store) map[string]interface{} {
 	m := make(map[string]interface{})
+	m["asJson"] = MarshalJSON
 	m["asJsonString"] = MarshalJSONString
 	m["atoi"] = strconv.Atoi
 	m["add"] = func(a, b int) int { return a + b }

@@ -2,8 +2,6 @@
 
 Templates are written in Go's [`text/template`](http://golang.org/pkg/text/template/).
 
-[[_TOC_]]
-
 ## Flat key/value caveats and considerations
 
 Because the [templates only see a flat list of key/value pairs](../README.md#getv-templates), certain operations will behave differently than the CLI (notably `getv` itself).
@@ -42,6 +40,24 @@ Adds two int values.
 $ clconf getv / --output go-template --template '{{add 1 3}}'
 4
 ```
+
+### asJson
+
+Converts the supplied value to properly encoded JSON.
+
+```console
+$ clconf --pipe getv /foo --output go-template --template '{{asJson (getksvs "/*" "int")}}' <<EOF
+foo:
+- hip
+- hop
+- bar
+- baz
+EOF
+["hip","hop","bar","baz"]
+```
+
+It's worth noting in this example that we use [`getksvs "/*" "int"`](#getksvs) to extract the values sorted by the `int` value of the keys.
+If we didn't do this the array would be in random order because [the data backing getv templates](../README.md#getv-templates) is represented as a map-backed key/value store and map iteration in go is random.
 
 ### asJsonString
 

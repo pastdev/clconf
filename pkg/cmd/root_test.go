@@ -4,7 +4,6 @@ package cmd
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -374,8 +373,20 @@ func Example_getvArrayOfObjectsAsBashArray() {
 	// ([0]="{\"foo\":\"bar\"}" [1]="{\"hip\":\"hop\"}")
 }
 
+func Example_getvTemplateArrayAsJson() {
+	_ = newCmd(
+		"getv",
+		"--var", `/foo=["hip", "hop", "bar","baz"]`,
+		"/foo",
+		"--output", "go-template",
+		"--template", `{{asJson (getksvs "/*" "int")}}`,
+	).Execute()
+	// Output:
+	// ["hip","hop","bar","baz"]
+}
+
 func Example_mergeOverridesBooleanToFalse() {
-	footrue, err := ioutil.TempFile("", "")
+	footrue, err := os.CreateTemp("", "")
 	if err != nil {
 		return
 	}
@@ -385,7 +396,7 @@ func Example_mergeOverridesBooleanToFalse() {
 		return
 	}
 
-	foofalse, err := ioutil.TempFile("", "")
+	foofalse, err := os.CreateTemp("", "")
 	if err != nil {
 		return
 	}
@@ -401,7 +412,7 @@ func Example_mergeOverridesBooleanToFalse() {
 }
 
 func Example_patch() {
-	patch, err := ioutil.TempFile("", "")
+	patch, err := os.CreateTemp("", "")
 	if err != nil {
 		return
 	}

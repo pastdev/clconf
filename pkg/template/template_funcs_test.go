@@ -44,7 +44,32 @@ func TestFqdn(t *testing.T) {
 	}
 }
 
-func TestMarshalJsonString(t *testing.T) {
+func TestMarshalJSON(t *testing.T) {
+	tester := func(test string, data interface{}, expected string) {
+		t.Run(test, func(t *testing.T) {
+			actual, err := template.MarshalJSON(data)
+			assert.NoError(t, err)
+			assert.Equal(t, expected, actual)
+		})
+	}
+
+	tester("simple", "foo", "\"foo\"")
+	tester(
+		"two lines",
+		`foo
+bar`,
+		"\"foo\\nbar\"")
+	tester("with quotes", "foo\"bar", "\"foo\\\"bar\"")
+	tester("number", 1, "1")
+	tester("number", false, "false")
+	tester("array", []string{"foo", "bar"}, `["foo","bar"]`)
+	tester(
+		"object",
+		map[string]interface{}{"foo": []string{"bar", "baz"}},
+		`{"foo":["bar","baz"]}`)
+}
+
+func TestMarshalJSONString(t *testing.T) {
 	tester := func(test string, data interface{}, expected string) {
 		t.Run(test, func(t *testing.T) {
 			actual, err := template.MarshalJSONString(data)
