@@ -376,13 +376,13 @@ func Example_getvArrayOfObjectsAsBashArray() {
 func Example_getvTemplateArrayAsJson() {
 	_ = newCmd(
 		"getv",
-		"--var", `/foo=["bar","baz"]`,
+		"--var", `/foo=["hip", "hop", "bar","baz"]`,
 		"/foo",
 		"--output", "go-template",
-		"--template", `{{asJson (getvs "/*")}}`,
+		"--template", `{{asJson (getksvs "/*" "int")}}`,
 	).Execute()
 	// Output:
-	// ["bar","baz"]
+	// ["hip","hop","bar","baz"]
 }
 
 func Example_mergeOverridesBooleanToFalse() {
