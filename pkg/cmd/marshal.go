@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const DefaultOutput = "value"
+
 type secretAgentFactory interface {
 	newSecretAgent() (*secret.SecretAgent, error)
 }
@@ -101,7 +103,7 @@ func (c *Marshaler) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(
 		&c.output,
 		"output",
-		"value",
+		DefaultOutput,
 		usageForMarshalOutput())
 	cmd.Flags().BoolVar(
 		&c.pretty,
@@ -186,7 +188,7 @@ func (c Marshaler) Marshal(value interface{}) (string, error) {
 			return "", fmt.Errorf("new template from base64 %s: %w", c.template.value, err)
 		}
 		return marshalTemplate(tmpl, value)
-	case c.output == "go-template-file" || (c.template.set && c.output == "yaml"):
+	case c.output == "go-template-file" || (c.template.set && c.output == DefaultOutput):
 		tmpl, err := template.NewTemplateFromFile("cli", c.template.value, c.getTemplateConfig())
 		if err != nil {
 			return "", fmt.Errorf("new template from file %s: %w", c.template.value, err)

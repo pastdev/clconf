@@ -93,16 +93,13 @@ func rootCmd() *cobra.Command {
 	pipe := false
 
 	var cmd = &cobra.Command{
-		Use: "clconf [global options] command [command options] [args...]",
-		Short: `A utility for merging multiple config files and extracting values using a path
-string`,
-		Long: `A utility for merging multiple config files and extracting values using a path string
-the order of precedence from least to greatest is:
-  --yaml
-  YAML_FILES
-  --yaml-base64
-  YAML_VARS
-  --stdin`,
+		Use:   "clconf [global options] command [command options] [args...]",
+		Short: `A utility for working with config files in yaml/json format.`,
+		Long: `A utility for working with config files in yaml/json format.
+See the README for configuration details:
+
+  https://github.com/pastdev/clconf/blob/master/README.md#configuration
+  `,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			if pipe {
 				c.stdin = true
