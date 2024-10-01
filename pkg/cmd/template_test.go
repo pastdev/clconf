@@ -1,18 +1,13 @@
 package cmd
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
 func TestTemplateCmd(t *testing.T) {
-	temp, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf("Error making temp folder %v", err)
-	}
-	defer func() { _ = os.RemoveAll(temp) }()
+	temp := t.TempDir()
 
 	testDataPath := filepath.Join("..", "..", "testdata")
 	cmd := rootCmd()
@@ -20,12 +15,12 @@ func TestTemplateCmd(t *testing.T) {
 		"--yaml", filepath.Join(testDataPath, "testconfig.yml"),
 		testDataPath, temp})
 
-	if err = cmd.Execute(); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Errorf("Execute failed: %v", err)
 	}
 
 	resultPath := filepath.Join(temp, "testtemplate.txt")
-	actual, err := ioutil.ReadFile(resultPath)
+	actual, err := os.ReadFile(resultPath)
 	if err != nil {
 		t.Errorf("Error reading %q: %v", resultPath, err)
 	}
@@ -36,11 +31,7 @@ func TestTemplateCmd(t *testing.T) {
 }
 
 func TestTemplateCmdDelims(t *testing.T) {
-	temp, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf("Error making temp folder %v", err)
-	}
-	defer func() { _ = os.RemoveAll(temp) }()
+	temp := t.TempDir()
 
 	testDataPath := filepath.Join("..", "..", "testdata")
 	cmd := rootCmd()
@@ -50,12 +41,12 @@ func TestTemplateCmdDelims(t *testing.T) {
 		"--right-delimiter", ">>",
 		testDataPath, temp})
 
-	if err = cmd.Execute(); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Errorf("Execute failed: %v", err)
 	}
 
 	resultPath := filepath.Join(temp, "testtemplatedelims.txt")
-	actual, err := ioutil.ReadFile(resultPath)
+	actual, err := os.ReadFile(resultPath)
 	if err != nil {
 		t.Errorf("Error reading %q: %v", resultPath, err)
 	}

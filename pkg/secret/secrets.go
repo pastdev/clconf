@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/pastdev/clconf/v3/pkg/core"
 	"github.com/xordataexchange/crypt/encoding/secconf"
@@ -88,7 +88,7 @@ func NewSecretAgent(key []byte) *SecretAgent {
 
 // NewSecretAgentFromFile loads from keyFile
 func NewSecretAgentFromFile(keyFile string) (*SecretAgent, error) {
-	return newSecretAgent(ioutil.ReadFile(keyFile))
+	return newSecretAgent(os.ReadFile(keyFile))
 }
 
 // NewSecretAgentFromBase64 loads from keyBase64

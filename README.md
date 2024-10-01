@@ -35,7 +35,7 @@ processed in is as follows:
 1. _`--yaml-base64`_: One or more base64 encoded strings containing yaml.
 1. _`YAML_VARS` environment variable_: A comma separated list of environment
   variable names, each a base64 encoded string containing yaml.
-1. _`--stdin`_: One or more `---` separated yaml files read from `stdin`.
+1. _`--stdin`/`--pipe`_: One or more `---` separated yaml files read from `stdin`.
 1. _`--var`_: One or more path overrides of the form `/foo="bar"`.  Key is a
   path, an value is json/yaml encoded.
 1. _`--patch`_: One or more rfc 6902 json/yaml patch files to apply to the

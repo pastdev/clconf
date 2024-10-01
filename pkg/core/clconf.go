@@ -4,6 +4,7 @@ package core
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path"
 	"reflect"
@@ -76,21 +77,29 @@ func GetValue(conf interface{}, keyPath string) (interface{}, error) {
 			}
 			intKey, err := strconv.ParseInt(part, 10, 64)
 			if err == nil {
-				value, ok = typed[int(intKey)]
-				if ok {
-					continue
+				if intKey >= math.MinInt && intKey <= math.MaxInt {
+					value, ok = typed[int(intKey)]
+					if ok {
+						continue
+					}
 				}
-				value, ok = typed[int8(intKey)]
-				if ok {
-					continue
+				if intKey >= math.MinInt8 && intKey <= math.MaxInt8 {
+					value, ok = typed[int8(intKey)]
+					if ok {
+						continue
+					}
 				}
-				value, ok = typed[int16(intKey)]
-				if ok {
-					continue
+				if intKey >= math.MinInt16 && intKey <= math.MaxInt16 {
+					value, ok = typed[int16(intKey)]
+					if ok {
+						continue
+					}
 				}
-				value, ok = typed[int32(intKey)]
-				if ok {
-					continue
+				if intKey >= math.MinInt32 && intKey <= math.MaxInt32 {
+					value, ok = typed[int32(intKey)]
+					if ok {
+						continue
+					}
 				}
 				value, ok = typed[int64(intKey)]
 				if ok {

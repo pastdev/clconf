@@ -2,7 +2,6 @@ package conf_test
 
 import (
 	"encoding/base64"
-	"io/ioutil"
 	"os"
 	"path"
 	"reflect"
@@ -36,12 +35,8 @@ func TestBase64Strings(t *testing.T) {
 
 func TestLoadConf(t *testing.T) {
 	envVars := []string{"a"}
-	tempDir, err := ioutil.TempDir("", "clconf")
-	if err != nil {
-		t.Errorf("Unable to create temp dir: %v", err)
-	}
+	tempDir := t.TempDir()
 	defer func() {
-		_ = os.RemoveAll(tempDir)
 		for _, name := range envVars {
 			_ = os.Unsetenv(name)
 		}
@@ -56,7 +51,7 @@ func TestLoadConf(t *testing.T) {
 	}
 
 	stdinFile := path.Join(tempDir, "stdin")
-	err = os.WriteFile(stdinFile, []byte("a: stdin\nstdin: 1"), 0600)
+	err := os.WriteFile(stdinFile, []byte("a: stdin\nstdin: 1"), 0600)
 	if err != nil {
 		t.Errorf("failed to write stdinFile: %v", err)
 	}
@@ -217,11 +212,7 @@ func TestReadFiles(t *testing.T) {
 }
 
 func TestReadFilesTempValues(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "clconf")
-	if err != nil {
-		t.Errorf("Unable to create temp dir: %v", err)
-	}
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	tempDir := t.TempDir()
 
 	names := []string{path.Join(tempDir, "foo"), path.Join(tempDir, "baz")}
 	values := []string{"bar", "qux"}

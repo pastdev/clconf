@@ -2,7 +2,6 @@
 package template
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -39,7 +38,7 @@ func makeTestSubfolder(
 func writeTestFile(t *testing.T, temp string, subPath string, perms os.FileMode) {
 	path := filepath.Join(temp, subPath)
 	content := []byte("{{ getv \"/foo\" }}")
-	err := ioutil.WriteFile(path, content, perms)
+	err := os.WriteFile(path, content, perms)
 	if err != nil {
 		t.Fatalf("Error making temp file %q: %v", path, err)
 	}
@@ -59,7 +58,7 @@ func writeTestFile(t *testing.T, temp string, subPath string, perms os.FileMode)
 
 func buildTestFolder(t *testing.T) string {
 	extension := ".clconf"
-	temp, err := ioutil.TempDir("", "")
+	temp, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Fatalf("Error making temp folder %v", err)
 	}
@@ -188,7 +187,7 @@ func exists(path string) bool {
 }
 
 func checkFile(t *testing.T, path string, expectedPerms os.FileMode) {
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("Error reading %q: %v", path, err)
 	}

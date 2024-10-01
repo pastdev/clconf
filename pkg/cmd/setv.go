@@ -28,7 +28,7 @@ func csetvCmd(rootCmdContext *rootContext) *cobra.Command {
 	var cmd = &cobra.Command{
 		Use:   "csetv key value [options]",
 		Short: "Set PATH to the encrypted value of VALUE in the file indicated by the global option --yaml (must be single valued).  Simply an alias to `setv --encrypt`",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			cmdContext.encrypt = true
 			return cmdContext.setValue(args[0], args[1])
 		},
@@ -48,7 +48,7 @@ func setvCmd(rootCmdContext *rootContext) *cobra.Command {
 		Use:   "setv key value [options]",
 		Short: "Set PATH to VALUE in the file indicated by the global option --yaml (must be single valued).",
 		Args:  cobra.ExactArgs(2),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			return cmdContext.setValue(args[0], args[1])
 		},
 	}

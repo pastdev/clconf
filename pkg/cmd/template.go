@@ -46,7 +46,7 @@ matches it will still be removed).`,
 
   # Interpret /tmp/srcFile.sh.clconf where it is (result is /tmp/srcFile.sh.clconf)
   template /tmp/srcFile.sh.clconf --in-place --template-extension ""`,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			return c.template(args)
 		},
 	}

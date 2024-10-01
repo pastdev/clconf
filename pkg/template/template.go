@@ -217,11 +217,8 @@ func UnixModeToFileMode(unixMode string) (os.FileMode, error) {
 		return 0, fmt.Errorf("parse file mode int: %w", err)
 	}
 
-	fileMode := os.FileMode(uint32(intVal))
-	perms := uint8((intVal) >> 9)
-	if err != nil {
-		return 0, fmt.Errorf("convert to file mode: %w", err)
-	}
+	fileMode := os.FileMode(uint32(intVal)) //nolint: gosec // this value is parsed right above so will not overflow
+	perms := uint8((intVal) >> 9)           //nolint: gosec // this value is parsed right above so will not overflow
 
 	if perms&sticky != 0 {
 		fileMode |= os.ModeSticky

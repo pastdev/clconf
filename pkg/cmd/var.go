@@ -15,7 +15,7 @@ func varCmd() *cobra.Command {
 		Use:   "var",
 		Short: "Print out a var in the format used with clconf --var",
 		Args:  cobra.MinimumNArgs(2),
-		RunE: func(command *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			var marshaled []byte
 			var err error
 			if !forceArray && len(args) == 2 {
