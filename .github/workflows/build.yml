@@ -19,6 +19,9 @@ jobs:
     - name: Setup go
       uses: actions/setup-go@v5
       with:
+        # this version is not the same version as our go.mod specifies because
+        # the linter fails unless it is more modern:
+        #   https://github.com/golangci/golangci-lint/issues/5051#issuecomment-2386992469
         go-version: '^1.22'
         cache: true
     - name: golangci-lint
@@ -35,7 +38,10 @@ jobs:
     - name: Setup go
       uses: actions/setup-go@v5
       with:
-        go-version: '^1.17'
+        # bumping the version used to build because we have to bump for linter
+        # and may as well take advantage of more modern compile optimizations
+        # but will leave go.mod at 1.17 for compatibility for downstream consumers
+        go-version: '^1.22'
     - run: go version
     - run: go test ./...
 
