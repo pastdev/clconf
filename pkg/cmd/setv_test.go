@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -27,7 +26,7 @@ func getSetValueActual(message, original, key, value string, context *setvContex
 			message, key, value, err)
 	}
 
-	actual, err := ioutil.ReadFile(file)
+	actual, err := os.ReadFile(file)
 	if err != nil {
 		return "", fmt.Errorf("%s read yaml [%s]: %w",
 			message, file, err)
@@ -52,11 +51,7 @@ func TestSetValue(t *testing.T) {
 		t.Error("setValue no yaml should have failed")
 	}
 
-	tempDir, err := ioutil.TempDir("", "clconf")
-	if err != nil {
-		t.Errorf("Unable to create temp dir: %v", err)
-	}
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	tempDir := t.TempDir()
 	file := filepath.Join(tempDir, "config.yml")
 
 	keyFile := path.Join("..", "..", "testdata", "test.secring.gpg")

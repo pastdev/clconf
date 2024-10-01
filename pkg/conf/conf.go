@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"regexp"
 
@@ -102,7 +101,7 @@ func (s ConfSources) loadInterface(settable bool) (interface{}, string, error) {
 		if settable {
 			return nil, "", errors.New("stream not allowed when settable")
 		}
-		streamYaml, err := ioutil.ReadAll(s.Stream)
+		streamYaml, err := io.ReadAll(s.Stream)
 		if err != nil {
 			return nil, "", fmt.Errorf("reading stdin: %w", err)
 		}

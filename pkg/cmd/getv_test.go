@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -149,18 +148,14 @@ func testGetTemplate(
 func TestGetTemplate(t *testing.T) {
 	keyFile := path.Join("..", "testdata", "test.secring.gpg")
 
-	tempDir, err := ioutil.TempDir("", "clconf")
-	if err != nil {
-		t.Fatalf("Unable to create temp dir: %v", err)
-	}
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	tempDir := t.TempDir()
 
 	data := map[interface{}]interface{}{"foo": "bar"}
 	templateString := "{{ getv \"/foo\" }}"
 	templateBytes := []byte(templateString)
 	templateBase64 := base64.StdEncoding.EncodeToString(templateBytes)
 	templateFile := filepath.Join(tempDir, "template")
-	err = ioutil.WriteFile(templateFile, templateBytes, 0600)
+	err := os.WriteFile(templateFile, templateBytes, 0600)
 	if err != nil {
 		t.Fatalf("failed to write template file: %v", err)
 	}
@@ -198,12 +193,6 @@ func TestGetTemplate(t *testing.T) {
 
 func TestGetTemplateDelims(t *testing.T) {
 	keyFile := path.Join("..", "testdata", "test.secring.gpg")
-
-	tempDir, err := ioutil.TempDir("", "clconf")
-	if err != nil {
-		t.Fatalf("Unable to create temp dir: %v", err)
-	}
-	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	data := map[interface{}]interface{}{"foo": "bar"}
 	templateString := "<< getv \"/foo\" >>"

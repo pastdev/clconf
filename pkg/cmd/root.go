@@ -100,7 +100,7 @@ See the README for configuration details:
 
   https://github.com/pastdev/clconf/blob/master/README.md#configuration
   `,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRun: func(_ *cobra.Command, _ []string) {
 			if pipe {
 				c.stdin = true
 				c.ignoreEnv = true

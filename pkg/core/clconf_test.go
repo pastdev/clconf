@@ -2,7 +2,6 @@ package core_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -422,19 +421,15 @@ func TestMergeValue(t *testing.T) {
 }
 
 func TestSaveConf(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "core")
-	if err != nil {
-		t.Errorf("Unable to create temp dir: %v", err)
-	}
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	tempDir := t.TempDir()
 
 	config := map[interface{}]interface{}{"a": "b"}
 	file := filepath.Join(tempDir, "config.yml")
-	err = core.SaveConf(config, file)
+	err := core.SaveConf(config, file)
 	if err != nil {
 		t.Errorf("SafeConf failed: %v", err)
 	}
-	actual, err := ioutil.ReadFile(file)
+	actual, err := os.ReadFile(file)
 	if err != nil {
 		t.Errorf("SafeConf failed, unable to read %v", file)
 	}

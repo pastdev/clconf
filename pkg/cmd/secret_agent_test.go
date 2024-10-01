@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/base64"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -42,7 +41,7 @@ func TestNewSecretAgent(t *testing.T) {
 	}()
 
 	keyFile := path.Join("..", "..", "testdata", "test.secring.gpg")
-	key, err := ioutil.ReadFile(keyFile)
+	key, err := os.ReadFile(keyFile)
 	if err != nil {
 		t.Errorf("Unable to read %s: %s", keyFile, err)
 	}

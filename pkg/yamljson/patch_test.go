@@ -2,7 +2,6 @@ package yamljson_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -19,7 +18,7 @@ func TestPatch(t *testing.T) {
 		patches ...string,
 	) {
 		t.Run(name, func(t *testing.T) {
-			tempDir, err := ioutil.TempDir("", "clconf")
+			tempDir, err := os.MkdirTemp("", "clconf")
 			if err != nil {
 				t.Fatalf("create temp dir: %v", err)
 			}

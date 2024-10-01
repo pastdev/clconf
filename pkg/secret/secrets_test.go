@@ -2,7 +2,7 @@ package secret
 
 import (
 	"encoding/base64"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -63,7 +63,7 @@ func TestEncryptDecrypt(t *testing.T) {
 }
 
 func TestNewSecretAgent(t *testing.T) {
-	expected, err := ioutil.ReadFile(NewTestKeysFile())
+	expected, err := os.ReadFile(NewTestKeysFile())
 	if err != nil {
 		t.Errorf("Unable to read key file: %v", err)
 	}
