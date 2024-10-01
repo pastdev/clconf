@@ -4,12 +4,10 @@ linters:
   enable:
   - asciicheck
   - bidichk
-  - deadcode
   - durationcheck
   - exhaustive
   - errcheck
   - errorlint
-  - exportloopref
   - gochecknoinits
   - goconst
   - gocritic
@@ -24,11 +22,9 @@ linters:
   - revive
   - sqlclosecheck
   - staticcheck
-  - structcheck
   - typecheck
   - unparam
   - unused
-  - varcheck
   - wastedassign
   - whitespace
   - wrapcheck
