@@ -28,6 +28,9 @@ linters:
   - wastedassign
   - whitespace
   - wrapcheck
+  settings:
+    errcheck:
+      ignore: "" # Disable the overbroad ignore rules (they ignore things like Fprintf)
 issues:
   include:
   # Reenable some checks golangci-lint disables by default (see golangci-lint run --help)
@@ -36,6 +39,3 @@ issues:
   - EXC0005
   - EXC0006
   - EXC0007
-linters-settings:
-  errcheck:
-    ignore: "" # Disable the overbroad ignore rules (they ignore things like Fprintf)
