@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
 func assertYamlEqual(t *testing.T, message, expected, actual string) {

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/pastdev/clconf/v3/pkg/yamljson"
+	"github.com/stretchr/testify/require"
 )
 
 const configMap = "" +
@@ -122,9 +123,11 @@ func TestUnmarshalYaml(t *testing.T) {
 	})
 	t.Run("configMapAndSecrets", func(t *testing.T) {
 		actual, err := yamljson.UnmarshalYamlInterface(configMap, secrets)
-		if err != nil || !reflect.DeepEqual(actual, configMapAndSecretsExpected) {
-			t.Errorf("ConfigMap and Secrets failed: [%v] != [%v]", configMapAndSecretsExpected, actual)
-		}
+		require.NoError(t, err)
+		require.Equal(t, configMapAndSecretsExpected, actual)
+		// if err != nil || !reflect.DeepEqual(actual, configMapAndSecretsExpected) {
+		// 	t.Errorf("ConfigMap and Secrets failed: [%v] != [%v]", configMapAndSecretsExpected, actual)
+		// }
 	})
 }
 
