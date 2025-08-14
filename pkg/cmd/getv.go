@@ -65,6 +65,7 @@ func (c *getvContext) getValue(path string) (interface{}, error) {
 			return nil, err
 		}
 		if stringValue, ok := value.(string); ok {
+			//nolint:staticcheck // negation rules as they are have been tested
 			if len(c.decrypt) != 1 || !(c.decrypt[0] == "" || c.decrypt[0] == "/") {
 				return nil, NewExitError(1, "string value with non-root decrypt path")
 			}
@@ -122,7 +123,7 @@ func getvCmd(rootCmdContext *rootContext) *cobra.Command {
 	}
 
 	cmdContext.addFlags(cmd)
-	cmdContext.Marshaler.AddFlags(cmd)
+	cmdContext.AddFlags(cmd)
 
 	return cmd
 }
