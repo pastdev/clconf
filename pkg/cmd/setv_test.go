@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/pastdev/clconf/v3/pkg/secret"
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
 func getSetValueActual(message, original, key, value string, context *setvContext) (string, error) {

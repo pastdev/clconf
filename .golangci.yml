@@ -1,41 +1,48 @@
----
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
-  - asciicheck
-  - bidichk
-  - durationcheck
-  - exhaustive
-  - errcheck
-  - errorlint
-  - gochecknoinits
-  - goconst
-  - gocritic
-  - gofmt
-  - gosec
-  - gosimple
-  - govet
-  - ineffassign
-  - nakedret
-  - nilerr
-  - nolintlint
-  - revive
-  - sqlclosecheck
-  - staticcheck
-  - typecheck
-  - unparam
-  - unused
-  - wastedassign
-  - whitespace
-  - wrapcheck
-issues:
-  include:
-  # Reenable some checks golangci-lint disables by default (see golangci-lint run --help)
-  - EXC0001
-  - EXC0004
-  - EXC0005
-  - EXC0006
-  - EXC0007
-linters-settings:
-  errcheck:
-    ignore: "" # Disable the overbroad ignore rules (they ignore things like Fprintf)
+    - asciicheck
+    - bidichk
+    - durationcheck
+    - errcheck
+    - errorlint
+    - exhaustive
+    - gochecknoinits
+    - goconst
+    - gocritic
+    - gosec
+    - govet
+    - ineffassign
+    - nakedret
+    - nilerr
+    - nolintlint
+    - revive
+    - sqlclosecheck
+    - staticcheck
+    - unparam
+    - unused
+    - wastedassign
+    - whitespace
+    - wrapcheck
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      # gosec G304 is triggered because we allow opening of files from variables
+      # which is the primary purpose of this project (allow user to supply file
+      # names via command line options and env vars)
+      - common-false-positives
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

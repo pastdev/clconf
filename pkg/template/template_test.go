@@ -280,7 +280,7 @@ func TestProcessTemplateFolder(t *testing.T) {
 	defer func() { _ = os.RemoveAll(temp) }()
 
 	dest := filepath.Join(temp, "dest")
-	err := os.Mkdir(dest, 0755)
+	err := os.Mkdir(dest, 0750)
 	if err != nil {
 		t.Fatalf("failed to create dest dir: %v", err)
 	}
@@ -330,7 +330,7 @@ func TestProcessTemplateKeepEmpty(t *testing.T) {
 	defer func() { _ = os.RemoveAll(temp) }()
 
 	dest := filepath.Join(temp, "dest")
-	err := os.Mkdir(dest, 0755)
+	err := os.Mkdir(dest, 0750)
 	if err != nil {
 		t.Fatalf("failed to create dest dir: %v", err)
 	}
@@ -473,7 +473,7 @@ func TestProcessTemplatesWithExtension(t *testing.T) {
 	defer func() { _ = os.RemoveAll(temp) }()
 
 	dest := filepath.Join(temp, "dest")
-	err := os.Mkdir(dest, 0755)
+	err := os.Mkdir(dest, 0750)
 	if err != nil {
 		t.Fatalf("unable to create temp dest dir: %v", err)
 	}

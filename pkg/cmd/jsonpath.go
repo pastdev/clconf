@@ -33,7 +33,7 @@ func (c jsonpathContext) jsonpath(
 		path = args[0]
 	}
 
-	data, err := c.rootContext.getValue("/")
+	data, err := c.getValue("/")
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func jsonpathCmd(rootCmdContext *rootContext) *cobra.Command {
 	}
 
 	cmdContext.addFlags(cmd)
-	cmdContext.Marshaler.AddFlags(cmd)
+	cmdContext.AddFlags(cmd)
 
 	return cmd
 }
