@@ -29,6 +29,4 @@ require (
 	golang.org/x/crypto v0.41.0 // indirect
 )
 
-go 1.23.0
-
-toolchain go1.24.6
+go 1.25.4
