@@ -107,6 +107,7 @@ See the README for configuration details:
 			}
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			//nolint:goconst // yaml is used in may different contexts
 			return (&getvContext{
 				rootContext: c,
 				// default values for flags only occur on the cmd that is actually

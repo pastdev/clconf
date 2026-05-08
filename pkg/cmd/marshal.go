@@ -19,6 +19,7 @@ type secretAgentFactory interface {
 	newSecretAgent() (*secret.SecretAgent, error)
 }
 
+//nolint:goconst // these names/values are not worth creating constants for
 var marshalOutputOptions = map[string]string{
 	"bash-array":         "print the config as a string formatted for deserialization using bash declare -a",
 	"go-template":        "process the config through a go template supplied via --template",
@@ -264,7 +265,7 @@ func marshalBashArray(value interface{}) (string, error) {
 		} else {
 			builder.WriteString(" ")
 		}
-		builder.WriteString(fmt.Sprintf("[%d]=%s", i, bashEscape(val)))
+		fmt.Fprintf(&builder, "[%d]=%s", i, bashEscape(val))
 	}
 	builder.WriteString(")")
 

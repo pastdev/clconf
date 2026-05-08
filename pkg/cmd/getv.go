@@ -88,6 +88,7 @@ func cgetvCmd(rootCmdContext *rootContext) *cobra.Command {
 	var cmdContext = &getvContext{
 		rootContext: rootCmdContext,
 		Marshaler: Marshaler{
+			//nolint:goconst // its used in different contexts, dont want a constant for it
 			output: "yaml",
 		},
 	}
