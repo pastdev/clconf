@@ -47,6 +47,7 @@ func TestLoadConf(t *testing.T) {
 
 	envValues := []string{base64.StdEncoding.EncodeToString([]byte("a: env\nenv: env"))}
 	for index, name := range envVars {
+		//nolint:gosec // both envVars and envValues are created right here and easy to see same length
 		assert.Nil(t, os.Setenv(name, envValues[index]))
 	}
 

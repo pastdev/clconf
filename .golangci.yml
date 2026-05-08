@@ -27,16 +27,20 @@ linters:
     - wrapcheck
   exclusions:
     generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
     presets:
       - comments
       # gosec G304 is triggered because we allow opening of files from variables
       # which is the primary purpose of this project (allow user to supply file
       # names via command line options and env vars)
       - common-false-positives
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+    rules:
+    - path: '.*_test\.go'
+      linters:
+      - goconst
 formatters:
   enable:
     - gofmt
