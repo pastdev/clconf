@@ -1,5 +1,7 @@
 module github.com/pastdev/clconf/v3
 
+go 1.26.6
+
 require (
 	dario.cat/mergo v1.0.2
 	github.com/evanphx/json-patch/v5 v5.9.11
@@ -28,5 +30,3 @@ require (
 	github.com/spf13/pflag v1.0.7 // indirect
 	golang.org/x/crypto v0.52.0 // indirect
 )
-
-go 1.26.4
